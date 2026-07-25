@@ -17,6 +17,7 @@ cookieless (Umami); the privacy page lists exactly what is counted.
 ## Play
 
 - [Play Pip](https://playpip.io): The app — single-player Texas Hold'em, no signup.
+- [Blog](https://playpip.io/blog): Notes from the table — what shipped and what changed.
 - [Privacy](https://playpip.io/privacy): Exactly what Pip counts, and for how long.
 
 ## Project

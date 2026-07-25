@@ -3,18 +3,22 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { Wordmark } from './Wordmark'
 
 /**
- * The frame for the legal pages (Privacy, Terms). A narrow, readable column with
- * the marketing chrome — same wordmark and footer language as the landing page,
- * so leaving the app for the fine print still feels like Pip. Written in the
- * house voice, not legalese; see docs/brand.md.
+ * The frame for the prose pages (Privacy, Terms, the blog). A narrow, readable
+ * column with the marketing chrome — same wordmark and footer language as the
+ * landing page, so leaving the app for the fine print still feels like Pip.
+ * Written in the house voice, not legalese; see docs/brand.md.
  */
 export function LegalPage({
   title,
   updated,
+  subtitle,
   children,
 }: {
   title: string
+  /** Renders as "Last updated {updated}" — for the legal pages. */
   updated?: string
+  /** A plain line under the title (e.g. a blog post's date). */
+  subtitle?: string
   children: React.ReactNode
 }) {
   return (
@@ -31,6 +35,7 @@ export function LegalPage({
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-14 md:px-8 md:py-20">
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
         {updated && <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>}
+        {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
         <div className="mt-10">{children}</div>
       </main>
 
@@ -38,6 +43,9 @@ export function LegalPage({
         <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center gap-x-5 gap-y-2 px-6 py-8 text-sm text-muted-foreground md:px-8">
           <Link href="/" className="transition hover:text-foreground">
             Home
+          </Link>
+          <Link href="/blog" className="transition hover:text-foreground">
+            Blog
           </Link>
           <Link href="/privacy" className="transition hover:text-foreground">
             Privacy
