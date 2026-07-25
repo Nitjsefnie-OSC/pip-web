@@ -3,6 +3,10 @@
 Thanks for being here. Pip is a small, open project, and it's better with other people
 in it.
 
+Merged work ships with the app: every contributor's name appears on
+[playpip.io/credits](https://playpip.io/credits), pulled straight from the repo's
+contributor list. Land a change and you're on the page.
+
 ## You don't have to write code
 
 Genuinely useful contributions that aren't pull requests:
@@ -57,6 +61,7 @@ relevant doc first.
 - Match the surrounding code; `pnpm format` handles the mechanics.
 - Explain the *why*, not just the *what*.
 - New to the repo? Look for [`good first issue`](https://github.com/playpip/pip-web/labels/good%20first%20issue).
+  Your first merged PR puts you on [/credits](https://playpip.io/credits).
 
 ## The non-negotiables
 
