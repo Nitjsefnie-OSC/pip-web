@@ -6,7 +6,7 @@
   "packageManager": "pnpm@11.0.9",
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/gen-credits.mjs && next build && node scripts/stamp-sw.mjs",
+    "build": "node scripts/gen-credits.mjs && next build && node scripts/stamp-sw.mjs && node scripts/gen-llms.mjs",
     "start": "next start",
     "lint": "biome lint .",
     "lint:fix": "biome check --write --unsafe .",
@@ -53,6 +53,7 @@
     "knip": "^6.26.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
+    "turndown": "^7.2.4",
     "typescript": "^5"
   }
 }
