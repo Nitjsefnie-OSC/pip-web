@@ -15,6 +15,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'launch-week',
+    title: 'Launch week: what shipped',
+    description:
+      'A new card back, four more hand nicknames, a quicker freeroll, and three strangers in the credits — everything that changed in Pip’s first days in the open.',
+    date: '2026-07-25',
+  },
+  {
     slug: 'pip-is-live',
     title: 'Pip is live, and it’s open source',
     description:
