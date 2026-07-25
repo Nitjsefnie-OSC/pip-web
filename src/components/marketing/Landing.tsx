@@ -74,6 +74,12 @@ function Header() {
           >
             Venues
           </a>
+          <Link
+            href="/blog"
+            className="hidden rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:block"
+          >
+            Blog
+          </Link>
           <a
             href="https://github.com/playpip/pip-web"
             target="_blank"
