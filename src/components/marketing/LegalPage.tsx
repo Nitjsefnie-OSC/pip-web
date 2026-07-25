@@ -37,20 +37,23 @@ export function LegalPage({
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-14 md:px-8 md:py-20">
-        {back && (
-          <Link
-            href={back.href}
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
-          >
-            <ArrowLeft className="size-3.5" />
-            {back.label}
-          </Link>
-        )}
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
-        {updated && <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>}
-        {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
-        <div className="mt-10">{children}</div>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-14 md:px-10 md:py-20">
+        {/* Left-aligned with the chrome, capped at a readable measure. */}
+        <div className="max-w-2xl">
+          {back && (
+            <Link
+              href={back.href}
+              className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+            >
+              <ArrowLeft className="size-3.5" />
+              {back.label}
+            </Link>
+          )}
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
+          {updated && <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>}
+          {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
+          <div className="mt-10">{children}</div>
+        </div>
       </main>
 
       <Footer />
