@@ -26,6 +26,7 @@ import { CardBack } from '@/components/CardBack'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Wordmark } from './Wordmark'
+import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
 import { CARD_BACKS } from '@/config/cardBacks'
@@ -76,7 +77,7 @@ function Header() {
           </a>
           <Link
             href="/blog"
-            className="hidden rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground sm:block"
+            className="rounded-full px-3 py-2 text-sm text-muted-foreground transition hover:text-foreground"
           >
             Blog
           </Link>
@@ -749,51 +750,6 @@ function FinalCta() {
 }
 
 /* --------------------------------- footer --------------------------------- */
-
-function Footer() {
-  return (
-    <footer className="border-t border-foreground/5">
-      <div className="mx-auto flex w-full max-w-6xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center md:px-10">
-        <div>
-          <Wordmark />
-          <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            Casual Texas Hold&rsquo;em, redesigned. Free, open source, and play money — never real
-            gambling.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
-          <a href="#features" className="transition hover:text-foreground">
-            Features
-          </a>
-          <a href="#venues" className="transition hover:text-foreground">
-            Venues
-          </a>
-          <Link href="/blog" className="transition hover:text-foreground">
-            Blog
-          </Link>
-          <Link href="/privacy" className="transition hover:text-foreground">
-            Privacy
-          </Link>
-          <Link href="/terms" className="transition hover:text-foreground">
-            Terms
-          </Link>
-          <Link href="/credits" className="transition hover:text-foreground">
-            Credits
-          </Link>
-          <a
-            href="https://github.com/playpip/pip-web"
-            target="_blank"
-            rel="noreferrer"
-            className="transition hover:text-foreground"
-          >
-            GitHub
-          </a>
-          <ThemeToggle />
-        </div>
-      </div>
-    </footer>
-  )
-}
 
 /* ------------------------------- play button ------------------------------ */
 

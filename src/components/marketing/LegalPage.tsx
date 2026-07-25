@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { Footer } from './Footer'
 import { Wordmark } from './Wordmark'
 
 /**
@@ -12,6 +14,7 @@ export function LegalPage({
   title,
   updated,
   subtitle,
+  back,
   children,
 }: {
   title: string
@@ -19,12 +22,14 @@ export function LegalPage({
   updated?: string
   /** A plain line under the title (e.g. a blog post's date). */
   subtitle?: string
+  /** A quiet back link above the title (e.g. a post back to the blog index). */
+  back?: { href: string; label: string }
   children: React.ReactNode
 }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-6 md:px-8">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 md:px-10">
           <Link href="/" aria-label="Pip home" className="transition hover:opacity-80">
             <Wordmark />
           </Link>
@@ -33,39 +38,22 @@ export function LegalPage({
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-14 md:px-8 md:py-20">
+        {back && (
+          <Link
+            href={back.href}
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            {back.label}
+          </Link>
+        )}
         <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{title}</h1>
         {updated && <p className="mt-2 text-sm text-muted-foreground">Last updated {updated}</p>}
         {subtitle && <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p>}
         <div className="mt-10">{children}</div>
       </main>
 
-      <footer className="border-t border-foreground/5">
-        <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center gap-x-5 gap-y-2 px-6 py-8 text-sm text-muted-foreground md:px-8">
-          <Link href="/" className="transition hover:text-foreground">
-            Home
-          </Link>
-          <Link href="/blog" className="transition hover:text-foreground">
-            Blog
-          </Link>
-          <Link href="/privacy" className="transition hover:text-foreground">
-            Privacy
-          </Link>
-          <Link href="/terms" className="transition hover:text-foreground">
-            Terms
-          </Link>
-          <Link href="/credits" className="transition hover:text-foreground">
-            Credits
-          </Link>
-          <a
-            href="https://github.com/playpip/pip-web"
-            target="_blank"
-            rel="noreferrer"
-            className="transition hover:text-foreground"
-          >
-            GitHub
-          </a>
-        </div>
-      </footer>
+      <Footer />
     </div>
   )
 }

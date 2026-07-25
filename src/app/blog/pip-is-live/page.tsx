@@ -12,7 +12,11 @@ export const metadata: Metadata = {
 
 export default function PipIsLivePost() {
   return (
-    <LegalPage title={post.title} subtitle={formatPostDate(post.date)}>
+    <LegalPage
+      title={post.title}
+      subtitle={formatPostDate(post.date)}
+      back={{ href: '/blog', label: 'All posts' }}
+    >
       <Section title="The short version">
         <p>
           Pip is single-player Texas Hold&rsquo;em in the browser: real poker, against AI opponents
@@ -76,14 +80,6 @@ export default function PipIsLivePost() {
           <A href="https://github.com/playpip/pip-web/issues">open an issue</A> — every hand in Pip
           has a shareable permalink that replays it step by step, which makes a bug report unusually
           easy to believe.
-        </p>
-        <p className="pt-4">
-          <Link
-            href="/blog"
-            className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
-          >
-            More from the blog
-          </Link>
         </p>
       </Section>
     </LegalPage>
