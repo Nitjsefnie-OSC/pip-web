@@ -45,3 +45,6 @@ next-env.d.ts
 # agent planning workspace (local only)
 /agents/
 .nanocoder
+
+# wrangler pages dev cache
+.wrangler/
