@@ -15,6 +15,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'agent-readable',
+    title: 'Pip, for readers who aren’t people',
+    description:
+      'Every content page now answers Accept: text/markdown with its plain text version — a free-plan build of what Cloudflare offers as Markdown for Agents, in about ninety lines.',
+    date: '2026-07-26',
+  },
+  {
     slug: 'launch-week',
     title: 'Launch week: what shipped',
     description:
