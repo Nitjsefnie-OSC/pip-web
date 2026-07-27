@@ -11,6 +11,9 @@ const W = 100
 const H = 42
 const PAD_Y = 4
 
+/** How long the line takes to draw itself; the dots land as it passes them. */
+const DRAW_S = 1
+
 type XY = { x: number; y: number }
 
 /** Catmull-Rom through the points, emitted as cubic beziers — the soft iOS curve. */
@@ -91,21 +94,24 @@ export function RollGraph({
     // preserveAspectRatio="none" a circle scales into a clipped ellipse. As
     // divs they stay perfectly round however the box is stretched.
     <div className={cn('relative', className)}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="size-full" aria-hidden>
-        <defs>
-          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={accent} stopOpacity="0.28" />
-            <stop offset="100%" stopColor={accent} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {/* NOTE: no pathLength draw animation here — Framer's dasharray trick
-            fights vector-effect:non-scaling-stroke under non-uniform scaling
-            (preserveAspectRatio="none") and leaves the line visibly dashed. */}
-        <motion.g
-          initial={reduced ? false : { opacity: 0, y: 3 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-        >
+      {/* The line draws itself with a left-to-right clip wipe on the wrapper.
+          NOTE: not Framer's pathLength — that dasharray trick fights
+          vector-effect:non-scaling-stroke under non-uniform scaling
+          (preserveAspectRatio="none") and leaves the line visibly dashed.
+          Clipping the wrapper never touches the stroke, so it stays clean. */}
+      <motion.div
+        className="size-full"
+        initial={reduced ? false : { clipPath: 'inset(0 100% 0 0)' }}
+        animate={{ clipPath: 'inset(0 0% 0 0)' }}
+        transition={{ duration: DRAW_S, ease: 'easeOut' }}
+      >
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="size-full" aria-hidden>
+          <defs>
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={accent} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={accent} stopOpacity="0" />
+            </linearGradient>
+          </defs>
           <path d={area} fill={`url(#${gradientId})`} />
           <path
             d={line}
@@ -116,16 +122,23 @@ export function RollGraph({
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
           />
-        </motion.g>
-      </svg>
+        </svg>
+      </motion.div>
 
-      {/* a small dot on every recorded point; the latest is emphasised */}
+      {/* A small dot on every recorded point; the latest is emphasised. These
+          sit outside the clip (a ring on the last dot would be shaved by it),
+          so each fades in as the wipe reaches its x. Rendered even when active
+          — the bigger active dot covers this one — because skipping it would
+          remount and re-run the entrance on every hover. */}
       {xy.map((p, i) =>
-        i === lastIndex || i === active ? null : (
-          <span
+        i === lastIndex ? null : (
+          <motion.span
             key={i}
             className="absolute size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{ left: `${p.x}%`, top: `${(p.y / H) * 100}%`, backgroundColor: tint(45) }}
+            initial={reduced ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2, delay: reduced ? 0 : (p.x / W) * DRAW_S }}
           />
         ),
       )}
@@ -140,7 +153,7 @@ export function RollGraph({
         }}
         initial={reduced ? false : { opacity: 0, scale: 0 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: reduced ? 0 : 0.45, type: 'spring', stiffness: 400, damping: 20 }}
+        transition={{ delay: reduced ? 0 : DRAW_S, type: 'spring', stiffness: 400, damping: 20 }}
       />
 
       {/* active point: guide line, emphasised dot, and the figure */}
