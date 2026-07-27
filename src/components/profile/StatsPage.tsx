@@ -6,6 +6,7 @@ import { PageShell } from '@/components/PageShell'
 import { RollGraph } from '@/components/RollGraph'
 import { CountUp } from '@/components/CountUp'
 import { PlayStyleChart } from './PlayStyleChart'
+import { RankLadder } from './RankLadder'
 import { useProfile } from '@/store/profile'
 import { VENUES, SIDE_TABLES, KITCHEN_TABLE } from '@/config/venues'
 import { rankFor } from '@/config/ranks'
@@ -71,6 +72,22 @@ export function StatsPage() {
           />
         </div>
       </motion.header>
+
+      {/* the ladder — reads straight on from the Peak Roll above it */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.03, duration: 0.4, ease: 'easeOut' }}
+        className="mb-4"
+      >
+        <Card>
+          <div className="mb-4 flex items-baseline justify-between gap-4">
+            <CardLabel>Rank</CardLabel>
+            <p className="text-xs text-muted-foreground/70">Earned on your peak Roll</p>
+          </div>
+          <RankLadder peakRoll={peakRoll} accent={accent} format={money} />
+        </Card>
+      </motion.section>
 
       {/* bento */}
       <motion.div
