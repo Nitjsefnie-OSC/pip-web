@@ -185,6 +185,7 @@ const BACK_BLURBS: Record<string, string> = {
   ocean: 'The deep end, gently.',
   rose: 'A soft touch at the table.',
   slate: 'Cool, grey, all business.',
+  lilac: 'Quiet, and in no hurry.',
   midnight: 'Lights low, focus high.',
   'back-penny': 'Everyone’s first splurge.',
   'back-powder': 'Soft as a fold.',

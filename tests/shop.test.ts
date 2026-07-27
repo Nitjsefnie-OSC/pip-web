@@ -18,6 +18,15 @@ test('shop item ids are unique and every price is positive', (t) => {
   }
 })
 
+// A shop back gets its blurb from a lookup keyed by design id, so adding a
+// design without adding its line ships an item with an empty subtitle (the
+// Lilac back did exactly that). Every item on the shelf says something.
+test('every shop item has a blurb', (t) => {
+  for (const item of SHOP_ITEMS) {
+    t.truthy(item.blurb, `${item.id} has no blurb`)
+  }
+})
+
 test('every venue-win requirement points at a real venue', (t) => {
   for (const item of SHOP_ITEMS) {
     if (item.requiresVenueWin) {
