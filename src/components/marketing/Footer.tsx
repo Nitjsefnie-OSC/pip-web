@@ -18,6 +18,9 @@ const FOOTER_GROUPS: {
       { label: 'Learn poker', href: '/learn' },
       { label: 'Blog', href: '/blog' },
       { label: 'Credits', href: '/credits' },
+      // A quiet text link rather than an icon: we have exactly one social
+      // account, and a row built for one icon reads as a placeholder.
+      { label: 'X', href: 'https://x.com/playpipio', external: true },
     ],
   },
   {
