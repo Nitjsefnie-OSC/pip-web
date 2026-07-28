@@ -50,9 +50,12 @@ export default function PipIsLivePost() {
       <Section title="Open, on purpose">
         <p>
           The code is MIT-licensed on <A href="https://github.com/playpip/pip-web">GitHub</A>. The
-          poker engine is a pure, deterministic TypeScript module with a seeded shuffle, which is
-          what lets us say &ldquo;provably fair&rdquo; and mean it — you can read exactly how every
-          hand is dealt.
+          poker engine is a pure, deterministic TypeScript module: give it the same seed and it
+          deals the same hand, every time. That is what makes the Daily Deal checkable, since its
+          seed comes from the date and everyone in the world plays the identical shuffle. An
+          ordinary hand uses your browser&rsquo;s own randomness, with no server in the loop to tilt
+          it either way. Both cases come down to the same thing — you can read exactly how the cards
+          come out.
         </p>
         <p>
           It&rsquo;s already more than one person&rsquo;s project: three contributors landed merged
