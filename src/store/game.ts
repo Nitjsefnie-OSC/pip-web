@@ -145,8 +145,33 @@ function clearTimers() {
 // localStorage at every deal and hand end; the play page resumes from it
 // instead of buying in again. Cleared on every legitimate exit (leave, bust,
 // win) and overwritten when a new table starts.
+//
+// The snapshot also carries the hand in progress (`live`), rewritten after
+// every action. It used to stop at the hand boundary, so a refresh re-dealt the
+// current hand from scratch: you could shove, dislike the flop, refresh, and
+// get both your chips and a fresh board back, or just keep refreshing until you
+// were dealt something you liked (#22). Resuming into the exact hand closes
+// that. Cards live in the browser either way (this is a single-player game with
+// no server), so the point is to remove the accident, not to make the state
+// tamper-proof.
 
 const TABLE_KEY = 'pip.table'
+
+/** The hand in progress, and the running counters that belong to it. */
+export interface LiveHand {
+  hand: HandState
+  /** Timeline so far, so hand history survives the refresh. */
+  events: HandEvent[]
+  /** Who has already been counted as voluntarily in. VPIP is once per hand. */
+  vpip: string[]
+  /** Session tendency counters, plus the baselines their deltas flush against. */
+  stats: Record<string, SeatStats>
+  heroFlushed: SeatStats
+  castFlushed: Record<string, SeatStats>
+  /** Hand number on display. Blinds come off `hand`; the level does not. */
+  handIndex: number
+  blindLevel: number
+}
 
 export interface TableSnapshot {
   venueId: string
@@ -160,6 +185,11 @@ export interface TableSnapshot {
   cashInvested?: number
   /** Which day's Daily this table is — keeps the seed stable across midnight. */
   dailyDate?: string
+  /**
+   * Set between the deal and the hand ending; absent between hands. Present
+   * means "play this hand on", absent means "deal hand `handIndex`".
+   */
+  live?: LiveHand
 }
 
 function saveTableSnapshot(snap: TableSnapshot) {
@@ -295,6 +325,40 @@ export const useGame = create<GameState>((set, get) => {
       .map((s) => ({ id: s.id, name: s.name, stack: s.stack }))
   }
 
+  /**
+   * Snapshot the hand in progress. Called on the deal and after every action so
+   * that whenever the tab dies, the hand can be picked up exactly where it was
+   * rather than re-dealt (#22).
+   *
+   * `seats` stay at their start-of-hand stacks. `finishHand` is what writes
+   * stacks back, so the chips still in front of players live on `hand` alone.
+   */
+  function saveLiveHand() {
+    const { venue, hand, seats, buttonSeatId, handIndex, blindLevel, cashInvested } = get()
+    if (!venue || !hand || !buttonSeatId) return
+    saveTableSnapshot({
+      venueId: venue.id,
+      seats,
+      buttonSeatId,
+      // The between-hands fallback: `handIndex` counts the hand just dealt, so
+      // deal it again if `live` is ever missing.
+      handIndex: handIndex - 1,
+      heroLow: heroLowTide,
+      cashInvested,
+      dailyDate: dailyDay ?? undefined,
+      live: {
+        hand,
+        events: currentEvents.slice(),
+        vpip: [...vpipThisHand],
+        stats: { ...seatStatsLive },
+        heroFlushed: { ...heroTendencyFlushed },
+        castFlushed: { ...castFlushed },
+        handIndex,
+        blindLevel,
+      },
+    })
+  }
+
   function dealHand(buttonSeatId: string) {
     const configs = liveSeatConfigs()
     const buttonIndex = Math.max(
@@ -333,16 +397,8 @@ export const useGame = create<GameState>((set, get) => {
       blindLevel: blinds.level,
       handIndex: handIndex + 1,
     })
-    // A refresh mid-hand resumes by re-dealing this hand from its start.
-    saveTableSnapshot({
-      venueId: venue!.id,
-      seats: get().seats,
-      buttonSeatId: configs[buttonIndex].id,
-      handIndex,
-      heroLow: heroLowTide,
-      cashInvested: get().cashInvested,
-      dailyDate: dailyDay ?? undefined,
-    })
+    // A refresh from here on resumes into this exact hand.
+    saveLiveHand()
     progress()
   }
 
@@ -381,6 +437,7 @@ export const useGame = create<GameState>((set, get) => {
       const next = applyAction(cur, action)
       recordStep(cur, action, next)
       set({ hand: next })
+      saveLiveHand()
       progress()
     }, delay)
   }
@@ -775,10 +832,16 @@ export const useGame = create<GameState>((set, get) => {
 
     resumeTable: (venue, snapshot) => {
       clearTimers()
+      const live = snapshot.live
       heroLowTide = snapshot.heroLow
-      seatStatsLive = {}
-      heroTendencyFlushed = emptySeatStats()
-      castFlushed = {}
+      // Mid-hand, the counters and their flush baselines both come back, so the
+      // hand's actions so far still count and the hands before it don't count
+      // twice.
+      seatStatsLive = live ? { ...live.stats } : {}
+      heroTendencyFlushed = live ? { ...live.heroFlushed } : emptySeatStats()
+      castFlushed = live ? { ...live.castFlushed } : {}
+      currentEvents = live ? live.events.slice() : []
+      vpipThisHand = new Set(live?.vpip)
       lastTalkHand = -TALK_MIN_GAP_HANDS
       // Resume a Daily under its original day's seed, even across midnight.
       armDaily(venue.daily ? (snapshot.dailyDate ?? dailyDateKey()) : null)
@@ -800,7 +863,23 @@ export const useGame = create<GameState>((set, get) => {
         talk: null,
         cashInvested: snapshot.cashInvested ?? venue.buyIn,
       })
-      dealHand(snapshot.buttonSeatId)
+
+      // Between hands: deal the next one. Mid-hand: pick the hand back up on
+      // the street it was on, with the same deck (#22).
+      if (!live) {
+        dealHand(snapshot.buttonSeatId)
+        return
+      }
+      set({
+        hand: live.hand,
+        buttonSeatId: snapshot.buttonSeatId,
+        handIndex: live.handIndex,
+        smallBlind: live.hand.smallBlind,
+        bigBlind: live.hand.bigBlind,
+        blindLevel: live.blindLevel,
+        seatStats: { ...seatStatsLive },
+      })
+      progress()
     },
 
     act: (action) => {
@@ -812,6 +891,7 @@ export const useGame = create<GameState>((set, get) => {
       const next = applyAction(hand, action)
       recordStep(hand, action, next)
       set({ hand: next, heroEquity: null })
+      saveLiveHand()
       progress()
     },
 
