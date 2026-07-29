@@ -11,13 +11,27 @@ export interface AvatarSpec {
 }
 
 export const AVATAR_BG_SWATCHES = [
-  'b6e3f4', // sky
-  'c0aede', // lilac
-  'd1f4d0', // mint
-  'ffd5dc', // blush
-  'ffdfbf', // peach
-  'f4e7b6', // sand
+  'b6e3f4',
+  'c0aede',
+  'd1f4d0',
+  'ffd5dc',
+  'ffdfbf',
+  'f4e7b6',
 ] as const
+
+/**
+ * What each swatch is called. The picker announces these, so a screen reader
+ * says "lilac" rather than a hex or a position in the row. Typed off the tuple
+ * above so a new swatch can't ship without a name.
+ */
+export const AVATAR_BG_SWATCH_NAMES: Record<(typeof AVATAR_BG_SWATCHES)[number], string> = {
+  b6e3f4: 'sky',
+  c0aede: 'lilac',
+  d1f4d0: 'mint',
+  ffd5dc: 'blush',
+  ffdfbf: 'peach',
+  f4e7b6: 'sand',
+}
 
 /** Render an AvatarSpec to an SVG string (for dangerouslySetInnerHTML or data URI). */
 export function renderAvatar(spec: AvatarSpec, size = 96): string {

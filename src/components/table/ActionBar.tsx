@@ -85,6 +85,10 @@ export function ActionBar({ hand }: { hand: HandState }) {
               max={legal.maxRaiseTo}
               value={raiseTo}
               onChange={(e) => setRaiseTo(Number(e.target.value))}
+              aria-label={legal.canBet ? 'Bet size' : 'Raise size'}
+              // Without this the slider reads out a bare chip count. Say what
+              // the big number above it says.
+              aria-valuetext={isAllIn ? 'All in' : money(raiseTo)}
               className="w-full accent-foreground"
             />
 

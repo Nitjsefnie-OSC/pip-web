@@ -3,7 +3,12 @@
 import { motion } from 'framer-motion'
 import { Shuffle } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
-import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
+import {
+  AVATAR_BG_SWATCH_NAMES,
+  AVATAR_BG_SWATCHES,
+  freshSeed,
+  type AvatarSpec,
+} from '@/lib/avatar'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 
@@ -47,7 +52,7 @@ export function AvatarEditor({
       </button>
 
       <div className="flex gap-2">
-        {AVATAR_BG_SWATCHES.map((swatch, index) => {
+        {AVATAR_BG_SWATCHES.map((swatch) => {
           const isSelected = spec.backgroundColor === swatch
 
           return (
@@ -58,7 +63,7 @@ export function AvatarEditor({
                 sound.play('tap')
                 onSpecChange({ ...spec, backgroundColor: swatch })
               }}
-              aria-label={`Choose avatar background color ${index + 1}`}
+              aria-label={AVATAR_BG_SWATCH_NAMES[swatch]}
               aria-pressed={isSelected}
               className={cn(
                 'size-7 rounded-full ring-2 ring-transparent transition',

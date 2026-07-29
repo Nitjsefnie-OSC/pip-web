@@ -1,5 +1,5 @@
 import test from 'ava'
-import { AVATAR_BG_SWATCHES, accentFromSwatch } from '@/lib/avatar'
+import { AVATAR_BG_SWATCH_NAMES, AVATAR_BG_SWATCHES, accentFromSwatch } from '@/lib/avatar'
 
 // accentFromSwatch parses a `#rrggbb`/`rrggbb` swatch, converts to HSL, then
 // re-emits an accent at a fixed lightness (L = 0.55) with saturation clamped to
@@ -95,4 +95,15 @@ test('a valid swatch never coincidentally returns the fallback string', (t) => {
   // literal `#7c8cf0` — confirming the fallback marks the malformed path only.
   t.is(accentFromSwatch('7c8cf0'), '#3a50df')
   t.not(accentFromSwatch('7c8cf0'), '#7c8cf0')
+})
+
+test('every swatch has a distinct, non-empty name for the picker to announce', (t) => {
+  // The Record type already forces a key per swatch at compile time; this
+  // catches the runtime slips it can't see — a blank string, or two swatches
+  // sharing a name, either of which makes the picker ambiguous out loud.
+  for (const swatch of AVATAR_BG_SWATCHES) {
+    t.true(AVATAR_BG_SWATCH_NAMES[swatch].trim().length > 0, `${swatch} has no name`)
+  }
+  const names = AVATAR_BG_SWATCHES.map((s) => AVATAR_BG_SWATCH_NAMES[s])
+  t.is(new Set(names).size, AVATAR_BG_SWATCHES.length)
 })
