@@ -28,8 +28,15 @@ import {
 } from '@/lib/poker/engine'
 import { decideAction, opponentSelectivity } from '@/lib/poker/ai/policy'
 import { estimateEquity } from '@/lib/poker/equity'
-import { mulberry32, type Card, type Rng } from '@/lib/poker/cards'
-import { dailyDateKey, dailyNumber, dailySeed, handSeed } from '@/lib/daily'
+import { mulberry32, type Card } from '@/lib/poker/cards'
+import {
+  dailyAiRng as dailyAiRngFor,
+  dailyDateKey,
+  dailyNumber,
+  dailySeed,
+  handSeed,
+  type CountedRng,
+} from '@/lib/daily'
 import { formatChips } from '@/lib/useMoney'
 import { useProfile } from './profile'
 
@@ -171,6 +178,8 @@ export interface LiveHand {
   /** Hand number on display. Blinds come off `hand`; the level does not. */
   handIndex: number
   blindLevel: number
+  /** Daily only: draws taken from this hand's AI stream. Zero elsewhere. */
+  aiDraws: number
 }
 
 export interface TableSnapshot {
@@ -231,16 +240,28 @@ let castFlushed: Record<string, SeatStats> = {}
 // --- the Daily Deal ------------------------------------------------------------
 // While a Daily table is live, decks come from a date-derived seed (hand n is
 // mulberry32(handSeed(base, n)) — so a refresh re-deals hand n identically) and
-// AI decisions draw from a seeded stream. Everything else is the normal loop.
+// AI decisions draw from their own per-hand stream off the same seed, so the
+// opponents are as reproducible as the cards. Everything else is the normal
+// loop.
 
 let dailyBase: number | null = null
 let dailyDay: string | null = null
-let dailyAiRng: Rng | null = null
+/** The AI stream for the hand on the table. Null away from a Daily. */
+let dailyAiRng: CountedRng | null = null
 
 function armDaily(dateKey: string | null) {
   dailyDay = dateKey
   dailyBase = dateKey ? dailySeed(dateKey) : null
-  dailyAiRng = dailyBase !== null ? mulberry32(dailyBase ^ 0x5f356495) : null
+  dailyAiRng = null
+}
+
+/**
+ * Point the AI stream at one hand, `from` draws in. Called on every deal, and
+ * on a mid-hand resume with the draws the snapshot recorded, so the opponents
+ * carry on from where they were instead of restarting (#25).
+ */
+function armDailyHand(handIndex: number, from = 0) {
+  dailyAiRng = dailyBase === null ? null : dailyAiRngFor(dailyBase, handIndex, from)
 }
 
 // --- table talk ---------------------------------------------------------------
@@ -355,6 +376,7 @@ export const useGame = create<GameState>((set, get) => {
         castFlushed: { ...castFlushed },
         handIndex,
         blindLevel,
+        aiDraws: dailyAiRng?.drawn() ?? 0,
       },
     })
   }
@@ -377,6 +399,8 @@ export const useGame = create<GameState>((set, get) => {
       bigBlind: blinds.bigBlind,
       rng: dailyBase !== null ? mulberry32(handSeed(dailyBase, handIndex)) : undefined,
     })
+    // The opponents get their own stream off the same per-hand seed as the deck.
+    armDailyHand(handIndex)
     sound.play('deal')
     // Engagement — someone actually started playing. Once per tab session so a
     // busy session doesn't drown the signal; anonymous.
@@ -870,6 +894,9 @@ export const useGame = create<GameState>((set, get) => {
         dealHand(snapshot.buttonSeatId)
         return
       }
+      // `snapshot.handIndex` is the index the hand was dealt at, which is what
+      // seeds both the deck and the AI stream.
+      armDailyHand(snapshot.handIndex, live.aiDraws)
       set({
         hand: live.hand,
         buttonSeatId: snapshot.buttonSeatId,

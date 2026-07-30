@@ -3,6 +3,8 @@
 // (the engine is open and deterministic). No streaks, no history pressure —
 // yesterday's daily is simply gone.
 
+import { mulberry32, type Rng } from './poker/cards'
+
 /** Daily #1 was 16 July 2026 (UTC). */
 export const DAILY_EPOCH_UTC = Date.UTC(2026, 6, 16)
 
@@ -36,6 +38,34 @@ export function dailySeed(dateKey: string): number {
 /** Per-hand seed so a mid-tournament refresh re-deals hand N identically. */
 export function handSeed(base: number, handIndex: number): number {
   return (base ^ Math.imul(handIndex + 1, 0x9e3779b9)) >>> 0
+}
+
+/** An RNG that reports how far into its stream it is. */
+export type CountedRng = Rng & { drawn: () => number }
+
+/** Keeps the AI's stream off the deck's, despite sharing a per-hand seed. */
+const AI_STREAM_SALT = 0x5f356495
+
+/**
+ * The Daily's AI stream for one hand, positioned `from` draws in.
+ *
+ * Per hand rather than per tournament, matching the deck. A page load has to
+ * rebuild the stream from the seed, and one stream for the whole day meant the
+ * opponents restarted at the beginning while the deal carried on from where you
+ * were: same cards for everyone, different opponents for anyone who refreshed
+ * (#25). Per-hand also keeps the catch-up cheap, since only this hand's draws
+ * get replayed rather than the day's.
+ */
+export function dailyAiRng(base: number, handIndex: number, from = 0): CountedRng {
+  const stream = mulberry32(handSeed(base, handIndex) ^ AI_STREAM_SALT)
+  let count = 0
+  for (; count < from; count++) stream()
+  const rng = (() => {
+    count++
+    return stream()
+  }) as CountedRng
+  rng.drawn = () => count
+  return rng
 }
 
 /** The copyable result — calm, no emoji grid, no streak brag. */
