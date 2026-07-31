@@ -5,7 +5,7 @@ redesigned. No fake felt, no neon, no pop-ups. You play a local bankroll (your
 **Roll**) up a ladder of venues against increasingly sharp AI.
 
 It is inspired by [Offsuit](https://offsuit.app/) but is its own product: desktop-first,
-account-free, fully local, free (no real money — chips are play money), and **open
+local-first with no account needed, free (no real money — chips are play money), and **open
 source** — the deterministic engine is public, so the game is provably fair by
 inspection. Openness is the trust foundation for everything we add later (paid
 cosmetics, multiplayer); see [brand.md](./brand.md).
@@ -44,8 +44,9 @@ If you change how it *looks*, you stay in components + theme tokens.
 
 - **In scope / built:** onboarding, avatar creator, the Roll + venue ladder,
   full Hold'em vs AI, sit-and-go tournaments with a bankroll/rank economy + selectable currency, live equity, sound, motion, theming,
-  card-back customization, an installable offline PWA, and account-free profile
-  backup/transfer (file / copyable code / scan-to-phone QR).
-- **Explicitly out of scope (for now):** online multiplayer, accounts, real money,
+  card-back customization, an installable offline PWA, profile backup/transfer with no
+  account (file / copyable code / scan-to-phone QR), and an optional account for
+  cross-device sync ([sync.md](./sync.md)).
+- **Explicitly out of scope (for now):** online multiplayer, accounts as identity, real money,
   cash games, non-Hold'em variants.
 - See the repo root [`PLAN.md`](../PLAN.md) for the original plan and rationale.

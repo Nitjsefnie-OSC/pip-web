@@ -12,7 +12,7 @@ export default function PrivacyPage() {
       <Section title="The short version">
         <p>
           Pip is built to need as little of your data as possible — which turns out to be almost
-          none. No account, no personal data, no cross-site tracking, no cookies. We do count
+          none. No account needed, no personal data, no cross-site tracking, no cookies. We do count
           anonymous, cookieless usage so we can see what&rsquo;s working — nothing that identifies
           you. Here&rsquo;s the whole story, plainly.
         </p>

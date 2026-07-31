@@ -1,6 +1,6 @@
 # CLAUDE.md — agent guide for Pip
 
-**Pip** is a clean, single-player Texas Hold'em web app (play money, no accounts,
+**Pip** is a clean, single-player Texas Hold'em web app (play money, no account needed,
 desktop-first). GitHub repo: [`playpip/pip-web`](https://github.com/playpip/pip-web).
 
 Full documentation lives in **[`docs/`](./docs/README.md)** — read it before non-trivial

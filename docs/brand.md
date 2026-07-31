@@ -33,7 +33,9 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
 2. **Clean over decorated.** Flat, black-first, one accent at a time. No skeuomorphic felt.
 3. **Calm information.** Helpful stats (win %, hand strength) are ambient, never nagging.
 4. **Premium restraint.** Subtle motion and sound; generous space; nothing gratuitous.
-5. **Account-free & local.** No login, no barrier. Your progress is yours, on your device.
+5. **Local first, no account needed.** No login, no barrier, nothing to verify before you
+   play. Your progress is yours, on your device. There is an optional account whose only job
+   is carrying it to a second device, and it is off unless the player turns it on.
 6. **Open by default.** Pip is open source — the deterministic, seeded engine most of
    all. Anyone can read exactly how a hand is dealt and shuffled, fork it, or self-host.
    This is a deliberate trust foundation, not a footnote: when we later add things you

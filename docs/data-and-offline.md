@@ -1,9 +1,13 @@
 # Data, portability & offline
 
-Pip has **no accounts and no server**. Your progress is a single persisted profile
-that lives in the browser on the device you play on. This doc covers how that data
-is kept safe, how you move it between devices without an account, and how the app
+Pip needs **no account and has no game server**. Your progress is a single persisted
+profile that lives in the browser on the device you play on. This doc covers how that
+data is kept safe, how you move it between devices without an account, and how the app
 works offline and updates itself.
+
+There is also an **optional** account purely for cross-device sync, off unless the player
+turns it on. It sits on top of everything here and reuses the same envelope. See
+[sync.md](./sync.md); the paths below work identically whether or not anyone uses it.
 
 See also: persistence shape lives in [`store/profile.ts`](../src/store/profile.ts);
 the deploy/release side is in [development.md](./development.md#deploy--releases).
@@ -23,7 +27,7 @@ Only the profile is treated as durable data. Everything else is derivable.
 
 ## Keeping local storage durable
 
-`localStorage` is the right tool for an account-free, single-player app, but it can
+`localStorage` is the right tool for a single-player app that needs no account, but it can
 be evicted under storage pressure or by aggressive privacy settings. Two defences,
 both wired in `AppBoot`:
 
@@ -35,8 +39,8 @@ both wired in `AppBoot`:
 
 ## Moving a profile between devices
 
-No accounts means we give the player explicit, low-friction ways to carry their
-data. All three paths share **one envelope format and one validator** in
+Since no account is needed to play, the player gets explicit, low-friction ways to
+carry their data without one. All three paths share **one envelope format and one validator** in
 [`lib/backup.ts`](../src/lib/backup.ts) (`buildEnvelope` → `validateEnvelope`), so a
 bad file, paste, or scan is rejected identically and **nothing touches the profile
 until it fully validates** (atomic restore, then reload so `migrate` runs).

@@ -70,7 +70,7 @@ Pip is anti-casino by design. A contribution won't land if it breaks these:
 - **Play money only.** No real currency, no `$`, nothing that costs real money, ever.
 - **Style, never edge.** Cosmetics and unlocks never affect gameplay. No pay-to-win.
 - **No dark patterns.** No ads, no fake urgency, no guilt loops, no nagging.
-- **Honest and private.** No accounts, no cookies, no personal data — and we say exactly
+- **Honest and private.** No account needed, no cookies, no personal data — and we say exactly
   what we count. The marketing has to clear the same bar as the code.
 
 If in doubt, open an issue and ask before building. We'd rather talk first than turn away

@@ -1,4 +1,5 @@
-// Profile backup — the insurance policy for an account-free app. Exports the
+// Profile backup — the insurance policy for an app you can use without an account.
+// Exports the
 // persisted profile exactly as stored (versioned), and restores by writing it
 // back and reloading so zustand's migrate path runs as usual. Never partially
 // applies: a restore either fully validates or nothing changes.

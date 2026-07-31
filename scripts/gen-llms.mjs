@@ -26,19 +26,26 @@ const OUT = join(process.cwd(), 'out')
 // page index follows it.
 const PREAMBLE = `# Pip
 
-> Real single-player Texas Hold'em against AI — no accounts, no real money, open source
-> and provably fair. A calm, anti-casino poker web app: play money only, no ads, no
-> pop-ups, no dark patterns. Play in the browser at https://playpip.io — no signup,
-> nothing to install.
+> Real single-player Texas Hold'em against AI — no account needed, no real money, open
+> source. A calm, anti-casino poker web app: play money only, no ads, no pop-ups, no
+> dark patterns. Play in the browser at https://playpip.io — no signup, nothing to
+> install.
 
-Pip is a pure front-end app (no backend, static export). Your profile lives in your
-browser, not on a server. The poker engine is a pure, deterministic, unit-tested
-TypeScript module with a seeded RNG — so "provably fair" means you can read exactly how
-every hand is shuffled and dealt. There's a Daily Deal: one date-seeded tournament a day,
-identical for everyone in the world, verifiable because the code is open.
+Pip is a front-end app (static export, no game server). Your profile lives in your
+browser. The poker engine is a pure, deterministic, unit-tested TypeScript module, so
+you can read exactly how every hand is shuffled and dealt rather than take our word for
+it. An ordinary hand shuffles with Math.random; the Daily Deal passes a date-derived
+seed, which is what makes one tournament a day identical for everyone in the world and
+checkable against the source.
 
-Privacy: no accounts, no cookies, no personal data. The only analytics are anonymous and
-cookieless (Umami); the privacy page lists exactly what is counted.
+There is one optional account, and its only job is carrying your progress to a second
+device. It is off unless you turn it on: with no account Pip makes no request to a
+server, holds no identity and stores no row.
+
+Privacy: no account needed, no cookies, no personal data. An account stores your email
+and the same profile that was already on your device, and nothing else. The only
+analytics are anonymous and cookieless (Umami); the privacy page lists exactly what is
+counted.
 
 Every link under Pages and Blog points to the page's raw Markdown mirror, so the content
 can be fetched and parsed directly without HTML rendering.`

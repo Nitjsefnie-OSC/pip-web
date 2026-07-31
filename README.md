@@ -5,8 +5,8 @@
 <h1 align="center">pip</h1>
 
 <p align="center">
-  <b>Real single-player Texas Hold'em against AI — no accounts, no real money,<br/>
-  open source and provably fair.</b>
+  <b>Real single-player Texas Hold'em against AI. No account needed, no real money,<br/>
+  open source down to the shuffle.</b>
 </p>
 
 <p align="center">

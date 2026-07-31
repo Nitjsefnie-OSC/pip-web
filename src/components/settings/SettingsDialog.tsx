@@ -176,7 +176,7 @@ function ResetSection() {
 const secondaryButton =
   'flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
 
-/** Move your progress between devices — no accounts, three ways to carry it. */
+/** Move your progress between devices, no account required. Three ways to carry it. */
 function BackupSection() {
   const fileInput = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<ParsedBackup | null>(null)

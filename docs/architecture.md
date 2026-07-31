@@ -126,7 +126,7 @@ choreography (timers, sounds, transitions) on top.
   [development.md](./development.md#versioning--cache-busting).
 - **AI on the main thread.** Equity sims (up to ~1800 iters) run synchronously inside
   the AI's turn timer. Fine today; the obvious future optimization is a Web Worker.
-- **Account-free, no real money.** Chips are play money; the display currency is a
+- **No account needed, no real money.** Chips are play money; the display currency is a
   cosmetic per-player choice (`config/currencies.ts`, `useMoney()`).
 
 ## Known limitations / future work
