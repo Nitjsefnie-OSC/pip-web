@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { ChevronDown, RotateCcw } from 'lucide-react'
 import { QrCode } from '@/components/QrCode'
 import { RestoreConfirm } from '@/components/settings/RestoreConfirm'
 import { SyncSection } from '@/components/settings/SyncSection'
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { useTheme } from '@/components/theme-provider'
 import { useProfile } from '@/store/profile'
+import { useSync } from '@/store/sync'
 import { applyBackup, exportProfile, type ParsedBackup, readBackup } from '@/lib/backup'
 import { decodeCode, profileCode, profileQrUrl } from '@/lib/transfer'
 import { sound } from '@/lib/sound'
@@ -43,8 +44,7 @@ export function SettingsDialog({
           <AppearanceSection />
           <SoundSection />
           <TableTalkSection />
-          <BackupSection />
-          <SyncSection />
+          <TransferSection />
           <ResetSection />
           <div className="flex flex-col items-center gap-1 text-[11px] tracking-wide text-muted-foreground/70">
             <a
@@ -176,8 +176,63 @@ function ResetSection() {
 const secondaryButton =
   'flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
 
-/** Move your progress between devices, no account required. Three ways to carry it. */
-function BackupSection() {
+/**
+ * Getting your progress onto another device — one section, not two.
+ *
+ * The account and the transfer codes answer the same question, so giving each
+ * its own heading listed five buttons and a stray text link under two headings
+ * and made Settings twice as tall as it needed to be. The account is the easy
+ * answer and goes first; the manual codes sit one tap away, under a label that
+ * says out loud they need no account. On a build with no Supabase project
+ * there's nothing to collapse, so the codes just render.
+ */
+function TransferSection() {
+  const [manualOpen, setManualOpen] = useState(false)
+  const syncOff = useSync((s) => s.status === 'off')
+
+  return (
+    <div>
+      <p className="mb-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+        Move to another device
+      </p>
+
+      {syncOff ? (
+        <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
+          Your progress lives on this device. Copy it as a code or scan the QR from your phone, no
+          account needed.
+        </p>
+      ) : (
+        <SyncSection />
+      )}
+
+      {syncOff ? (
+        <ManualTransfer />
+      ) : (
+        <>
+          <button
+            onClick={() => {
+              sound.play('tap')
+              setManualOpen(!manualOpen)
+            }}
+            aria-expanded={manualOpen}
+            className="mt-2 flex w-full items-center justify-center gap-1 text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
+          >
+            Carry it across by hand instead
+            <ChevronDown className={cn('size-3 transition', manualOpen && 'rotate-180')} />
+          </button>
+          {manualOpen && (
+            <div className="pt-3">
+              <ManualTransfer />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+/** The no-account paths: a code, a QR, or a file, in each direction. */
+function ManualTransfer() {
   const fileInput = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<ParsedBackup | null>(null)
   const [panel, setPanel] = useState<'none' | 'paste'>('none')
@@ -223,14 +278,6 @@ function BackupSection() {
 
   return (
     <div>
-      <p className="mb-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
-        Move to another device
-      </p>
-      <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
-        Your progress lives on this device. Copy it as a code or scan the QR from your phone — no
-        account needed.
-      </p>
-
       {pending?.ok ? (
         <RestoreConfirm
           summary={pending.summary}
@@ -242,16 +289,30 @@ function BackupSection() {
         />
       ) : (
         <div className="flex flex-col gap-2">
+          {/* Split by direction. The old layout mixed them, so "File…" (bring
+              one in) and "Back up to a file instead" (take it away) sat in
+              different places doing opposite jobs with near-identical names. */}
+          <p className="text-[11px] text-muted-foreground/70">Take it with you</p>
           <div className="flex gap-2">
             <button onClick={copyCode} className={secondaryButton}>
-              {copied ? 'Copied ✓' : 'Copy data'}
+              {copied ? 'Copied ✓' : 'Copy code'}
             </button>
             <button onClick={showQr} className={secondaryButton}>
               Show QR
             </button>
+            <button
+              onClick={() => {
+                sound.play('tap')
+                exportProfile()
+              }}
+              className={secondaryButton}
+            >
+              Save file
+            </button>
           </div>
 
-          <div className="mt-1 flex gap-2">
+          <p className="mt-1 text-[11px] text-muted-foreground/70">Bring one in</p>
+          <div className="flex gap-2">
             <button
               onClick={() => {
                 sound.play('tap')
@@ -268,7 +329,7 @@ function BackupSection() {
               }}
               className={secondaryButton}
             >
-              File…
+              Open a file
             </button>
           </div>
 
@@ -290,16 +351,6 @@ function BackupSection() {
               </button>
             </div>
           )}
-
-          <button
-            onClick={() => {
-              sound.play('tap')
-              exportProfile()
-            }}
-            className="mt-1 text-center text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
-          >
-            Back up to a file instead
-          </button>
 
           {pending && !pending.ok && <p className="text-xs text-suit-red">{pending.error}</p>}
           <input
