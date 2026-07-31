@@ -190,8 +190,11 @@ const SCENES: Record<string, Scene> = {
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
   'ring-micro': (c) => chipStacks(c, [3, 2], 66),
+  'ring-small': (c) => chipStacks(c, [4, 3], 67),
   'ring-low': (c) => chipStacks(c, [4, 3, 2], 68),
+  'ring-club': (c) => chipStacks(c, [5, 4, 3], 69),
   'ring-mid': (c) => chipStacks(c, [6, 4, 5], 70),
+  'ring-big': (c) => chipStacks(c, [7, 6, 8], 72),
   'ring-high': (c) => chipStacks(c, [8, 10, 6, 9], 74),
 }
 

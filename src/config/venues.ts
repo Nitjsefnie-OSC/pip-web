@@ -297,6 +297,9 @@ export const SIDE_TABLES: readonly Venue[] = [
 // room is 100 big blinds deep and blinds never escalate. (See docs/game-flow.md.)
 // Skill mirrors the post-rebalance ladder (~0.06 softer per rung): these tables
 // were authored after that retune, so their numbers were dialled to match it.
+// The canon four each sat 10x apart, which left a Micro grinder with an 800 roll
+// nowhere honest to sit. Small / Club / Big fill the geometric midpoints, so every
+// step is now ~3x, and their AI profiles are interpolated from their neighbours.
 export const RING_TABLES: readonly Venue[] = [
   {
     id: 'ring-micro',
@@ -316,6 +319,21 @@ export const RING_TABLES: readonly Venue[] = [
     ai: { tightness: 0.16, aggression: 0.2, bluff: 0.04, iterations: 350, skill: 0.24 },
   },
   {
+    id: 'ring-small',
+    name: 'Small Ring',
+    tagline: 'Cash game. Loose, with a bit more bite.',
+    buyIn: 600,
+    startingStack: 600,
+    smallBlind: 3,
+    bigBlind: 6,
+    seats: 5,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#5AA9E6',
+    ai: { tightness: 0.24, aggression: 0.31, bluff: 0.06, iterations: 500, skill: 0.36 },
+  },
+  {
     id: 'ring-low',
     name: 'Low Ring',
     tagline: 'Cash game. Friday-night regulars.',
@@ -331,6 +349,21 @@ export const RING_TABLES: readonly Venue[] = [
     ai: { tightness: 0.32, aggression: 0.42, bluff: 0.09, iterations: 700, skill: 0.49 },
   },
   {
+    id: 'ring-club',
+    name: 'Club Ring',
+    tagline: 'Cash game. Thinking players, still exploitable.',
+    buyIn: 6_000,
+    startingStack: 6_000,
+    smallBlind: 30,
+    bigBlind: 60,
+    seats: 6,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#E8B923',
+    ai: { tightness: 0.41, aggression: 0.52, bluff: 0.12, iterations: 900, skill: 0.61 },
+  },
+  {
     id: 'ring-mid',
     name: 'Mid Ring',
     tagline: 'Cash game. Solid, bluff-aware players.',
@@ -344,6 +377,21 @@ export const RING_TABLES: readonly Venue[] = [
     escalation: false,
     accent: '#E0A458',
     ai: { tightness: 0.5, aggression: 0.62, bluff: 0.15, iterations: 1_150, skill: 0.74 },
+  },
+  {
+    id: 'ring-big',
+    name: 'Big Ring',
+    tagline: 'Big cash. Sharp, patient, hard to bluff.',
+    buyIn: 60_000,
+    startingStack: 60_000,
+    smallBlind: 300,
+    bigBlind: 600,
+    seats: 6,
+    prize: 0,
+    cash: true,
+    escalation: false,
+    accent: '#FF7A45',
+    ai: { tightness: 0.54, aggression: 0.67, bluff: 0.16, iterations: 1_350, skill: 0.82 },
   },
   {
     id: 'ring-high',

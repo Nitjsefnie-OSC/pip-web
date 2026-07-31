@@ -54,13 +54,20 @@ changes.
 
 | id | Name | Blinds | Sit-down (100bb) | AI skill | Feel |
 |----|------|-------:|------:|:--:|------|
-| `ring-micro` | Micro Ring | 1/2 | 200 | 0.30 | loose-passive — beatable by value |
-| `ring-low` | Low Ring | 10/20 | 2,000 | 0.55 | Friday-night regulars |
-| `ring-mid` | Mid Ring | 100/200 | 20,000 | 0.80 | solid, bluff-aware |
-| `ring-high` | High Ring | 1,000/2,000 | 200,000 | 0.95 | sharks |
+| `ring-micro` | Micro Ring | 1/2 | 200 | 0.24 | loose-passive — beatable by value |
+| `ring-small` | Small Ring | 3/6 | 600 | 0.36 | loose, with a bit more bite |
+| `ring-low` | Low Ring | 10/20 | 2,000 | 0.49 | Friday-night regulars |
+| `ring-club` | Club Ring | 30/60 | 6,000 | 0.61 | thinking players, still exploitable |
+| `ring-mid` | Mid Ring | 100/200 | 20,000 | 0.74 | solid, bluff-aware |
+| `ring-big` | Big Ring | 300/600 | 60,000 | 0.82 | sharp, patient, hard to bluff |
+| `ring-high` | High Ring | 1,000/2,000 | 200,000 | 0.89 | sharks |
+
+Every step is ~3x. The canon four (Micro / Low / Mid / High) each sat 10x apart, which left a
+player who had ground a Micro roll up to 800 with nowhere honest to sit. Small, Club and Big
+fill the geometric midpoints and interpolate their AI profiles from their neighbours.
 
 **Difficulty is the stake.** There's no difficulty toggle: the AI sharpens as the stakes
-rise (`skill` 0.30 → 0.95), and rooms unlock by affordability (`roll >= buyIn`), so a player
+rise (`skill` 0.24 → 0.89), and rooms unlock by affordability (`roll >= buyIn`), so a player
 of any level self-sorts into an honest game just by picking a stake they can afford. Every
 room is 100 big blinds deep and blinds never escalate. Cash tables aren't tournaments — they
 don't record venue results or count as entries, and there are no cash-table souvenirs.
