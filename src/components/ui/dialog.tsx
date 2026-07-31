@@ -46,7 +46,12 @@ function DialogContent({
 }) {
   return (
     <DialogPortal>
-      <DialogOverlay />
+      {/* `forceRender` because Base UI drops the backdrop on a nested dialog
+          (`enabled: forceRender || !nested`). Without it a dialog opened over
+          another one gets no scrim of its own, so the two white surfaces sit
+          flush and read as one blended card. Each dialog dims what's under it,
+          nested or not. */}
+      <DialogOverlay forceRender />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(

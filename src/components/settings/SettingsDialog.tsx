@@ -1,10 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { ChevronDown, RotateCcw } from 'lucide-react'
-import { QrCode } from '@/components/QrCode'
-import { RestoreConfirm } from '@/components/settings/RestoreConfirm'
+import { useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { SyncSection } from '@/components/settings/SyncSection'
+import { TransferDialog } from '@/components/settings/TransferDialog'
 import {
   Dialog,
   DialogContent,
@@ -15,8 +14,6 @@ import {
 import { useTheme } from '@/components/theme-provider'
 import { useProfile } from '@/store/profile'
 import { useSync } from '@/store/sync'
-import { applyBackup, exportProfile, type ParsedBackup, readBackup } from '@/lib/backup'
-import { decodeCode, profileCode, profileQrUrl } from '@/lib/transfer'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
 import { cn } from '@/lib/utils'
@@ -173,21 +170,16 @@ function ResetSection() {
   )
 }
 
-const secondaryButton =
-  'flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
-
 /**
- * Getting your progress onto another device — one section, not two.
+ * Getting your progress onto another device: one section, two buttons.
  *
- * The account and the transfer codes answer the same question, so giving each
- * its own heading listed five buttons and a stray text link under two headings
- * and made Settings twice as tall as it needed to be. The account is the easy
- * answer and goes first; the manual codes sit one tap away, under a label that
- * says out loud they need no account. On a build with no Supabase project
- * there's nothing to collapse, so the codes just render.
+ * This had grown into two headings, five buttons and a stray text link, all
+ * answering the same question, with a four-field sign-in flow sharing a scroll
+ * with the dark-mode toggle. Both real tasks now open their own dialog and
+ * Settings keeps only the doors.
  */
 function TransferSection() {
-  const [manualOpen, setManualOpen] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
   const syncOff = useSync((s) => s.status === 'off')
 
   return (
@@ -198,192 +190,28 @@ function TransferSection() {
 
       {syncOff ? (
         <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
-          Your progress lives on this device. Copy it as a code or scan the QR from your phone, no
+          Your progress lives on this device. Carry it across as a code, a QR or a file, with no
           account needed.
         </p>
       ) : (
         <SyncSection />
       )}
 
-      {syncOff ? (
-        <ManualTransfer />
-      ) : (
-        <>
-          <button
-            onClick={() => {
-              sound.play('tap')
-              setManualOpen(!manualOpen)
-            }}
-            aria-expanded={manualOpen}
-            className="mt-2 flex w-full items-center justify-center gap-1 text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
-          >
-            Carry it across by hand instead
-            <ChevronDown className={cn('size-3 transition', manualOpen && 'rotate-180')} />
-          </button>
-          {manualOpen && (
-            <div className="pt-3">
-              <ManualTransfer />
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  )
-}
+      <button
+        onClick={() => {
+          sound.play('tap')
+          setTransferOpen(true)
+        }}
+        className={cn(
+          syncOff
+            ? 'w-full rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
+            : 'mt-2 w-full text-center text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline',
+        )}
+      >
+        {syncOff ? 'Move it by hand' : 'Carry it across by hand instead'}
+      </button>
 
-/** The no-account paths: a code, a QR, or a file, in each direction. */
-function ManualTransfer() {
-  const fileInput = useRef<HTMLInputElement>(null)
-  const [pending, setPending] = useState<ParsedBackup | null>(null)
-  const [panel, setPanel] = useState<'none' | 'paste'>('none')
-  const [qrOpen, setQrOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [qrUrl, setQrUrl] = useState<string | null>(null)
-  const [pasteText, setPasteText] = useState('')
-
-  const reset = () => {
-    setPending(null)
-    setPanel('none')
-    setCopied(false)
-    setPasteText('')
-  }
-
-  const copyCode = async () => {
-    sound.play('tap')
-    const code = await profileCode()
-    if (!code) return
-    try {
-      await navigator.clipboard.writeText(code)
-      setCopied(true)
-    } catch {
-      // Clipboard blocked (rare, non-secure context) — fall back to the QR/file.
-    }
-  }
-
-  const showQr = async () => {
-    sound.play('tap')
-    setQrOpen(true)
-    setQrUrl(await profileQrUrl(location.origin))
-  }
-
-  const restorePasted = async () => {
-    sound.play('tap')
-    setPending(await decodeCode(pasteText))
-  }
-
-  const pickFile = async (file: File | undefined) => {
-    if (!file) return
-    setPending(await readBackup(file))
-  }
-
-  return (
-    <div>
-      {pending?.ok ? (
-        <RestoreConfirm
-          summary={pending.summary}
-          onCancel={reset}
-          onConfirm={() => {
-            sound.play('call')
-            applyBackup(pending.envelope)
-          }}
-        />
-      ) : (
-        <div className="flex flex-col gap-2">
-          {/* Split by direction. The old layout mixed them, so "File…" (bring
-              one in) and "Back up to a file instead" (take it away) sat in
-              different places doing opposite jobs with near-identical names. */}
-          <p className="text-[11px] text-muted-foreground/70">Take it with you</p>
-          <div className="flex gap-2">
-            <button onClick={copyCode} className={secondaryButton}>
-              {copied ? 'Copied ✓' : 'Copy code'}
-            </button>
-            <button onClick={showQr} className={secondaryButton}>
-              Show QR
-            </button>
-            <button
-              onClick={() => {
-                sound.play('tap')
-                exportProfile()
-              }}
-              className={secondaryButton}
-            >
-              Save file
-            </button>
-          </div>
-
-          <p className="mt-1 text-[11px] text-muted-foreground/70">Bring one in</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                sound.play('tap')
-                setPanel(panel === 'paste' ? 'none' : 'paste')
-              }}
-              className={secondaryButton}
-            >
-              Paste a code
-            </button>
-            <button
-              onClick={() => {
-                sound.play('tap')
-                fileInput.current?.click()
-              }}
-              className={secondaryButton}
-            >
-              Open a file
-            </button>
-          </div>
-
-          {panel === 'paste' && (
-            <div className="flex flex-col gap-2 pt-1">
-              <textarea
-                value={pasteText}
-                onChange={(e) => setPasteText(e.target.value)}
-                placeholder="Paste your Pip code here"
-                rows={3}
-                className="w-full resize-none rounded-xl bg-foreground/[0.04] p-3 text-xs outline-none ring-primary/40 focus:ring-2"
-              />
-              <button
-                onClick={restorePasted}
-                disabled={!pasteText.trim()}
-                className="rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"
-              >
-                Restore from code
-              </button>
-            </div>
-          )}
-
-          {pending && !pending.ok && <p className="text-xs text-suit-red">{pending.error}</p>}
-          <input
-            ref={fileInput}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              void pickFile(e.target.files?.[0])
-              e.target.value = ''
-            }}
-          />
-        </div>
-      )}
-
-      {/* The QR lives in its own dialog over Settings — a big, scannable target
-          rather than a cramped inline panel. */}
-      <Dialog open={qrOpen} onOpenChange={setQrOpen}>
-        <DialogContent className="sm:max-w-xs">
-          <DialogHeader>
-            <DialogTitle>Scan to move over</DialogTitle>
-            <DialogDescription>
-              Point your phone camera here to bring over your chips, awards and looks.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 pt-1">
-            {qrUrl ? <QrCode value={qrUrl} /> : null}
-            <p className="text-center text-xs text-muted-foreground">
-              Detailed stats stay on this device — use the code for everything.
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TransferDialog open={transferOpen} onOpenChange={setTransferOpen} />
     </div>
   )
 }
