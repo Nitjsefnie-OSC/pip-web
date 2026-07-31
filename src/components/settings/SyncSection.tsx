@@ -13,7 +13,7 @@ import { useSync } from '@/store/sync'
 import { sound } from '@/lib/sound'
 
 const secondaryButton =
-  'flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
+  'min-h-11 flex-1 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12]'
 
 /**
  * Renders inside Settings' "Move to another device" section rather than owning

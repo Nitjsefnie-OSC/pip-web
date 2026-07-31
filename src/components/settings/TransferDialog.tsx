@@ -25,8 +25,12 @@ import { sound } from '@/lib/sound'
 
 type View = 'menu' | 'qr' | 'paste'
 
+// Touch-first sizing, same reasoning as AccountDialog: buttons clear 44px and
+// a quiet link still gets a real tap target.
 const secondaryButton =
-  'flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
+  'min-h-11 flex-1 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12]'
+const textLink =
+  'flex min-h-11 w-full items-center justify-center text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline'
 
 export function TransferDialog({
   open,
@@ -114,7 +118,7 @@ export function TransferDialog({
             <>
               {/* Split by direction. Mixed together, "open a file" and "save a
                   file" are near-identical names doing opposite jobs. */}
-              <p className="text-[11px] text-muted-foreground/70">Take it with you</p>
+              <p className="text-xs text-muted-foreground/70">Take it with you</p>
               <div className="flex gap-2">
                 <button onClick={copyCode} className={secondaryButton}>
                   {copied ? 'Copied ✓' : 'Copy code'}
@@ -133,7 +137,7 @@ export function TransferDialog({
                 </button>
               </div>
 
-              <p className="mt-2 text-[11px] text-muted-foreground/70">Bring one in</p>
+              <p className="mt-2 text-xs text-muted-foreground/70">Bring one in</p>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
@@ -174,7 +178,7 @@ export function TransferDialog({
                 placeholder="Paste your Pip code here"
                 rows={4}
                 aria-label="Pip transfer code"
-                className="w-full resize-none rounded-xl bg-foreground/[0.04] p-3 text-xs outline-none ring-primary/40 focus:ring-2"
+                className="w-full resize-none rounded-xl bg-foreground/[0.04] p-3 text-base outline-none ring-primary/40 focus:ring-2"
               />
               <button
                 onClick={async () => {
@@ -182,7 +186,7 @@ export function TransferDialog({
                   setPending(await decodeCode(pasteText))
                 }}
                 disabled={!pasteText.trim()}
-                className="rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"
+                className="min-h-11 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40"
               >
                 Restore from code
               </button>
@@ -194,10 +198,7 @@ export function TransferDialog({
           )}
 
           {!restoring && view !== 'menu' && (
-            <button
-              onClick={backToMenu}
-              className="pt-1 text-center text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
-            >
+            <button onClick={backToMenu} className={textLink}>
               Back
             </button>
           )}

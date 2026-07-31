@@ -203,9 +203,10 @@ function TransferSection() {
           setTransferOpen(true)
         }}
         className={cn(
+          'flex w-full items-center justify-center transition',
           syncOff
-            ? 'w-full rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
-            : 'mt-2 w-full text-center text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline',
+            ? 'min-h-11 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium hover:bg-foreground/[0.12]'
+            : 'mt-1 min-h-11 text-xs text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline',
         )}
       >
         {syncOff ? 'Move it by hand' : 'Carry it across by hand instead'}

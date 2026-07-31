@@ -23,12 +23,21 @@ import { cn } from '@/lib/utils'
 
 export type AccountMode = 'signin' | 'signup' | 'reset' | 'manage'
 
+// Sizes are touch-first: this ships as an Android app via TWA, so a control
+// that is comfortable with a mouse is not the bar. Buttons clear 44px (Apple's
+// minimum; Material asks 48). Inputs are 16px because iOS auto-zooms on
+// anything smaller, which the viewport currently suppresses with
+// `userScalable: false` — a login form shouldn't lean on that.
 const field =
-  'w-full rounded-xl bg-foreground/[0.04] px-3 py-2.5 text-sm outline-none ring-primary/40 focus:ring-2'
+  'w-full rounded-xl bg-foreground/[0.04] px-3 py-3 text-base outline-none ring-primary/40 focus:ring-2'
 const primaryButton =
-  'rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40'
+  'min-h-11 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-40'
 const secondaryButton =
-  'flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]'
+  'min-h-11 flex-1 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12]'
+// A quiet link is still a tap target: 11px text in a 15px-tall box was the
+// worst thing in here on a phone.
+const textLink =
+  'flex min-h-11 items-center justify-center text-xs text-muted-foreground/70 underline-offset-2 transition hover:text-foreground hover:underline'
 
 const COPY: Record<AccountMode, { title: string; description: string }> = {
   signin: {
@@ -168,7 +177,7 @@ function AuthForm({
       </button>
 
       {mode === 'signup' && (
-        <p className="text-[11px] leading-relaxed text-muted-foreground/70">
+        <p className="text-xs leading-relaxed text-muted-foreground/70">
           At least 8 characters. We store your email and your profile, nothing else, no tracking,
           and you can delete both from here whenever you like.
         </p>
@@ -181,24 +190,24 @@ function AuthForm({
       )}
       {error && <p className="text-xs leading-relaxed text-suit-red">{error}</p>}
 
-      <div className="flex flex-col items-center gap-1 pt-1 text-[11px] text-muted-foreground/70">
+      <div className="flex flex-col items-center">
         {mode === 'signin' && (
           <>
-            <button onClick={() => go('reset')} className="underline-offset-2 hover:underline">
+            <button onClick={() => go('reset')} className={textLink}>
               Forgotten your password?
             </button>
-            <button onClick={() => go('signup')} className="underline-offset-2 hover:underline">
+            <button onClick={() => go('signup')} className={textLink}>
               No account yet? Create one
             </button>
           </>
         )}
         {mode === 'signup' && (
-          <button onClick={() => go('signin')} className="underline-offset-2 hover:underline">
+          <button onClick={() => go('signin')} className={textLink}>
             Already have one? Sign in
           </button>
         )}
         {mode === 'reset' && (
-          <button onClick={() => go('signin')} className="underline-offset-2 hover:underline">
+          <button onClick={() => go('signin')} className={textLink}>
             Back to sign in
           </button>
         )}
@@ -246,7 +255,7 @@ function Manage({ onDone }: { onDone: () => void }) {
         </button>
       </div>
 
-      <p className="text-[11px] leading-relaxed text-muted-foreground/70">
+      <p className="text-xs leading-relaxed text-muted-foreground/70">
         Signing out leaves your profile on this device exactly as it is.
       </p>
 
@@ -283,7 +292,7 @@ function Manage({ onDone }: { onDone: () => void }) {
             sound.play('tap')
             setConfirming(true)
           }}
-          className="pt-1 text-center text-[11px] text-muted-foreground/70 underline-offset-2 hover:underline"
+          className={cn(textLink, 'w-full')}
         >
           Delete my account and synced data
         </button>

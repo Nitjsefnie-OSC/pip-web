@@ -27,13 +27,13 @@ export function RestoreConfirm({
       <div className="flex gap-2">
         <button
           onClick={onCancel}
-          className="flex-1 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium transition hover:bg-foreground/[0.12]"
+          className="min-h-11 flex-1 rounded-xl bg-foreground/[0.06] py-3 text-sm font-medium transition hover:bg-foreground/[0.12]"
         >
           Cancel
         </button>
         <button
           onClick={onConfirm}
-          className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+          className="min-h-11 flex-1 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
         >
           Restore
         </button>
