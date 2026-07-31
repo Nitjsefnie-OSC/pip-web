@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'pip',
     short_name: 'pip',
     description:
-      'Casual poker, redesigned. Clean single-player Texas Hold’em — play money, no accounts.',
+      'Casual poker, redesigned. Clean single-player Texas Hold’em — play money, no account needed.',
     // Installed app launches straight into the lobby, not the marketing page.
     id: '/game',
     start_url: '/game',

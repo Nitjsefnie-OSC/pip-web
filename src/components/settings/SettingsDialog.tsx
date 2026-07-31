@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { QrCode } from '@/components/QrCode'
 import { RestoreConfirm } from '@/components/settings/RestoreConfirm'
+import { SyncSection } from '@/components/settings/SyncSection'
 import {
   Dialog,
   DialogContent,
@@ -43,6 +44,7 @@ export function SettingsDialog({
           <SoundSection />
           <TableTalkSection />
           <BackupSection />
+          <SyncSection />
           <ResetSection />
           <div className="flex flex-col items-center gap-1 text-[11px] tracking-wide text-muted-foreground/70">
             <a

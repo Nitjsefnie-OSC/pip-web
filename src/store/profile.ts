@@ -290,60 +290,70 @@ export const useProfile = create<ProfileState>()(
     {
       name: PERSIST_KEY,
       version: PERSIST_VERSION,
-      migrate: (persisted, fromVersion) => {
-        const s = persisted as ProfileState
-        // v1 → v2: card-back customization added.
-        if (fromVersion < 2 && !s.cardBack) s.cardBack = DEFAULT_CARD_BACK.id
-        // v2 → v3: cash-game economy — rank (peakRoll).
-        if (fromVersion < 3) {
-          s.peakRoll = Math.max(s.roll ?? STARTING_ROLL, STARTING_ROLL)
-        }
-        // v3 → v4: selectable currency added (payday removed).
-        // v4 → v5: currency removed again — balances are always chips.
-        if (fromVersion < 5) {
-          delete (s as ProfileState & { currency?: string }).currency
-        }
-        // v5 → v6: award chips + the freeroll comeback flag.
-        if (fromVersion < 6) {
-          s.awards = {}
-          s.cameFromFreeroll = false
-        }
-        // v6 → v7: stats history (roll graph, venue records, richer counters).
-        if (fromVersion < 7) {
-          s.rollHistory = []
-          s.venueRecords = {}
-          s.stats = { ...emptyStats(), ...s.stats }
-        }
-        // v7 → v8: curated card backs — map the old free-form colour choice
-        // onto the nearest design in the new set.
-        if (fromVersion < 8) {
-          const legacy = s.cardBack as unknown as { color?: string } | string
-          s.cardBack = typeof legacy === 'string' ? legacy : nearestCardBack(legacy?.color).id
-        }
-        // v8 → v9: lifetime hero tendencies (play-style chart).
-        if (fromVersion < 9) s.tendencies = emptySeatStats()
-        // v9 → v10: the charm release — cast career records, table talk, the
-        // Daily Deal, and the Chip Shop (all shipped together, one bump).
-        if (fromVersion < 10) {
-          s.castRecords = {}
-          s.tableTalk = true
-          s.daily = null
-          s.owned = []
-          s.deckFace = 'classic'
-          s.tableFinish = null
-        }
-        // v10 → v11: three muted card backs (ocean, slate, midnight) moved from
-        // the free set into the Chip Shop. Grandfather existing players — they
-        // had these free, so they keep them — while new profiles must buy them.
-        if (fromVersion < 11) {
-          const freed = ['ocean', 'slate', 'midnight']
-          s.owned = Array.from(new Set([...(s.owned ?? []), ...freed]))
-        }
-        return s
-      },
+      migrate: (persisted, fromVersion) => migrateProfile(persisted, fromVersion),
     },
   ),
 )
+
+/**
+ * Bring a persisted profile up to PERSIST_VERSION.
+ *
+ * Exported because localStorage is no longer the only source of a stored
+ * profile: a synced row can have been written by an older client on another
+ * device, and it has to go through the same chain before anything merges it
+ * (see lib/sync). Mutates and returns the object it is given.
+ */
+export function migrateProfile(persisted: unknown, fromVersion: number): ProfileState {
+  const s = persisted as ProfileState
+  // v1 → v2: card-back customization added.
+  if (fromVersion < 2 && !s.cardBack) s.cardBack = DEFAULT_CARD_BACK.id
+  // v2 → v3: cash-game economy — rank (peakRoll).
+  if (fromVersion < 3) {
+    s.peakRoll = Math.max(s.roll ?? STARTING_ROLL, STARTING_ROLL)
+  }
+  // v3 → v4: selectable currency added (payday removed).
+  // v4 → v5: currency removed again — balances are always chips.
+  if (fromVersion < 5) {
+    delete (s as ProfileState & { currency?: string }).currency
+  }
+  // v5 → v6: award chips + the freeroll comeback flag.
+  if (fromVersion < 6) {
+    s.awards = {}
+    s.cameFromFreeroll = false
+  }
+  // v6 → v7: stats history (roll graph, venue records, richer counters).
+  if (fromVersion < 7) {
+    s.rollHistory = []
+    s.venueRecords = {}
+    s.stats = { ...emptyStats(), ...s.stats }
+  }
+  // v7 → v8: curated card backs — map the old free-form colour choice
+  // onto the nearest design in the new set.
+  if (fromVersion < 8) {
+    const legacy = s.cardBack as unknown as { color?: string } | string
+    s.cardBack = typeof legacy === 'string' ? legacy : nearestCardBack(legacy?.color).id
+  }
+  // v8 → v9: lifetime hero tendencies (play-style chart).
+  if (fromVersion < 9) s.tendencies = emptySeatStats()
+  // v9 → v10: the charm release — cast career records, table talk, the
+  // Daily Deal, and the Chip Shop (all shipped together, one bump).
+  if (fromVersion < 10) {
+    s.castRecords = {}
+    s.tableTalk = true
+    s.daily = null
+    s.owned = []
+    s.deckFace = 'classic'
+    s.tableFinish = null
+  }
+  // v10 → v11: three muted card backs (ocean, slate, midnight) moved from
+  // the free set into the Chip Shop. Grandfather existing players — they
+  // had these free, so they keep them — while new profiles must buy them.
+  if (fromVersion < 11) {
+    const freed = ['ocean', 'slate', 'midnight']
+    s.owned = Array.from(new Set([...(s.owned ?? []), ...freed]))
+  }
+  return s
+}
 
 function mergeStatValues(
   current: LifetimeStats,

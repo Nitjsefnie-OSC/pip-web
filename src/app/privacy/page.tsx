@@ -21,17 +21,43 @@ export default function PrivacyPage() {
       <Section title="What we store">
         <p>
           Your profile — name, avatar, your Roll, stats, card backs, all of it — lives in your
-          browser&rsquo;s local storage, on your device. It never reaches a server, because Pip
-          doesn&rsquo;t have one to send it to. Clear your browser data and it&rsquo;s gone; we keep
-          no copy, because we never had one.
+          browser&rsquo;s local storage, on your device. Nothing leaves your device unless you ask
+          it to. Clear your browser data and it&rsquo;s gone; we keep no copy, because we never had
+          one.
+        </p>
+      </Section>
+
+      <Section title="If you add an account">
+        <p>
+          Pip has an optional account, and it exists for exactly one thing: carrying your progress
+          to another device. It is off unless you turn it on, in Settings, under Account. Until then
+          Pip makes no request to us at all, holds no identity for you, and there is no row anywhere
+          with your name on it.
+        </p>
+        <p>
+          Turn it on and we store two things:{' '}
+          <strong className="font-medium text-foreground">your email address</strong>, so you can
+          sign back in, and{' '}
+          <strong className="font-medium text-foreground">a copy of the same profile</strong> that
+          was already on your device. Nothing else. No hand histories beyond what your profile
+          already holds, no IP-based profiling, no marketing email, ever. The data sits with{' '}
+          <A href="https://supabase.com">Supabase</A> on our behalf, and password-reset email goes
+          out through <A href="https://resend.com">Resend</A>.
+        </p>
+        <p>
+          You can delete it from the same place you made it. &ldquo;Delete my account and synced
+          data&rdquo; in Settings removes the account and the stored profile together, and it is
+          genuinely gone rather than flagged. Your profile on the device stays exactly as it is, and
+          Pip keeps working the way it did before.
         </p>
       </Section>
 
       <Section title="What we don't do">
         <List>
           <Item>
-            <strong className="font-medium text-foreground">No accounts.</strong> Nothing to sign up
-            for, so nothing for us to hold.
+            <strong className="font-medium text-foreground">No account needed.</strong> You can play
+            everything without one. There&rsquo;s an optional account for moving your progress
+            between devices (above), and that&rsquo;s the only thing it does.
           </Item>
           <Item>
             <strong className="font-medium text-foreground">No personal data.</strong> The counts we

@@ -1,0 +1,245 @@
+// The merge policy for cross-device sync. Pure functions, no network, no
+// browser APIs, so every rule here is testable in isolation (tests/syncMerge).
+//
+// The problem: two devices both played offline. The phone says Roll 4,200, the
+// laptop says 900. There is no clever answer, only a chosen one, and it has to
+// be a rule a player can predict rather than something that quietly eats a good
+// night. See docs/sync.md.
+//
+// The chosen rule, in one sentence: everything that can only grow merges in the
+// player's favour, and the two fields that can't (`roll` and `stats`) follow one
+// side that the player picks when the devices actually disagree.
+//
+// Why not a real three-way merge: it needs a common ancestor snapshot per
+// device, which is a much bigger build for a single-player game where one device
+// is almost always the active one. If players complain, that's the upgrade path.
+
+import type { CastRecord, ProfileState, RollPoint, VenueRecord } from '@/store/profile'
+import type { SeatStats } from '@/lib/reads'
+
+/** The persisted half of the profile — the data fields, none of the actions. */
+export type ProfileData = Omit<
+  ProfileState,
+  {
+    [K in keyof ProfileState]: ProfileState[K] extends (...args: never[]) => unknown ? K : never
+  }[keyof ProfileState]
+>
+
+/** Which side wins the fields that can't merge. */
+export type Side = 'local' | 'remote'
+
+/** Roll history is capped in the store; the merge has to respect the same cap. */
+const ROLL_HISTORY_CAP = 300
+
+/**
+ * Merge two profiles.
+ *
+ * Additive fields always merge in the player's favour regardless of `side` —
+ * they are monotonic, so gaining them can never cost anyone anything. Only
+ * `roll` and `stats` follow the chosen side, plus the cosmetics and ephemera,
+ * which are last-write-wins by nature and too cheap to prompt about.
+ */
+export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Side): ProfileData {
+  const winner = side === 'local' ? local : remote
+  const loser = side === 'local' ? remote : local
+
+  return {
+    // Chosen side. `roll` is the currency: adding invents chips, max() rewards
+    // keeping a losing session unsynced, so the player picks.
+    roll: winner.roll,
+    // `stats` are lifetime counters. max() per counter loses the smaller
+    // device's hands; summing double-counts everything before the split. Both
+    // are wrong, so they follow the same side as the Roll and stay coherent
+    // with it rather than being independently wrong.
+    stats: winner.stats,
+    tendencies: winner.tendencies,
+
+    // Monotonic — always the better of the two.
+    peakRoll: Math.max(local.peakRoll, remote.peakRoll),
+
+    // Union. Awards keep the earliest timestamp: you earned it when you earned
+    // it, and the other device just hadn't heard yet.
+    awards: mergeAwards(local.awards, remote.awards),
+    owned: Array.from(new Set([...local.owned, ...remote.owned])),
+
+    // Union by timestamp, re-sorted, capped from the front like the store does.
+    rollHistory: mergeRollHistory(local.rollHistory, remote.rollHistory),
+
+    // Per-key best-of.
+    venueRecords: mergeVenueRecords(local.venueRecords, remote.venueRecords),
+    castRecords: mergeCastRecords(local.castRecords, remote.castRecords),
+
+    // Onboarding is one-way: if either device says you're a player, you are.
+    created: local.created || remote.created,
+
+    // Cosmetics and ephemera — last write wins, and the chosen side is the last
+    // write by definition.
+    name: winner.name,
+    avatar: winner.avatar,
+    cardBack: winner.cardBack,
+    deckFace: winner.deckFace,
+    tableFinish: winner.tableFinish,
+    tableTalk: winner.tableTalk,
+    cameFromFreeroll: winner.cameFromFreeroll,
+
+    // The Daily is once per UTC day and abandoning counts as played, so the
+    // record that says "played today" has to win or syncing becomes a re-roll.
+    daily: mergeDaily(local.daily, remote.daily),
+
+    // Anything added to ProfileState since this was written follows the chosen
+    // side rather than silently vanishing on first sync.
+    ...pickUnhandled(winner, loser),
+  }
+}
+
+/**
+ * Do the two sides disagree about anything the player would notice losing?
+ *
+ * Only asked when the remote row moved without this device. Cosmetics don't
+ * count: nobody wants a dialog because they changed their card back on the bus.
+ */
+export function hasDivergence(local: ProfileData, remote: ProfileData): boolean {
+  if (local.roll !== remote.roll) return true
+  return (
+    local.stats.handsPlayed !== remote.stats.handsPlayed ||
+    local.stats.tournamentsEntered !== remote.stats.tournamentsEntered
+  )
+}
+
+/** What the conflict dialog shows about one side. Display only. */
+export interface SideSummary {
+  roll: number
+  handsPlayed: number
+}
+
+export function summarise(p: ProfileData): SideSummary {
+  return { roll: p.roll, handsPlayed: p.stats.handsPlayed }
+}
+
+// --- field rules -----------------------------------------------------------
+
+function mergeAwards(a: Record<string, number>, b: Record<string, number>) {
+  const out: Record<string, number> = { ...a }
+  for (const [id, earnedAt] of Object.entries(b)) {
+    const mine = out[id]
+    out[id] = mine === undefined ? earnedAt : Math.min(mine, earnedAt)
+  }
+  return out
+}
+
+function mergeRollHistory(a: RollPoint[], b: RollPoint[]): RollPoint[] {
+  const byTime = new Map<number, RollPoint>()
+  for (const p of [...a, ...b]) {
+    // Same instant on two devices is a genuine tie; keep the higher Roll so the
+    // graph never dips because of a sync rather than a hand.
+    const seen = byTime.get(p.t)
+    if (!seen || p.roll > seen.roll) byTime.set(p.t, p)
+  }
+  return Array.from(byTime.values())
+    .sort((x, y) => x.t - y.t)
+    .slice(-ROLL_HISTORY_CAP)
+}
+
+function mergeVenueRecords(
+  a: Record<string, VenueRecord>,
+  b: Record<string, VenueRecord>,
+): Record<string, VenueRecord> {
+  const out: Record<string, VenueRecord> = {}
+  for (const id of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const x = a[id]
+    const y = b[id]
+    if (!x || !y) {
+      out[id] = (x ?? y) as VenueRecord
+      continue
+    }
+    out[id] = {
+      // Counters can't be summed (the pre-split entries would double-count) so
+      // they take the better of the two, same reasoning as `stats`.
+      entered: Math.max(x.entered, y.entered),
+      won: Math.max(x.won, y.won),
+      bestFinish: minDefined(x.bestFinish, y.bestFinish),
+      fastestWinHands: minDefined(x.fastestWinHands, y.fastestWinHands),
+    }
+  }
+  return out
+}
+
+function mergeCastRecords(
+  a: Record<string, CastRecord>,
+  b: Record<string, CastRecord>,
+): Record<string, CastRecord> {
+  const out: Record<string, CastRecord> = {}
+  for (const id of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const x = a[id]
+    const y = b[id]
+    if (!x || !y) {
+      out[id] = (x ?? y) as CastRecord
+      continue
+    }
+    out[id] = { stats: maxSeatStats(x.stats, y.stats), kos: Math.max(x.kos, y.kos) }
+  }
+  return out
+}
+
+function mergeDaily(a: ProfileData['daily'], b: ProfileData['daily']) {
+  if (!a) return b
+  if (!b) return a
+  // Different days: the later one is the current record.
+  if (a.date !== b.date) return a.date > b.date ? a : b
+  // Same day: a finished run beats an abandoned one, then the longer run.
+  if (a.place !== null && b.place === null) return a
+  if (b.place !== null && a.place === null) return b
+  return a.hands >= b.hands ? a : b
+}
+
+function maxSeatStats(a: SeatStats, b: SeatStats): SeatStats {
+  return {
+    handsDealt: Math.max(a.handsDealt, b.handsDealt),
+    vpipHands: Math.max(a.vpipHands, b.vpipHands),
+    raises: Math.max(a.raises, b.raises),
+    calls: Math.max(a.calls, b.calls),
+    betsFaced: Math.max(a.betsFaced, b.betsFaced),
+    foldsToBet: Math.max(a.foldsToBet, b.foldsToBet),
+    showdowns: Math.max(a.showdowns, b.showdowns),
+  }
+}
+
+function minDefined(a: number | null, b: number | null): number | null {
+  if (a === null) return b
+  if (b === null) return a
+  return Math.min(a, b)
+}
+
+/**
+ * Anything the rules above didn't name follows the winning side. Reached only
+ * if ProfileState grows a field and nobody updated `mergeProfiles` — better a
+ * defensible default than a field that silently disappears on first sync.
+ */
+function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<ProfileData> {
+  const handled = new Set([
+    'roll',
+    'stats',
+    'tendencies',
+    'peakRoll',
+    'awards',
+    'owned',
+    'rollHistory',
+    'venueRecords',
+    'castRecords',
+    'created',
+    'name',
+    'avatar',
+    'cardBack',
+    'deckFace',
+    'tableFinish',
+    'tableTalk',
+    'cameFromFreeroll',
+    'daily',
+  ])
+  const out: Record<string, unknown> = {}
+  for (const key of new Set([...Object.keys(winner), ...Object.keys(loser)])) {
+    if (handled.has(key)) continue
+    out[key] = (winner as Record<string, unknown>)[key] ?? (loser as Record<string, unknown>)[key]
+  }
+  return out as Partial<ProfileData>
+}

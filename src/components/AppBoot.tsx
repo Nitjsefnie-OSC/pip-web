@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useProfile } from '@/store/profile'
+import { useSync } from '@/store/sync'
 
 /**
  * One-time client boot work, mounted from the root layout:
@@ -9,6 +10,7 @@ import { useProfile } from '@/store/profile'
  *   isn't evicted under storage pressure (Chrome/Firefox honor this; on iOS
  *   the real protection is installing the PWA)
  * - seeds a Roll-graph origin point for profiles that predate stat recording
+ * - restores a sync session if there is one, and pulls
  *
  * The service worker is registered separately in UpdatePrompt's hook, which also
  * watches for new deploys (see lib/useServiceWorker).
@@ -19,6 +21,10 @@ export function AppBoot() {
 
     const profile = useProfile.getState()
     if (profile.created && profile.rollHistory.length === 0) profile.recordRollPoint()
+
+    // No-op unless the player has an account: with no stored session this
+    // reads localStorage, finds nothing and stops. No request, no identity.
+    void useSync.getState().init()
   }, [])
   return null
 }

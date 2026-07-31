@@ -13,6 +13,6 @@ export default function Image() {
     eyebrow: 'SINGLE-PLAYER TEXAS HOLD’EM',
     lines: ['Poker without', 'the casino.'],
     subtitle:
-      'Real Hold’em vs AI, wrapped in a calm, modern app. Play money, no accounts, open source.',
+      'Real Hold’em vs AI, wrapped in a calm, modern app. Play money, no account needed, open source.',
   })
 }

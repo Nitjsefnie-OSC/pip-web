@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { THEME_BOOT_SCRIPT, ThemeProvider } from '@/components/theme-provider'
 import { AppBoot } from '@/components/AppBoot'
+import { SyncConflictDialog } from '@/components/settings/SyncConflictDialog'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 
 const geistSans = Geist({
@@ -41,7 +42,7 @@ export const metadata: Metadata = {
     url: 'https://playpip.io',
     title: 'Poker without the casino.',
     description:
-      "Real Texas Hold'em vs AI, wrapped in a calm, modern app. Play money, no accounts, open source.",
+      "Real Texas Hold'em vs AI, wrapped in a calm, modern app. Play money, no account needed, open source.",
     locale: 'en_GB',
   },
   twitter: {
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
     site: '@playpipio',
     creator: '@playpipio',
     title: 'Poker without the casino.',
-    description: "Real Texas Hold'em vs AI. Play money, no accounts, open source.",
+    description: "Real Texas Hold'em vs AI. Play money, no account needed, open source.",
   },
 }
 
@@ -83,6 +84,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         <ThemeProvider>{children}</ThemeProvider>
         <AppBoot />
+        <SyncConflictDialog />
         <UpdatePrompt />
         {/* Umami's standard cookieless tag. Cross-origin, so the offline SW
             ignores it; fire-and-forget, so a blocked/failed load is harmless. */}

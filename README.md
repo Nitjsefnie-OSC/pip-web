@@ -59,7 +59,9 @@ play money only, no pop-ups, no fake felt.
 - **Ambient help** — live win-% equity, hand strength, plain-English reads on
   opponents, and a reviewable last-hand history. Informative, never nagging.
 - **Yours, locally** — your profile, Roll (bankroll), rank, collection, and style
-  live in localStorage (versioned, exportable). No login, no server, no account.
+  live in localStorage (versioned, exportable). No account needed for any of it.
+  There's an optional one if you want your progress on a second device, and it's
+  off until you turn it on (see [sync](docs/sync.md)).
   The only analytics are anonymous and cookieless — see [Privacy](#privacy) below.
 - Light and dark themes, quiet tactile sound, desktop and mobile layouts.
 
@@ -127,8 +129,12 @@ Agents working in this repo should start with [`CLAUDE.md`](CLAUDE.md) /
 
 ## Privacy
 
-No accounts, no cookies, no personal data. Your profile lives in your browser, not on
-a server. The only thing Pip records is **anonymous, cookieless usage counts** (via
+No account needed, no cookies, no personal data. Your profile lives in your browser.
+Nothing leaves your device unless you ask it to: there's an optional account purely for
+carrying your progress to another device, it's off unless you turn it on, and it stores
+your email and that same profile and nothing else.
+
+The only thing Pip records is **anonymous, cookieless usage counts** (via
 [Umami](https://umami.is)) — no fingerprinting, no ad tech, nothing tied to you. The
 [privacy page](https://playpip.io/privacy) lists exactly what's counted and for how long.
 Because the whole app is open source, you can verify all of this in the code.
@@ -143,8 +149,8 @@ up a [`good first issue`](https://github.com/playpip/pip-web/labels/good%20first
 ## About
 
 Pip is built by [playpip](https://github.com/playpip), **open source**, and under
-active development. It's a pure front-end app: no backend and no accounts —
-everything runs in the browser and persists locally. The engine is deterministic
+active development. It's a front-end app: everything runs in the browser and persists
+locally, with one optional account for cross-device sync and no server in the game itself. The engine is deterministic
 and fully unit-tested, so anyone can read exactly how a hand is dealt and shuffled —
 provably fair by inspection, not by promise. The product docs in [`docs/`](docs/README.md)
 are the source of truth for everything from the [brand](docs/brand.md) to the

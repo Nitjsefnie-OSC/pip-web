@@ -32,7 +32,7 @@ export const BLOG_POSTS: BlogPost[] = [
     slug: 'pip-is-live',
     title: 'Pip is live, and it’s open source',
     description:
-      'Single-player Texas Hold’em with no accounts, no ads, and no real money — now live at playpip.io, with the whole codebase in the open.',
+      'Single-player Texas Hold’em with no account needed, no ads, and no real money — now live at playpip.io, with the whole codebase in the open.',
     date: '2026-07-25',
   },
 ]
