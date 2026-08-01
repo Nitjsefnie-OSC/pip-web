@@ -57,3 +57,49 @@ export function formatPostDate(date: string): string {
   const [y, m, d] = date.split('-').map(Number)
   return `${d} ${MONTHS[m - 1]} ${y}`
 }
+
+const SITE = 'https://playpip.io'
+
+/** Escape the five XML entities so registry copy stays safe to edit. */
+function escapeXml(text: string): string {
+  return text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&apos;')
+}
+
+/**
+ * RSS 2.0 feed for the blog, built from the registry as-is (newest first —
+ * the order tests/blog.test.ts pins), served statically from /rss.xml.
+ */
+export function buildRssXml(posts: BlogPost[]): string {
+  const items = posts
+    .map((post) => {
+      const url = `${SITE}/blog/${post.slug}`
+      const pubDate = new Date(`${post.date}T00:00:00Z`).toUTCString()
+      return [
+        '    <item>',
+        `      <title>${escapeXml(post.title)}</title>`,
+        `      <link>${url}</link>`,
+        `      <guid>${url}</guid>`,
+        `      <description>${escapeXml(post.description)}</description>`,
+        `      <pubDate>${pubDate}</pubDate>`,
+        '    </item>',
+      ].join('\n')
+    })
+    .join('\n')
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rss version="2.0">',
+    '  <channel>',
+    '    <title>Blog · Pip</title>',
+    `    <link>${SITE}/blog</link>`,
+    '    <description>Notes from the Pip table — what shipped, what changed, and the occasional hand worth talking about.</description>',
+    items,
+    '  </channel>',
+    '</rss>',
+    '',
+  ].join('\n')
+}
