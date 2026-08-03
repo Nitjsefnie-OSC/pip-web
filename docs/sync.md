@@ -36,6 +36,12 @@ is public, so anyone can call the API as an anonymous user. The one policy in
 security-sensitive, and change it in a migration rather than in the dashboard, so the diff is
 reviewable.
 
+**Deleting an account** goes through `delete_own_account()`, a `security definer` function, because
+a client holding only the publishable key cannot remove an `auth.users` row on its own. It takes no
+arguments and deletes `auth.uid()`, which is what keeps it safe: there is no id to tamper with, so
+the only account it can reach is the caller's. **Never give it a parameter.** The cascade on
+`profiles.user_id` takes the data with the user.
+
 ## Versioning
 
 A row can have been written by an older client on another device that hasn't updated yet. So the

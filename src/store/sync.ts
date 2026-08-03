@@ -94,7 +94,7 @@ interface SyncState {
   updatePassword: (password: string) => Promise<boolean>
   syncNow: () => Promise<void>
   resolveConflict: (side: 'local' | 'remote') => Promise<void>
-  deleteSyncedData: () => Promise<boolean>
+  deleteAccount: () => Promise<boolean>
   clearError: () => void
 }
 
@@ -309,26 +309,41 @@ export const useSync = create<SyncState>()((set, get) => ({
   },
 
   /**
-   * Delete the synced copy and the account with it. `on delete cascade` on the
-   * profiles row means removing the user removes the data, so there is no
-   * half-deleted state to explain. The device keeps its profile.
+   * Delete the account and the synced copy with it, which is what Settings and
+   * the privacy page have always said this does.
+   *
+   * It used to delete only the `profiles` row and sign out, leaving the
+   * `auth.users` row and its email address behind. You could sign straight back
+   * in. Now it calls `delete_own_account()` and the `on delete cascade` on
+   * `profiles.user_id` takes the data, so there is no half-deleted state.
+   *
+   * The device keeps its own profile, deliberately. That is the documented
+   * behaviour: deleting the account is not meant to cost you your progress.
    */
-  deleteSyncedData: async () => {
+  deleteAccount: async () => {
     const sb = await getSupabase()
     if (!sb) return false
     set({ busy: true, error: null })
     const { data: sessionData } = await sb.auth.getSession()
-    const userId = sessionData.session?.user.id
-    if (!userId) {
+    if (!sessionData.session?.user.id) {
       set({ busy: false })
       return false
     }
-    const { error } = await sb.from('profiles').delete().eq('user_id', userId)
+
+    // The user row, not the profile row. `delete_own_account()` takes no
+    // arguments and deletes `auth.uid()`, and the cascade takes the profile
+    // with it. Deleting the profile here as well would only leave a window
+    // where the data is gone and the account isn't.
+    const { error } = await sb.rpc('delete_own_account')
     if (error) {
       set({ busy: false, error: 'Could not delete right now. Try again in a moment.' })
       return false
     }
-    await sb.auth.signOut()
+
+    // Local scope on purpose: the user no longer exists, so a server-side
+    // revoke has nothing to revoke and would fail. This clears the stored
+    // session, which is the part that matters.
+    await sb.auth.signOut({ scope: 'local' })
     writeBookmark(null)
     set({ busy: false, status: 'signed-out', email: null, dirty: false, lastSyncedAt: null })
     return true

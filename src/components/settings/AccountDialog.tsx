@@ -218,7 +218,7 @@ function AuthForm({
 
 function Manage({ onDone }: { onDone: () => void }) {
   const [confirming, setConfirming] = useState(false)
-  const { email, busy, dirty, lastSyncedAt, error, signOut, syncNow, deleteSyncedData } = useSync()
+  const { email, busy, dirty, lastSyncedAt, error, signOut, syncNow, deleteAccount } = useSync()
 
   return (
     <>
@@ -278,7 +278,7 @@ function Manage({ onDone }: { onDone: () => void }) {
             <button
               onClick={() => {
                 sound.play('call')
-                void deleteSyncedData().then((ok) => ok && onDone())
+                void deleteAccount().then((ok) => ok && onDone())
               }}
               className={cn(secondaryButton, 'text-suit-red')}
             >
