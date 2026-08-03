@@ -3,10 +3,22 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
-# Security overrides — force patched versions of transitively-pulled packages
+# Security overrides, forcing patched versions of transitively-pulled packages
 # flagged by `pnpm audit --audit-level=high`. Revisit when the parent deps
-# (next → sharp/postcss, shadcn → ajv → fast-uri) ship the fixes themselves.
+# (next -> sharp/postcss, shadcn -> everything else) ship the fixes themselves.
+#
+# Every entry below the first three arrives through `shadcn`, which is a
+# dependency only because `globals.css` does `@import "shadcn/tailwind.css"`.
+# None of it reaches a browser: the vulnerable packages are its CLI machinery
+# (ts-morph, dotenvx, the MCP SDK) and the CSS import never touches them. They
+# are pinned anyway because `test:all` runs in the deploy pipeline, so a high
+# advisory here stops a release whether or not it can hurt a player.
+#
+# Bumping shadcn does not fix these. 4.16.1 was tried and carries the same four.
 overrides:
-  fast-uri: '>=3.1.4 <4' # GHSA-v2hh-gcrm-f6hx (host confusion); stay on ajv's 3.x line
+  fast-uri: '>=3.1.5 <4' # GHSA-x6y7-cw3q-r55c (host confusion); stay on ajv's 3.x line
   sharp: '>=0.35.0' # libvips CVEs; unused at runtime under static export
   postcss: '>=8.5.12' # GHSA-6g55-p6wh-862q (arbitrary file read); next pins 8.4.31
+  undici: '>=7.29.0' # GHSA-c96p-vxvm-v55g (cross-user disclosure); via dotenvx
+  ip-address: '>=10.3.1' # GHSA-mwp4-54f8-5fhr (SSRF via octal octets); via the MCP SDK
+  brace-expansion: '>=5.0.9' # GHSA-rgw5-rvv9-x895 (DoS); only the 5.x line is here
