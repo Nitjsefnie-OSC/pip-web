@@ -84,8 +84,15 @@ jobs:
         # NEXT_PUBLIC_* is baked into the client bundle at build time, so it must
         # be present for THIS step. It's not a secret (it ships to every visitor),
         # so it lives as a repo Variable, not a Secret. Unset → no analytics tag.
+        #
+        # The Supabase pair is the same deal, with a sharper failure mode: unset,
+        # syncConfigured() returns false and every account surface hides itself.
+        # The build stays green and sync is simply missing, with nothing in the
+        # logs to say so. If accounts vanish from production, check here first.
         env:
           NEXT_PUBLIC_UMAMI_WEBSITE_ID: ${{ vars.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: pnpm build
 
       # Plain npx rather than wrangler-action: the action installs wrangler via
