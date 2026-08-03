@@ -7,3 +7,8 @@
 /hand/opengraph-image
   Content-Type: image/png
   Cache-Control: public, max-age=86400
+# The route handler's Content-Type is dropped by the static export (no server
+# is left to send it), so Pages would serve the feed off the .xml extension as
+# application/xml. Readers accept that, but say what it actually is.
+/rss.xml
+  Content-Type: application/rss+xml; charset=utf-8

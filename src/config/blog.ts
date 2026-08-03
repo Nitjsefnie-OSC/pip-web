@@ -92,10 +92,13 @@ export function buildRssXml(posts: BlogPost[]): string {
     .join('\n')
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    '<rss version="2.0">',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
     '  <channel>',
     '    <title>Blog · Pip</title>',
     `    <link>${SITE}/blog</link>`,
+    // Tells aggregators the feed's own address, so a mirrored or proxied copy
+    // still points home. The one thing the W3C validator asks for.
+    `    <atom:link href="${SITE}/rss.xml" rel="self" type="application/rss+xml" />`,
     '    <description>Notes from the Pip table — what shipped, what changed, and the occasional hand worth talking about.</description>',
     items,
     '  </channel>',

@@ -3,11 +3,20 @@ import { BLOG_POSTS, buildRssXml } from '@/config/blog'
 
 test('the feed is RSS 2.0 with a single channel and the blog metadata', (t) => {
   const xml = buildRssXml(BLOG_POSTS)
-  t.true(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">'))
+  t.true(
+    xml.startsWith(
+      '<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+    ),
+  )
   t.true(xml.endsWith('</channel>\n</rss>\n'))
   t.is(xml.match(/<channel>/g)?.length, 1)
   t.true(xml.includes('<title>Blog · Pip</title>'))
   t.true(xml.includes('<link>https://playpip.io/blog</link>'))
+  t.true(
+    xml.includes(
+      '<atom:link href="https://playpip.io/rss.xml" rel="self" type="application/rss+xml" />',
+    ),
+  )
   t.true(
     xml.includes(
       '<description>Notes from the Pip table — what shipped, what changed, and the occasional hand worth talking about.</description>',
