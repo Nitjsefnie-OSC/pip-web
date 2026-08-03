@@ -5,7 +5,7 @@ Pip is a local-first app. Your profile lives in `localStorage` and nothing leave
 second device.
 
 This document is the why. The code is `src/lib/sync/*`, `src/store/sync.ts` and
-`supabase/schema.sql`.
+`supabase/migrations/`.
 
 ## The rules the build keeps
 
@@ -32,8 +32,9 @@ sync stores nothing the device didn't already have.
 
 **RLS is the entire security model.** The publishable key ships in the client bundle and this repo
 is public, so anyone can call the API as an anonymous user. The one policy in
-`supabase/schema.sql` is what stops them reading somebody else's row. Treat any change to that
-file as security-sensitive.
+`supabase/migrations/` is what stops them reading somebody else's row. Treat any change to it as
+security-sensitive, and change it in a migration rather than in the dashboard, so the diff is
+reviewable.
 
 ## Versioning
 

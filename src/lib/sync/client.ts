@@ -15,7 +15,7 @@
 //
 // The publishable key is public and always will be: it ships in the bundle and
 // the repo is open source. RLS on the `profiles` table is the only thing
-// protecting user data — see supabase/schema.sql.
+// protecting user data. See supabase/migrations/.
 
 'use client'
 
@@ -64,7 +64,7 @@ export async function getSupabase(): Promise<SupabaseClient | null> {
   return loading
 }
 
-/** The row shape in `profiles`. Mirrors supabase/schema.sql. */
+/** The row shape in `profiles`. Mirrors supabase/migrations/. */
 export interface ProfileRow {
   user_id: string
   version: number

@@ -1,7 +1,8 @@
 -- Pip's sync schema. One table, one policy, one row per player.
 --
--- Paste this into the Supabase dashboard's SQL editor and run it. It is
--- idempotent, so re-running after a change is safe.
+-- The initial migration. Applied with `supabase db push`, never by hand in the
+-- dashboard: a schema change that only exists in a dashboard is a change nobody
+-- reviewed. It is idempotent, so re-running it is safe.
 --
 -- Why this file is short and still load-bearing: the publishable key ships in
 -- the client bundle and this repo is open source, so anyone can call the API as
