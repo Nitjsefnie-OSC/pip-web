@@ -27,6 +27,7 @@ import {
 } from '@/lib/sync/merge'
 import { migrateProfile, PERSIST_VERSION, useProfile } from '@/store/profile'
 import { track } from '@/lib/analytics'
+import type { Json } from '@/types/supabase-types'
 
 /** Where this device got to last time, so divergence is detectable. */
 const BOOKMARK_KEY = 'pip.sync'
@@ -355,7 +356,9 @@ async function push(
       {
         user_id: userId,
         version: PERSIST_VERSION,
-        state: localData() as unknown as Record<string, unknown>,
+        // `state` is a jsonb column. ProfileData is structurally JSON, but
+        // TypeScript can't prove that, hence the cast.
+        state: localData() as unknown as Json,
         updated_at: new Date().toISOString(),
         device_id: deviceId(),
       },

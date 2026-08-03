@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["functions/**/*.ts"],
-  "ignore": ["public/**", "src/components/ui/**"],
-  "ignoreExportsUsedInFile": true
+  "ignore": ["public/**", "src/components/ui/**", "src/types/supabase-types.ts"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["supabase"]
 }

@@ -21,7 +21,10 @@
     "test:knip": "knip",
     "test:audit": "pnpm audit --audit-level=high",
     "typecheck": "tsc --noEmit",
-    "sim": "tsx scripts/sim.ts"
+    "sim": "tsx scripts/sim.ts",
+    "supabase:db:push": "supabase db push",
+    "supabase:db:push:dry-run": "supabase db push --dry-run",
+    "supabase:generate-types": "supabase gen types typescript --linked --schema public > src/types/supabase-types.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

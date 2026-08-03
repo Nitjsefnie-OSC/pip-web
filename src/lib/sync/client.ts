@@ -21,6 +21,10 @@
 
 // Type-only: erased at build time, so importing it costs nothing.
 import type { SupabaseClient } from '@supabase/supabase-js'
+// Generated from the live schema by `pnpm supabase:generate-types`. Typing the
+// client with it means table and column names are checked against the real
+// database at build time rather than at 2am.
+import type { Database } from '@/types/supabase-types'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -30,8 +34,8 @@ export function syncConfigured(): boolean {
   return Boolean(URL && KEY)
 }
 
-let client: SupabaseClient | null = null
-let loading: Promise<SupabaseClient | null> | null = null
+let client: SupabaseClient<Database> | null = null
+let loading: Promise<SupabaseClient<Database> | null> | null = null
 
 /**
  * The client, created on first use. Null when the build has no project.
@@ -45,12 +49,12 @@ let loading: Promise<SupabaseClient | null> | null = null
  *
  * The cost of that is this returning a promise. Every caller is already async.
  */
-export async function getSupabase(): Promise<SupabaseClient | null> {
+export async function getSupabase(): Promise<SupabaseClient<Database> | null> {
   if (!URL || !KEY) return null
   if (client) return client
   if (!loading) {
     loading = import('@supabase/supabase-js').then(({ createClient }) => {
-      client = createClient(URL, KEY, {
+      client = createClient<Database>(URL, KEY, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,
