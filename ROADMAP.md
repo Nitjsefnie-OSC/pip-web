@@ -14,7 +14,8 @@ and dates aren't listed on purpose. If something here matters to you,
 - The Kitchen Table freeroll — win your way back when you're broke
 - Ambient help — live equity, hand strength, opponent reads, last-hand review
 - Light/dark themes, sound, desktop + mobile, installable PWA
-- Local-first: your profile lives in your browser (versioned, exportable)
+- Local-first: your profile lives in your browser (versioned, exportable), with an
+  optional account if you want it on more than one device
 
 ## Considering next
 
@@ -24,7 +25,7 @@ Roughly in order of interest, honestly uncertain:
   biggest lift on this list and a genuine goal for Pip, so it sits further out — but it's
   on the map, and the open, deterministic engine is built to support it.
 - **A reason to come back** — Pip has no way to pull you back once you close the tab.
-  Exploring options that don't break the no-account promise (a returning ritual around
+  Exploring options that keep "no account needed" true (a returning ritual around
   the Daily, an *optional* reminder). Retention is the honest weak spot.
 - **More table life** — new opponents, more table-talk, deeper career reads.
 - **More to play** — additional venues and side-table formats.
@@ -35,10 +36,11 @@ Roughly in order of interest, honestly uncertain:
 
 ## Not planned
 
-- **Pay-to-win — ever.** Cosmetics may become purchasable; edge never will.
+- **Pay-to-win — ever.** Chip Shop cosmetics are earned, not sold, and edge is never for
+  sale at any price.
 - **Real-money gambling.** Play money only, forever. Chips are not a currency.
 - **Accounts you're forced into, ads, or tracking that identifies you.** Not happening.
+  The account is optional, and Pip works fully without one.
 
-Multiplayer is a real goal — a bigger build, so further out, but on the map. Paid cosmetics
-may come too (style, never edge). Whatever lands, the open codebase is what keeps the
-anti-scam promise honest.
+Multiplayer is a real goal — a bigger build, so further out, but on the map. Whatever lands,
+the open codebase is what keeps the anti-scam promise honest.
