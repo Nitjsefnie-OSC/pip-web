@@ -24,6 +24,8 @@ const UMAMI_SRC = process.env.NEXT_PUBLIC_UMAMI_SRC ?? 'https://cloud.umami.is/s
 export const metadata: Metadata = {
   // Required so static-export OG/Twitter image URLs resolve to absolute links.
   metadataBase: new URL('https://playpip.io'),
+  // Feed discovery for readers — emitted as a <link rel="alternate"> on every page.
+  alternates: { types: { 'application/rss+xml': 'https://playpip.io/rss.xml' } },
   title: 'Pip — clean poker',
   description: "Casual Texas Hold'em, redesigned. No fake felt, no neon.",
   appleWebApp: {
