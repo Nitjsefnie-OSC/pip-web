@@ -17,7 +17,8 @@ project_id = "pip-web"
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. public and storage are always included.
-schemas = ["public", "storage", "graphql_public"]
+# Matches the linked project. No `storage`: Pip stores no files, only the one profiles row.
+schemas = ["public", "graphql_public"]
 # Extra schemas to add to the search_path of every request. public is always included.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -27,9 +28,13 @@ max_rows = 1000
 [db]
 # Port to use for the local database URL.
 port = 54322
+# Port for the shadow database `supabase db diff` builds to work out a migration.
+shadow_port = 54320
 # The database major version to use. This has to be the same as your remote database's. Run `SHOW
 # server_version;` on the remote database to check.
-major_version = 15
+# 17 is what the linked project runs. `supabase init` on CLI 1.38 defaults this to 15, which would
+# mean testing against a different Postgres than production.
+major_version = 17
 
 [studio]
 # Port to use for Supabase Studio.
