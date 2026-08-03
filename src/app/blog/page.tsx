@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { LegalPage } from '@/components/marketing/LegalPage'
+import { A, LegalPage } from '@/components/marketing/LegalPage'
 import { BLOG_POSTS, formatPostDate } from '@/config/blog'
 
 export const metadata: Metadata = {
@@ -30,6 +30,11 @@ export default function BlogIndexPage() {
           </li>
         ))}
       </ul>
+
+      <p className="mt-12 text-[15px] leading-relaxed text-muted-foreground">
+        <span className="font-medium text-foreground">Follow along:</span>{' '}
+        <A href="/rss.xml">RSS</A>. No email, no account, no unsubscribe link to hunt for.
+      </p>
     </LegalPage>
   )
 }

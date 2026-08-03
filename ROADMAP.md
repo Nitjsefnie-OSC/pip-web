@@ -34,6 +34,21 @@ Roughly in order of interest, honestly uncertain:
 - **Depth in the AI** — it plays real poker (equity, pot odds, position, bluffs) but a
   strong player will out-read it. Making it tougher and more varied over time.
 
+## How Pip pays for itself
+
+Worth saying plainly, because a free product that never explains this is usually about to
+surprise you.
+
+**The game on this page stays free and complete.** Not a trial, not a demo, and nothing in
+it gets metered later. That covers the ladder, the venues, the Daily, the Chip Shop economy,
+moving your profile between devices, and every written guide.
+
+There will eventually be a **membership**, for the things that cost real money to run or
+that don't exist yet: multiplayer, and a deeper learning layer with drills and coaching
+across your hands. It isn't built, it isn't priced, and there's nothing to buy today.
+
+If that ever stops being true, this section is where you'd catch us.
+
 ## Not planned
 
 - **Pay-to-win — ever.** Chip Shop cosmetics are earned, not sold, and edge is never for
