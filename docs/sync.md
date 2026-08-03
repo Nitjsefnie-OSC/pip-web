@@ -110,6 +110,9 @@ was. **A contributor never needs to set up a backend to run Pip.**
   code and QR still work, so nobody's profile is ever trapped behind an account.
 - **Supabase's free tier pauses a project after inactivity.** Fine now. Needs a real answer before
   this is a feature people rely on.
-- **The Data safety declaration on any app-store listing has to match this page.** Pip collecting
-  nothing was true before sync and isn't any more. If a store listing exists, updating it ships in
-  the same week, not whenever someone remembers.
+- **The Data safety declaration on any app-store listing has to match this page and `/privacy`.**
+  Pip collecting nothing was true before sync and isn't any more: there is now an email address and
+  a copy of the profile. The declaration is written out in full in the technology repo's
+  `drafts/build-twa-play-store.md` and should be re-read against both pages before anyone files it.
+  Two gaps are known and unsolved: Play wants a **deletion request URL** reachable without
+  installing the app, and we have never stated a **retention period** for a deleted account.
