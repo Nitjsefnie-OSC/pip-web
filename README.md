@@ -15,7 +15,6 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-111111" /></a>
-  <img alt="No backend" src="https://img.shields.io/badge/backend-none-111111" />
   <img alt="Static export" src="https://img.shields.io/badge/deploy-static-111111" />
   <a href="https://playpip.io"><img alt="Live" src="https://img.shields.io/badge/live-playpip.io-111111" /></a>
   <a href="https://github.com/playpip/pip-web/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/playpip/pip-web?style=flat&color=111111&labelColor=555555" /></a>
