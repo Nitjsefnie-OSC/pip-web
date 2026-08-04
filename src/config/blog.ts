@@ -15,6 +15,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'two-devices-two-chip-counts',
+    title: 'Two devices, two chip counts',
+    description:
+      'Pip now has an optional account that carries your progress to a second device. The interesting part isn’t the sign-in, it’s what happens when both devices have been played.',
+    date: '2026-08-04',
+  },
+  {
     slug: 'agent-readable',
     title: 'Pip, for readers who aren’t people',
     description:
