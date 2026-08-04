@@ -89,11 +89,12 @@ export function Item({ children }: { children: React.ReactNode }) {
 
 /** An external link, styled to sit calmly in body copy. */
 export function A({ href, children }: { href: string; children: React.ReactNode }) {
+  // A mailto: has nowhere to open, and target="_blank" leaves a stray tab behind.
+  const newTab = href.startsWith('http')
   return (
     <a
       href={href}
-      target="_blank"
-      rel="noreferrer"
+      {...(newTab ? { target: '_blank', rel: 'noreferrer' } : {})}
       className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
     >
       {children}

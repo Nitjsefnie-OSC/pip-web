@@ -3,12 +3,13 @@ import { LegalPage, Section, List, Item, A } from '@/components/marketing/LegalP
 
 export const metadata: Metadata = {
   title: 'Privacy · Pip',
-  description: 'What Pip collects (almost nothing) and where your data lives (your device).',
+  description:
+    'What Pip collects (almost nothing), where your data lives, and how to delete an account.',
 }
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy" updated="July 2026">
+    <LegalPage title="Privacy" updated="August 2026">
       <Section title="The short version">
         <p>
           Pip is built to need as little of your data as possible — which turns out to be almost
@@ -49,6 +50,13 @@ export default function PrivacyPage() {
           data&rdquo; in Settings removes the account and the stored profile together, and it is
           genuinely gone rather than flagged. Your profile on the device stays exactly as it is, and
           Pip keeps working the way it did before.
+        </p>
+        <p>
+          You can also just ask. Email{' '}
+          <A href="mailto:playpipcards@gmail.com">playpipcards@gmail.com</A> from the address on the
+          account and we&rsquo;ll delete it for you within 7 working days, whether or not you can
+          still get into the app. Once it&rsquo;s gone we keep nothing: no archive, no copy set
+          aside, nothing to come back later and find.
         </p>
       </Section>
 
