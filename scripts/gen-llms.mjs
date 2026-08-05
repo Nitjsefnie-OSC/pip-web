@@ -4,18 +4,19 @@
  *
  *   1. For each content page, write a raw Markdown mirror at the page's URL
  *      plus `.md` (e.g. /privacy -> /privacy.md), produced by extracting the
- *      built page's main content and converting it to Markdown. Blog posts are
- *      discovered automatically from out/blog/, so a new post needs no change
- *      here.
+ *      built page's main content and converting it to Markdown. Blog posts and
+ *      the written /learn guides are discovered automatically from out/blog/
+ *      and out/learn/, so a new post or guide needs no change here.
  *   2. Emit /llms.txt at the site root: the hand-written summary of what Pip
  *      is, then an index of every page linking to its raw Markdown.
  *
  * Runs after `next build` (see the build script in package.json) and writes
- * into the static `out/` export. The app pages (/play, /game, /stats, /learn)
- * are interactive, not content, so they get no mirror.
+ * into the static `out/` export. The app pages (/play, /game, /stats and
+ * /tutorial, which is the interactive tour) are interactive, not content, so
+ * they get no mirror. The Learn hub and the guides under it are prose, and do.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import TurndownService from 'turndown'
 
@@ -47,8 +48,8 @@ and the same profile that was already on your device, and nothing else. The only
 analytics are anonymous and cookieless (Umami); the privacy page lists exactly what is
 counted.
 
-Every link under Pages and Blog points to the page's raw Markdown mirror, so the content
-can be fetched and parsed directly without HTML rendering.`
+Every link under Pages, Guides and Blog points to the page's raw Markdown mirror, so the
+content can be fetched and parsed directly without HTML rendering.`
 
 const FOOTER = `## Project
 
@@ -63,12 +64,13 @@ const FOOTER = `## Project
 - Play money only — nothing costs real money, ever. Cosmetics are style, never edge (no pay-to-win).
 - Hand permalinks: share any hand as a URL that replays step by step, with no server or account.
 - Ambient help: live win-% equity, hand strength, plain-English opponent reads.
-- Learn poker in three minutes: an interactive tutorial at https://playpip.io/learn (app, not prose — no Markdown mirror).
+- Learn poker in three minutes: an interactive tutorial at https://playpip.io/tutorial (app, not prose, so no Markdown mirror). The written guides are listed under Guides above, and https://playpip.io/learn indexes both.
 - Installable PWA; light and dark themes; works offline once loaded.`
 
 // Content pages with a Markdown mirror. Blog posts are appended automatically.
 const PAGES = [
   { route: '/', file: 'index.html' },
+  { route: '/learn', file: 'learn.html' },
   { route: '/blog', file: 'blog.html' },
   { route: '/credits', file: 'credits.html' },
   { route: '/privacy', file: 'privacy.html' },
@@ -86,6 +88,64 @@ turndown.remove(['script', 'style', 'svg', 'noscript'])
 turndown.addRule('stripEmptyLinks', {
   filter: (node) => node.nodeName === 'A' && !node.textContent.trim(),
   replacement: () => '',
+})
+/**
+ * Every descendant element with one of the given tag names, in document order,
+ * not descending into a match. Turndown's DOM is domino, whose nodes have no
+ * usable querySelectorAll, so childNodes is the portable way down.
+ */
+function collect(node, names) {
+  const found = []
+  for (const child of Array.from(node.childNodes ?? [])) {
+    if (child.nodeType !== 1) continue
+    if (names.includes(child.nodeName)) found.push(child)
+    else found.push(...collect(child, names))
+  }
+  return found
+}
+
+// Tables are a GFM extension that Turndown core doesn't implement, so without
+// this a rankings table flattens into a column of loose lines with no way to
+// tell which cell belonged to which column. That is the opposite of the job
+// these mirrors exist to do. Cells are emitted as their text: the guides' only
+// in-cell markup is emphasis, which carries no meaning to a reader that can't
+// see it. A cell containing a link would lose the link, and none does.
+turndown.addRule('gfmTable', {
+  filter: 'table',
+  replacement: (_content, node) => {
+    const rows = collect(node, ['TR']).map((tr) =>
+      collect(tr, ['TH', 'TD']).map((cell) =>
+        cell.textContent.replace(/\s+/g, ' ').replaceAll('|', '\\|').trim(),
+      ),
+    )
+    if (rows.length === 0) return ''
+    const width = Math.max(...rows.map((row) => row.length))
+    const render = (row) => `| ${[...row, ...Array(width - row.length).fill('')].join(' | ')} |`
+    const [head, ...body] = rows
+    const divider = `| ${Array(width).fill('---').join(' | ')} |`
+    return `\n\n${[render(head), divider, ...body.map(render)].join('\n')}\n\n`
+  },
+})
+
+const HEADINGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
+
+// The index pages (/learn, /blog) make each entry one card-shaped link wrapping
+// a heading and a paragraph. Turndown renders that literally, as a single link
+// whose label spans block content: `[\n\n## Title\n\ntext](url)`, which is not
+// valid Markdown and reads as noise. Emit the heading as the link instead and
+// let the rest follow as prose under it.
+turndown.addRule('cardLink', {
+  filter: (node) => node.nodeName === 'A' && collect(node, HEADINGS).length > 0,
+  replacement: (_content, node) => {
+    const [heading] = collect(node, HEADINGS)
+    const label = heading.textContent.replace(/\s+/g, ' ').trim()
+    const href = node.getAttribute('href') ?? ''
+    const body = collect(node, ['P'])
+      .map((p) => p.textContent.replace(/\s+/g, ' ').trim())
+      .filter(Boolean)
+    const hashes = '#'.repeat(Number(heading.nodeName[1]))
+    return `\n\n${hashes} [${label}](${href})\n\n${body.join('\n\n')}\n\n`
+  },
 })
 
 /** Decode the handful of HTML entities Next emits into meta content. */
@@ -157,16 +217,40 @@ function blogPages() {
     .sort((a, b) => (lastmod.get(b.route) ?? '').localeCompare(lastmod.get(a.route) ?? ''))
 }
 
+/**
+ * Every built /learn guide, in the order the sitemap lists them, which is the
+ * registry's ranked order rather than a date. /learn itself is the interactive
+ * tour and builds to out/learn.html, not into out/learn/, so it never appears
+ * here and needs no excluding.
+ */
+function learnPages() {
+  const dir = join(OUT, 'learn')
+  if (!existsSync(dir)) return []
+  const sitemap = readFileSync(join(OUT, 'sitemap.xml'), 'utf-8')
+  const ranked = [...sitemap.matchAll(/<loc>([^<]*\/learn\/[^<]+)<\/loc>/g)].map(
+    (m) => new URL(m[1]).pathname,
+  )
+  const rank = (page) => {
+    const i = ranked.indexOf(page.route)
+    return i === -1 ? ranked.length : i
+  }
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.html'))
+    .map((f) => ({ route: `/learn/${f.replace(/\.html$/, '')}`, file: `learn/${f}` }))
+    .sort((a, b) => rank(a) - rank(b))
+}
+
 const line = (e) => `- [${e.title}](${SITE}${e.route})${e.description ? `: ${e.description}` : ''}`
 
 const pageEntries = PAGES.map(writeMirror)
+const learnEntries = learnPages().map(writeMirror)
 const blogEntries = blogPages().map(writeMirror)
 
 const sections = [PREAMBLE, '## Pages', pageEntries.map(line).join('\n')]
+if (learnEntries.length > 0) sections.push('## Guides', learnEntries.map(line).join('\n'))
 if (blogEntries.length > 0) sections.push('## Blog', blogEntries.map(line).join('\n'))
 sections.push(FOOTER)
 
+const written = pageEntries.length + learnEntries.length + blogEntries.length
 writeFileSync(join(OUT, 'llms.txt'), `${sections.join('\n\n')}\n`)
-console.log(
-  `gen-llms: wrote llms.txt + ${pageEntries.length + blogEntries.length} markdown mirror(s).`,
-)
+console.log(`gen-llms: wrote llms.txt + ${written} markdown mirror(s).`)

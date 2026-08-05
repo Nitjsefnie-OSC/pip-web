@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { BLOG_POSTS } from '@/config/blog'
+import { LEARN_GUIDES } from '@/config/learn'
 
 // Generated at build time into out/sitemap.xml (the app is a static export).
 // Only the pages worth a crawler's time — the game itself is app, not content.
@@ -13,6 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [
     '',
     '/learn',
+    '/tutorial',
     '/blog',
     '/credits',
     '/privacy',
@@ -22,5 +24,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${BASE}/blog/${post.slug}`,
     lastModified: post.date,
   }))
-  return [...pages, ...posts]
+  const guides: MetadataRoute.Sitemap = LEARN_GUIDES.map((guide) => ({
+    url: `${BASE}/learn/${guide.slug}`,
+    lastModified: guide.date,
+  }))
+  return [...pages, ...posts, ...guides]
 }

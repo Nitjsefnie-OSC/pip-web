@@ -25,7 +25,11 @@ export function TutorialOffer({ onDeclined }: { onDeclined: () => void }) {
           Three minutes, eight ideas, no quiz. Skippable at any point.
         </p>
         <div className="mt-8 flex flex-col gap-3">
-          <Link href="/learn?from=onboarding" onClick={() => sound.play('call')} className={choice}>
+          <Link
+            href="/tutorial?from=onboarding"
+            onClick={() => sound.play('call')}
+            className={choice}
+          >
             Show me the basics
           </Link>
           <button

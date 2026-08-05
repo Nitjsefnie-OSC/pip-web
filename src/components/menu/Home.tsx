@@ -149,12 +149,21 @@ export function Home() {
         <p className="pb-1 text-center text-xs text-muted-foreground/70">
           New to poker?{' '}
           <Link
+            href="/tutorial"
+            onClick={() => sound.play('tap')}
+            className="underline underline-offset-2 transition hover:text-foreground"
+          >
+            Take the tour
+          </Link>{' '}
+          or{' '}
+          <Link
             href="/learn"
             onClick={() => sound.play('tap')}
             className="underline underline-offset-2 transition hover:text-foreground"
           >
-            Take the tour.
+            read the guides
           </Link>
+          .
         </p>
       </div>
 
