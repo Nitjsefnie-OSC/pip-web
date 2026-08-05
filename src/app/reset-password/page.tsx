@@ -89,7 +89,7 @@ export default function ResetPasswordPage() {
 
       {done && (
         <>
-          <p className="text-sm text-muted-foreground">Done. You&rsquo;re signed in.</p>
+          <p className="text-sm text-muted-foreground">Done. You’re signed in.</p>
           <button
             onClick={() => router.push('/game')}
             className="rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"

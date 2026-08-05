@@ -39,10 +39,10 @@ export default function AgentReadablePost() {
           instead removes the guessing.
         </p>
         <p>
-          It also follows from the rest of the project. Pip&rsquo;s claim is that you can check it
-          rather than take our word for it: the shuffle is seeded, the engine is a readable module,
-          the code is all there. Being legible to machines is the same idea pointed at a different
-          kind of reader.
+          It also follows from the rest of the project. Pip’s claim is that you can check it rather
+          than take our word for it: the shuffle is seeded, the engine is a readable module, the
+          code is all there. Being legible to machines is the same idea pointed at a different kind
+          of reader.
         </p>
       </Section>
 
@@ -62,8 +62,8 @@ export default function AgentReadablePost() {
           Browsers never send that header, so nothing changes for anyone using one. Both responses
           go out with <code>Vary: Accept</code>, so caches keep the two apart, and with{' '}
           <A href="https://www.rfc-editor.org/rfc/rfc8288">RFC 8288</A> Link headers pointing at{' '}
-          <code>/llms.txt</code> and at that page&rsquo;s own markdown mirror. An agent that lands
-          on the HTML by accident is told where the good version lives.
+          <code>/llms.txt</code> and at that page’s own markdown mirror. An agent that lands on the
+          HTML by accident is told where the good version lives.
         </p>
         <p>
           The module doing the work is 57 lines. Each of the six content routes that uses it is four

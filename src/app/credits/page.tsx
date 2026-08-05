@@ -23,8 +23,8 @@ export default function CreditsPage() {
       <Section title="Built by whoever shows up">
         <p>
           Pip is open source, which means anyone can help build it — and these people have. This
-          list isn&rsquo;t hand-picked: it&rsquo;s generated from the project&rsquo;s history every
-          time the site is built. Land a change and your name shows up here on the next deploy.
+          list isn’t hand-picked: it’s generated from the project’s history every time the site is
+          built. Land a change and your name shows up here on the next deploy.
         </p>
       </Section>
 
@@ -58,8 +58,7 @@ export default function CreditsPage() {
       <Section title="With thanks">
         <p>
           Not every contribution is a commit. Thanks to everyone who has playtested, filed a sharp
-          bug report, or talked us out of a bad idea — it counts, even when git doesn&rsquo;t record
-          it.
+          bug report, or talked us out of a bad idea — it counts, even when git doesn’t record it.
         </p>
       </Section>
 

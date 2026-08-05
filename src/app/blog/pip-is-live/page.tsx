@@ -19,9 +19,9 @@ export default function PipIsLivePost() {
     >
       <Section title="The short version">
         <p>
-          Pip is single-player Texas Hold&rsquo;em in the browser: real poker, against AI opponents
-          with faces and personalities, at a table that doesn&rsquo;t want anything from you. No
-          accounts, no ads, no real money. It&rsquo;s live at{' '}
+          Pip is single-player Texas Hold’em in the browser: real poker, against AI opponents with
+          faces and personalities, at a table that doesn’t want anything from you. No accounts, no
+          ads, no real money. It’s live at{' '}
           <Link
             href="/"
             className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
@@ -37,8 +37,8 @@ export default function PipIsLivePost() {
           Every free poker app we tried felt like a casino with the money filed off. Chip packs on a
           timer, spinning wheels, a shop between you and the table. The poker itself was an
           afterthought. We wanted the opposite: a calm table, the real rules, opponents worth
-          reading, and nothing that&rsquo;s trying to pull your wallet out of your pocket. That app
-          didn&rsquo;t seem to exist, so we built it.
+          reading, and nothing that’s trying to pull your wallet out of your pocket. That app didn’t
+          seem to exist, so we built it.
         </p>
         <p>
           The house style is play money only, cosmetics that never touch gameplay, and no dark
@@ -53,20 +53,20 @@ export default function PipIsLivePost() {
           poker engine is a pure, deterministic TypeScript module: give it the same seed and it
           deals the same hand, every time. That is what makes the Daily Deal checkable, since its
           seed comes from the date and everyone in the world plays the identical shuffle. An
-          ordinary hand uses your browser&rsquo;s own randomness, with no server in the loop to tilt
-          it either way. Both cases come down to the same thing — you can read exactly how the cards
+          ordinary hand uses your browser’s own randomness, with no server in the loop to tilt it
+          either way. Both cases come down to the same thing — you can read exactly how the cards
           come out.
         </p>
         <p>
-          It&rsquo;s already more than one person&rsquo;s project: three contributors landed merged
-          pull requests in the first days, and their names ship on the{' '}
+          It’s already more than one person’s project: three contributors landed merged pull
+          requests in the first days, and their names ship on the{' '}
           <Link
             href="/credits"
             className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
           >
             credits page
           </Link>
-          . If you&rsquo;d like yours there too, the repo keeps a shelf of{' '}
+          . If you’d like yours there too, the repo keeps a shelf of{' '}
           <A href="https://github.com/playpip/pip-web/labels/good%20first%20issue">
             good first issues
           </A>{' '}

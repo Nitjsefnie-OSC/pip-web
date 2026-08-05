@@ -22,17 +22,17 @@ export default function LaunchWeekPost() {
           Pip launched on the 23rd. The plan for week one was to fix whatever broke. What actually
           happened is that strangers turned up with pull requests, so the week shipped more than the
           plan did: a new card back, four more hand nicknames, a quicker freeroll, and the blog
-          you&rsquo;re reading now. Posts like this one will appear whenever enough has shipped to
-          be worth saying out loud.
+          you’re reading now. Posts like this one will appear whenever enough has shipped to be
+          worth saying out loud.
         </p>
       </Section>
 
       <Section title="What day one already had">
         <p>
           For anyone arriving via this post rather than the launch: the first version was not a
-          skeleton. Pip shipped with a ladder of venues, from Friends&rsquo; Garage up to The Main
-          Event, and a cast of named opponents with their own personalities and long memories of how
-          you play. Every hand gets a permalink that replays it step by step, the Daily Deal gives
+          skeleton. Pip shipped with a ladder of venues, from Friends’ Garage up to The Main Event,
+          and a cast of named opponents with their own personalities and long memories of how you
+          play. Every hand gets a permalink that replays it step by step, the Daily Deal gives
           everyone in the world the same shuffle once a day, and an avatar creator and Chip Shop
           handle the cosmetics — none of which ever touch gameplay. The whole thing installs as an
           app and works offline, and there is still no account behind any of it: your profile lives
@@ -56,8 +56,8 @@ export default function LaunchWeekPost() {
           >
             credits page
           </Link>
-          , which is the deal: contribute, and the site remembers. If you&rsquo;d like your name
-          there too, the shelf of{' '}
+          , which is the deal: contribute, and the site remembers. If you’d like your name there
+          too, the shelf of{' '}
           <A href="https://github.com/playpip/pip-web/labels/good%20first%20issue">
             good first issues
           </A>{' '}
@@ -67,11 +67,11 @@ export default function LaunchWeekPost() {
 
       <Section title="House changes">
         <p>
-          Friends&rsquo; Garage — the table you can always afford — now seats three instead of four,
-          with the prize trimmed to 300 chips to match. Fewer opponents means a shorter tournament,
-          which matters most at the venue you visit when you&rsquo;re broke. Two first-visit
-          glitches are gone as well: the landing video no longer replays itself, and the reload
-          button now, in fact, reloads.
+          Friends’ Garage — the table you can always afford — now seats three instead of four, with
+          the prize trimmed to 300 chips to match. Fewer opponents means a shorter tournament, which
+          matters most at the venue you visit when you’re broke. Two first-visit glitches are gone
+          as well: the landing video no longer replays itself, and the reload button now, in fact,
+          reloads.
         </p>
       </Section>
 
@@ -81,7 +81,7 @@ export default function LaunchWeekPost() {
           content page now also mirrors itself as plain markdown — add <code>.md</code> to the end
           of the address — with an index at <code>/llms.txt</code>, for readers who prefer their web
           without the styling. And every pull request now runs the full test gate before merge: the
-          same one we use, because contributors&rsquo; code is our code once it lands.
+          same one we use, because contributors’ code is our code once it lands.
         </p>
       </Section>
 
@@ -89,7 +89,7 @@ export default function LaunchWeekPost() {
         <p>
           The most-requested feature of launch week is coaching: Pip watching how you play and
           telling you what it noticed. Two different people asked for it on day one, in nearly the
-          same words, so it&rsquo;s now{' '}
+          same words, so it’s now{' '}
           <A href="https://github.com/playpip/pip-web/issues/18">issue #18</A> and the conversation
           about what it should look like is happening there — join in if you have opinions. The rest
           of the direction lives in the{' '}

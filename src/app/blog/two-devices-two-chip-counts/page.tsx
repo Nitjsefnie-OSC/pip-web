@@ -76,8 +76,8 @@ export default function TwoDevicesTwoChipCountsPost() {
             take the better of each.
           </Item>
           <Item>
-            <strong className="font-medium text-foreground">Today&rsquo;s Daily</strong> keeps the
-            record that says you played it. Syncing should not hand you a second attempt.
+            <strong className="font-medium text-foreground">Today’s Daily</strong> keeps the record
+            that says you played it. Syncing should not hand you a second attempt.
           </Item>
         </List>
         <p>
@@ -85,8 +85,8 @@ export default function TwoDevicesTwoChipCountsPost() {
           <strong className="font-medium text-foreground">Roll</strong> and your{' '}
           <strong className="font-medium text-foreground">lifetime stats</strong>. Those follow one
           side, and you pick which. Stats follow the Roll rather than being merged separately,
-          because a profile with one device&rsquo;s chips and the other device&rsquo;s hand count is
-          a profile that disagrees with itself.
+          because a profile with one device’s chips and the other device’s hand count is a profile
+          that disagrees with itself.
         </p>
       </Section>
 
@@ -138,8 +138,8 @@ export default function TwoDevicesTwoChipCountsPost() {
         </p>
         <p>
           Transfer codes and the QR still work too, and they always will. Moving a profile between
-          devices never required an account and still doesn&rsquo;t. The account is only there if
-          you would rather not think about it.
+          devices never required an account and still doesn’t. The account is only there if you
+          would rather not think about it.
         </p>
       </Section>
     </LegalPage>

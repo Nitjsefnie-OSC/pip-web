@@ -47,9 +47,7 @@ export function PlayerDialog({
         </DialogHeader>
 
         {seat.bio && (
-          <p className="text-center text-sm italic text-muted-foreground">
-            &ldquo;{seat.bio}&rdquo;
-          </p>
+          <p className="text-center text-sm italic text-muted-foreground">“{seat.bio}”</p>
         )}
 
         <div className="mt-1 grid grid-cols-2 gap-2">

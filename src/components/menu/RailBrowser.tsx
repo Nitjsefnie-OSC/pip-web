@@ -51,8 +51,7 @@ export function RailBrowser() {
       <p className="mt-5 max-w-2xl px-1 text-sm leading-relaxed text-muted-foreground">
         The stake is the difficulty — Micro plays loose and forgiving, the nosebleeds bite. Every
         room is 100 big blinds deep and the blinds never move: somewhere to kill ten minutes, not a
-        tournament to finish. Bust and you can rebuy or walk. The table doesn&rsquo;t mind either
-        way.
+        tournament to finish. Bust and you can rebuy or walk. The table doesn’t mind either way.
       </p>
 
       <VenueInfoDialog

@@ -356,8 +356,8 @@ function LadderBody() {
   const [open, setOpen] = useState(false)
   return (
     <>
-      Some hands outrank others: a pair beats a high card, a flush beats a straight. You&rsquo;ll
-      learn the rest by losing with them —{' '}
+      Some hands outrank others: a pair beats a high card, a flush beats a straight. You’ll learn
+      the rest by losing with them —{' '}
       <button
         onClick={() => {
           sound.play('tap')
@@ -554,8 +554,8 @@ export const LESSONS: Lesson[] = [
     title: 'Your two cards',
     body: (
       <>
-        You&rsquo;re dealt two cards, face down. Only you can see them. Everyone else is guessing —
-        that&rsquo;s the game.
+        You’re dealt two cards, face down. Only you can see them. Everyone else is guessing — that’s
+        the game.
       </>
     ),
     Visual: HoleCardsVisual,
@@ -577,7 +577,7 @@ export const LESSONS: Lesson[] = [
     body: (
       <>
         Your two cards plus the board make seven. Your hand is the best five of them — the spare two
-        don&rsquo;t count.
+        don’t count.
       </>
     ),
     Visual: BestFiveVisual,
@@ -593,9 +593,8 @@ export const LESSONS: Lesson[] = [
     title: 'The betting',
     body: (
       <>
-        Poker&rsquo;s whole vocabulary is five words: check, bet, call, raise, fold. Two players
-        start each hand with small forced bets — the blinds — so there&rsquo;s always something to
-        win.
+        Poker’s whole vocabulary is five words: check, bet, call, raise, fold. Two players start
+        each hand with small forced bets — the blinds — so there’s always something to win.
       </>
     ),
     Visual: BettingVisual,
@@ -605,7 +604,7 @@ export const LESSONS: Lesson[] = [
     title: 'The showdown',
     body: (
       <>
-        Reach the end together and it&rsquo;s a showdown — cards up, best hand takes the pot. Or bet
+        Reach the end together and it’s a showdown — cards up, best hand takes the pot. Or bet
         everyone out, and no one ever sees yours. (You had nothing.)
       </>
     ),
@@ -616,9 +615,8 @@ export const LESSONS: Lesson[] = [
     title: 'Your Roll',
     body: (
       <>
-        Your chips are your Roll. Venues are tournaments: the buy-in is your stack, bust and
-        you&rsquo;re out, outlast the table and the prize is yours. Start at the Garage — everyone
-        does.
+        Your chips are your Roll. Venues are tournaments: the buy-in is your stack, bust and you’re
+        out, outlast the table and the prize is yours. Start at the Garage — everyone does.
       </>
     ),
     Visual: RollVisual,

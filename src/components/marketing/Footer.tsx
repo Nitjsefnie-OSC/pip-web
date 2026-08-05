@@ -55,7 +55,7 @@ export function Footer() {
         <div>
           <Wordmark />
           <p className="mt-2 max-w-xs text-sm text-muted-foreground">
-            Casual Texas Hold&rsquo;em, redesigned. Free, open source, and play money — never real
+            Casual Texas Hold’em, redesigned. Free, open source, and play money — never real
             gambling.
           </p>
           <div className="mt-5">

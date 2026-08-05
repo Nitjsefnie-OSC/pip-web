@@ -131,7 +131,7 @@ function Hero() {
           <motion.div variants={rise} initial="hidden" animate="show" custom={0}>
             <span className="inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground">
               <Spade className="size-3.5 fill-current text-pip" />
-              Single-player Texas Hold&rsquo;em, redesigned
+              Single-player Texas Hold’em, redesigned
             </span>
           </motion.div>
 
@@ -154,8 +154,8 @@ function Hero() {
             custom={2}
             className="mt-6 text-lg leading-relaxed text-muted-foreground text-pretty"
           >
-            Real Hold&rsquo;em against AI that plays a proper game &mdash; wrapped in a calm, modern
-            app. No fake felt, no neon, no pop-ups. Just the table, your Roll, and the next hand.
+            Real Hold’em against AI that plays a proper game — wrapped in a calm, modern app. No
+            fake felt, no neon, no pop-ups. Just the table, your Roll, and the next hand.
           </motion.p>
 
           <motion.div
@@ -181,7 +181,7 @@ function Hero() {
             custom={4}
             className="mt-4 text-sm text-muted-foreground"
           >
-            Plays in your browser &mdash; no download, no sign-up. Loads in a second.
+            Plays in your browser — no download, no sign-up. Loads in a second.
           </motion.p>
         </div>
 
@@ -463,7 +463,7 @@ function Features() {
           >
             <FeatureIcon icon={Brain} />
             <h3 className="mt-5 text-3xl font-semibold tracking-tight text-balance">
-              A cast you&rsquo;ll get to know
+              A cast you’ll get to know
             </h3>
             <p className="mt-3 text-lg leading-relaxed text-muted-foreground text-pretty">
               Pip seats a fixed troupe of regulars, not random bots. Each weighs Monte-Carlo equity
@@ -737,8 +737,8 @@ function FinalCta() {
           custom={1}
           className="mt-5 max-w-lg text-lg text-muted-foreground text-pretty"
         >
-          Make a player, take a seat at the Garage, and see how far your Roll climbs. It&rsquo;s
-          free — and with nothing to sell you, it stays that way.
+          Make a player, take a seat at the Garage, and see how far your Roll climbs. It’s free —
+          and with nothing to sell you, it stays that way.
         </motion.p>
         <motion.div
           variants={rise}
@@ -798,9 +798,7 @@ function PlayButton({ size = 'lg', className }: { size?: 'sm' | 'lg'; className?
     >
       {label}
       {returning && (
-        <span className="tabular-nums text-primary-foreground/60">
-          &middot; {money(roll)} chips
-        </span>
+        <span className="tabular-nums text-primary-foreground/60">· {money(roll)} chips</span>
       )}
       <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
     </Link>

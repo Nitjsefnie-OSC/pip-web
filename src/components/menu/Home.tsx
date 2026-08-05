@@ -354,7 +354,7 @@ function ShopCard({ onOpen }: { onOpen: () => void }) {
           {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
         </div>
         <div className="min-w-0 flex-1">
-          <span className="font-medium">Pearl&rsquo;s counter</span>
+          <span className="font-medium">Pearl’s counter</span>
           <p className="truncate text-sm text-muted-foreground">
             Card backs, deck faces, souvenirs — style, never edge.
           </p>
