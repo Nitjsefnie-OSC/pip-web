@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { AceRuns } from '@/components/learn/AceRuns'
 import { GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
@@ -170,6 +171,9 @@ export default function HandRankingsGuide() {
           A-K-Q-J-10 is the highest straight. A-2-3-4-5 is the lowest, and it’s the only straight
           where the ace counts as a one. Q-K-A-2-3 is not a straight at all. Nothing wraps.
         </p>
+        {/* Sits with its own paragraph: read as prose the three runs all look
+            equally plausible, and seeing them side by side is the argument. */}
+        <AceRuns />
         <p>
           <strong className={strong}>Your best five cards might not include your cards.</strong> You
           make the best five from the seven available, and sometimes all five of those are on the

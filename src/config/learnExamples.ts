@@ -52,6 +52,46 @@ export const WHO_WINS: WhoWinsExample[] = [
   },
 ]
 
+export interface AceRunExample {
+  id: string
+  label: string
+  /** Five cards, deliberately mixed suits so only the sequence is in question. */
+  cards: string[]
+  /** Whether these five make a straight. Checked against the evaluator. */
+  isStraight: boolean
+  verdict: string
+}
+
+/**
+ * The ace runs high and it runs low, and it never turns the corner. Three
+ * sequences, one of which is not a straight at all, which is the single rule on
+ * the rankings page that people most reliably get wrong.
+ */
+export const ACE_RUNS: AceRunExample[] = [
+  {
+    id: 'broadway',
+    label: 'A-K-Q-J-10',
+    cards: ['Ah', 'Ks', 'Qd', 'Jc', 'Th'],
+    isStraight: true,
+    verdict: 'A straight, and the highest one there is. Here the ace is playing high.',
+  },
+  {
+    id: 'wheel',
+    label: 'A-2-3-4-5',
+    cards: ['Ah', '2s', '3d', '4c', '5h'],
+    isStraight: true,
+    verdict:
+      'Also a straight, and the lowest one there is. This is the only place the ace counts as a one.',
+  },
+  {
+    id: 'round-the-corner',
+    label: 'Q-K-A-2-3',
+    cards: ['Qh', 'Ks', 'Ad', '2c', '3h'],
+    isStraight: false,
+    verdict: 'Not a straight at all. Nothing wraps: the ace is an end, never a middle.',
+  },
+]
+
 /** Parse an example's strings into cards for rendering. */
 export function toCards(codes: readonly string[]): Card[] {
   return codes.map(cardFromString)
