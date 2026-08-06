@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { ChevronRight, Lock, Moon, MoonStar, Store, Sun, Sunrise } from 'lucide-react'
+import { BookOpen, ChevronRight, Lock, Moon, MoonStar, Store, Sun, Sunrise } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
@@ -145,30 +145,51 @@ export function Home() {
           />
         </div>
 
-        {/* the tour's quiet permanent entry — one line, no badge, no pulse */}
-        <p className="pb-1 text-center text-xs text-muted-foreground/70">
-          New to poker?{' '}
-          <Link
-            href="/tutorial"
-            onClick={() => sound.play('tap')}
-            className="underline underline-offset-2 transition hover:text-foreground"
-          >
-            Take the tour
-          </Link>{' '}
-          or{' '}
-          <Link
-            href="/learn"
-            onClick={() => sound.play('tap')}
-            className="underline underline-offset-2 transition hover:text-foreground"
-          >
-            read the guides
-          </Link>
-          .
-        </p>
+        <LearnCard />
       </div>
 
       <ShopDialog open={shopOpen} onOpenChange={setShopOpen} />
     </PageShell>
+  )
+}
+
+/**
+ * The way into the Learn section. Deliberately a card and not the footnote it
+ * replaced: a one-line "New to poker?" under the menu read as small print, and
+ * the guides are the one part of Pip a beginner most needs to find.
+ */
+function LearnCard() {
+  // Webb keeps the Learn section the way Pearl keeps the shop: he is the one in
+  // the cast who "wrote the book", so his face is the least arbitrary icon here.
+  const webb = characterById('webb')
+  return (
+    // Same treatment as the shop card: animate the wrapper, keep the rounded
+    // card static so iOS doesn't re-rasterise its mask each frame.
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
+    >
+      <Link
+        href="/learn"
+        onClick={() => sound.play('tap')}
+        className="group flex w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      >
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
+          {webb && <PlayerAvatar spec={webb.avatar} size={44} />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="font-medium">Learn poker with Webb</span>
+          <p className="truncate text-sm text-muted-foreground">
+            A three-minute tour, plus written guides on how the game works.
+          </p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
+          <BookOpen className="size-4" />
+          Open
+        </span>
+      </Link>
+    </motion.div>
   )
 }
 

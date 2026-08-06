@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { BackButton } from './BackButton'
 import { Footer } from './Footer'
 import { Wordmark } from './Wordmark'
 
@@ -30,9 +31,14 @@ export function LegalPage({
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6 md:px-10">
-          <Link href="/" aria-label="Pip home" className="transition hover:opacity-80">
-            <Wordmark />
-          </Link>
+          {/* The back control is the installed app's only way home from here: a
+              standalone PWA has no browser chrome to fall back on. */}
+          <div className="flex items-center gap-1">
+            <BackButton />
+            <Link href="/" aria-label="Pip home" className="transition hover:opacity-80">
+              <Wordmark />
+            </Link>
+          </div>
           <ThemeToggle />
         </div>
       </header>

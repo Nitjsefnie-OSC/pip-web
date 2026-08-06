@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { LegalPage } from '@/components/marketing/LegalPage'
+import { characterById } from '@/config/cast'
 import { LEARN_GUIDES } from '@/config/learn'
 
 // The Learn hub: the three-minute tour and every written guide, in one place.
@@ -18,11 +20,27 @@ export const metadata: Metadata = {
 }
 
 export default function LearnPage() {
+  const webb = characterById('webb')
   return (
     <LegalPage
       title="Learn poker"
       subtitle="A three-minute tour to get you playing, and written guides for when you want the detail. All free, no signup."
     >
+      {/* Webb keeps this section the way Pearl keeps the shop. He is on the
+          page, not in the guides: the guides are teaching prose, and the dry
+          register belongs to the chrome around them. */}
+      {webb && (
+        <div className="mb-10 flex items-center gap-4">
+          <PlayerAvatar spec={webb.avatar} size={56} />
+          <div className="min-w-0">
+            <p className="font-medium">Webb</p>
+            <p className="text-[15px] leading-relaxed text-muted-foreground">
+              Wrote the book. This is the shelf.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Link
         href="/tutorial"
         className="group block rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-6 transition hover:border-foreground/20"

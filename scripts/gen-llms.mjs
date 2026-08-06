@@ -127,6 +127,14 @@ turndown.addRule('gfmTable', {
   },
 })
 
+// Cast avatars are inline data-URI SVGs, tens of kilobytes each. Rendered into
+// a mirror they are pure noise: a reader that cannot see them gains nothing,
+// and one avatar outweighs the page it sits on.
+turndown.addRule('stripDataImages', {
+  filter: (node) => node.nodeName === 'IMG' && (node.getAttribute('src') ?? '').startsWith('data:'),
+  replacement: () => '',
+})
+
 const HEADINGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
 
 // The index pages (/learn, /blog) make each entry one card-shaped link wrapping

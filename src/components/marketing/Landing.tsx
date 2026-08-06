@@ -31,6 +31,7 @@ import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, type Venue } from '@/config/venues'
 import { CARD_BACKS } from '@/config/cardBacks'
 import { characterById, type Character } from '@/config/cast'
+import { guideBySlug } from '@/config/learn'
 import { useProfile } from '@/store/profile'
 import { useHydrated } from '@/lib/useHydrated'
 import { useMoney } from '@/lib/useMoney'
@@ -48,6 +49,7 @@ export function Landing() {
         <TrustStrip />
         <Venues />
         <Features />
+        <Learn />
         <FinalCta />
       </main>
       <Footer />
@@ -706,6 +708,140 @@ function MiniFeature({
         <p className="text-sm font-semibold">{title}</p>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{children}</p>
+    </motion.div>
+  )
+}
+
+/* --------------------------------- learn ---------------------------------- */
+
+function Learn() {
+  // Webb keeps the Learn section the way Pearl keeps the shop, and his own bio
+  // is the line: no new character copy invented for the landing page.
+  const webb = characterById('webb')
+  return (
+    <section id="learn" className="border-t border-foreground/5">
+      {/* The hero's split, not a full-width band: a 6xl-wide paragraph is an
+          unreadable measure, and the buttons left a quarter of it empty. */}
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-14 px-6 py-24 md:px-10 md:py-32 lg:grid-cols-[1.05fr_1fr]">
+        <div className="max-w-xl">
+          <SectionHeading
+            eyebrow="Learn"
+            title="Never played a hand? Start here."
+            body="A three-minute tour of the basics, then written guides for when you want the detail. The tour is built from the real game, so what you practise on is what you play on."
+          />
+          <motion.div
+            variants={rise}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
+            custom={2}
+            className="mt-9 flex flex-wrap items-center gap-3"
+          >
+            <Link
+              href="/tutorial"
+              onClick={() => sound.play('tap')}
+              className="rounded-2xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            >
+              Take the tour
+            </Link>
+            <Link
+              href="/learn"
+              onClick={() => sound.play('tap')}
+              className="inline-flex items-center gap-1.5 rounded-2xl px-5 py-3.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              Read the guides
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </motion.div>
+        </div>
+
+        <GuideShowpiece webb={webb} />
+      </div>
+    </section>
+  )
+}
+
+/**
+ * The top of the rankings guide, rendered as the guide itself rather than
+ * described. Same principle as the hero table: show the real thing. The full
+ * ten hands, and the wording, live at /learn/hand-rankings — this is the first
+ * five, and that page stays the source of truth.
+ */
+const RANKING_ROWS = [
+  { hand: 'Royal flush', cards: ['A♠', 'K♠', 'Q♠', 'J♠', '10♠'] },
+  { hand: 'Straight flush', cards: ['9♥', '8♥', '7♥', '6♥', '5♥'] },
+  { hand: 'Four of a kind', cards: ['Q♣', 'Q♦', 'Q♥', 'Q♠', '4♦'] },
+  { hand: 'Full house', cards: ['7♠', '7♦', '7♣', 'K♥', 'K♠'] },
+  { hand: 'Flush', cards: ['A♦', 'J♦', '8♦', '5♦', '2♦'] },
+] as const
+
+function GuideShowpiece({ webb }: { webb?: Character }) {
+  const guide = guideBySlug('hand-rankings')
+  if (!guide) return null
+
+  return (
+    <motion.div
+      variants={rise}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: '-80px' }}
+      custom={1}
+    >
+      <Link
+        href={`/learn/${guide.slug}`}
+        onClick={() => sound.play('tap')}
+        className="group block overflow-hidden rounded-3xl border border-foreground/10 bg-background shadow-[0_1px_2px_rgba(0,0,0,0.04),0_12px_32px_-12px_rgba(0,0,0,0.12)] transition hover:border-foreground/20"
+      >
+        {/* byline — Webb as the author, which is what he is here */}
+        <div className="flex items-center gap-3 border-b border-foreground/5 px-6 py-4">
+          {webb && <PlayerAvatar spec={webb.avatar} size={32} />}
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">Webb</span> · Learn
+          </p>
+        </div>
+
+        <div className="px-6 pt-5 pb-6">
+          <h3 className="text-lg font-semibold tracking-tight">{guide.title}</h3>
+
+          <ul className="mt-4 space-y-2">
+            {RANKING_ROWS.map((row, i) => (
+              <li key={row.hand} className="flex items-center gap-3">
+                <span className="w-4 shrink-0 text-xs tabular-nums text-muted-foreground/60">
+                  {i + 1}
+                </span>
+                <span className="flex-1 truncate text-sm font-medium">{row.hand}</span>
+                <span className="flex shrink-0 gap-1">
+                  {row.cards.map((card) => (
+                    <span
+                      key={card}
+                      // Fixed size, not padded to fit: "10♠" is wider than "A♠",
+                      // so content-sized tiles put every row's columns in a
+                      // different place.
+                      className={cn(
+                        'inline-flex h-6 w-9 items-center justify-center rounded border border-foreground/10 bg-foreground/[0.02] text-[11px] leading-none font-medium tabular-nums',
+                        card.includes('♥') || card.includes('♦')
+                          ? 'text-suit-red'
+                          : 'text-foreground',
+                      )}
+                    >
+                      {card}
+                    </span>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          {/* the page carries on past the fold, so the card says so */}
+          <div className="relative mt-2 h-10">
+            <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-transparent to-background" />
+            <span className="absolute inset-x-0 bottom-0 flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition group-hover:text-foreground">
+              Read the guide
+              <ArrowRight className="size-3.5 transition group-hover:translate-x-0.5" />
+            </span>
+          </div>
+        </div>
+      </Link>
     </motion.div>
   )
 }
