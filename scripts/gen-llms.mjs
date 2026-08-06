@@ -84,6 +84,11 @@ const turndown = new TurndownService({
 })
 // Decorative/interactive-only elements carry no meaning in Markdown.
 turndown.remove(['script', 'style', 'svg', 'noscript'])
+// The guides' interactive examples are app, not prose. Rendered into a mirror
+// they arrive as a column of loose card glyphs, which is worse than silence:
+// the prose around them already says what they demonstrate. Components opt out
+// with data-mirror="skip".
+turndown.remove((node) => node.getAttribute?.('data-mirror') === 'skip')
 // Icon-only links (their SVG stripped) would render as empty `[](url)` noise.
 turndown.addRule('stripEmptyLinks', {
   filter: (node) => node.nodeName === 'A' && !node.textContent.trim(),

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { WhoWins } from '@/components/learn/WhoWins'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug } from '@/config/learn'
 
@@ -177,6 +178,11 @@ export default function HandRankingsGuide() {
           fold in that spot thinking they’ve lost.
         </p>
       </Section>
+
+      {/* Sits here because by this point the reader has the order, the tie
+          rules and the board-plays case, which is what the three examples
+          turn on. */}
+      <WhoWins />
 
       <Section title="How often each hand actually turns up">
         <p>
