@@ -1,6 +1,10 @@
 import test from 'ava'
-import { ACE_RUNS, WHO_WINS, toCards } from '@/config/learnExamples'
-import { determineWinners, evaluateHand } from '@/lib/poker/handEval'
+import { ACE_RUNS, BEST_FIVE, CAN_YOU_CHECK, WHO_WINS, toCards } from '@/config/learnExamples'
+import { determineWinners, evaluateHand, type EvaluatedHand } from '@/lib/poker/handEval'
+
+/** The five cards the evaluator actually used, as "Kh" strings. */
+const bestFiveOf = (solved: EvaluatedHand): string[] =>
+  (solved.solved as unknown as { cards: unknown[] }).cards.map(String)
 
 // The whole point of this file: every worked example on a guide page states who
 // wins a hand, in public, to people learning the rules. Getting one wrong is
@@ -58,5 +62,81 @@ test('every example has an id and an explanation', (t) => {
   for (const example of WHO_WINS) {
     t.true(example.id.length > 0)
     t.true(example.why.length > 0, `${example.id}: no explanation`)
+  }
+})
+
+// BestFive names five of the seven cards and says that is the hand. A reader
+// learning the rules has no way to check it, and the whole point of the widget
+// is the case where the answer is counter-intuitive, so the evaluator settles
+// each one rather than the author's reading of the board.
+
+test('every best-five spot names the five cards the evaluator actually uses', (t) => {
+  for (const spot of BEST_FIVE) {
+    const solved = evaluateHand(toCards(spot.hole), toCards(spot.board))
+    // Compared as sets: the config lists them in the order the widget reads
+    // best, and pokersolver has its own ordering within a rank.
+    t.deepEqual(
+      bestFiveOf(solved).sort(),
+      [...spot.best].sort(),
+      `${spot.id}: not the best five available`,
+    )
+    t.is(solved.name, spot.engineName, `${spot.id}: hand name`)
+  }
+})
+
+test('every best-five spot deals seven distinct cards, and the five come from them', (t) => {
+  for (const spot of BEST_FIVE) {
+    t.is(spot.hole.length, 2, `${spot.id}: hole`)
+    t.is(spot.board.length, 5, `${spot.id}: board`)
+    t.is(spot.best.length, 5, `${spot.id}: best five`)
+    const seven = [...spot.hole, ...spot.board]
+    t.is(new Set(seven).size, 7, `${spot.id}: a card is dealt twice`)
+    for (const card of spot.best) {
+      t.true(seven.includes(card), `${spot.id}: ${card} is not one of the seven`)
+    }
+    t.true(spot.why.length > 0, `${spot.id}: no explanation`)
+  }
+})
+
+test('the three spots really are both-play, one-plays and neither-plays', (t) => {
+  const played = (id: string) => {
+    const spot = BEST_FIVE.find((s) => s.id === id)
+    if (!spot) throw new Error(`no spot ${id}`)
+    return spot.hole.filter((card) => spot.best.includes(card)).length
+  }
+  t.is(played('both-play'), 2)
+  t.is(played('one-plays'), 1)
+  t.is(played('neither-plays'), 0)
+})
+
+test('on the neither-plays spot the hole cards make no difference at all', (t) => {
+  // The claim the spot exists to make: the board is the hand, so everyone
+  // still in has it and the pot splits. Any other two cards must tie.
+  const spot = BEST_FIVE.find((s) => s.id === 'neither-plays')
+  if (!spot) throw new Error('no neither-plays spot')
+  const { winners } = determineWinners(
+    [
+      { id: 'reader' as const, hole: toCards(spot.hole) },
+      { id: 'anyone' as const, hole: toCards(['Jc', '4h']) },
+    ],
+    toCards(spot.board),
+  )
+  t.deepEqual(winners.sort(), ['anyone', 'reader'])
+})
+
+test('the checking situations are three distinct rules claims with verdicts', (t) => {
+  // No cards, so nothing here is the evaluator's to settle. What a test can
+  // still hold is that the set covers both answers rather than teaching one.
+  const ids = CAN_YOU_CHECK.map((e) => e.id)
+  t.is(new Set(ids).size, ids.length)
+  t.true(CAN_YOU_CHECK.some((e) => e.canCheck))
+  t.true(CAN_YOU_CHECK.some((e) => !e.canCheck))
+  for (const example of CAN_YOU_CHECK) {
+    t.true(example.situation.length > 0, `${example.id}: no situation`)
+    t.true(example.verdict.length > 0, `${example.id}: no verdict`)
+    t.true(
+      example.verdict.startsWith(example.canCheck ? 'Yes' : 'No'),
+      `${example.id}: the verdict must open with the answer it is scored against`,
+    )
   }
 })

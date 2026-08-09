@@ -114,6 +114,24 @@ export function GuidePage({ slug, children }: { slug: string; children: React.Re
 }
 
 /**
+ * An inline link to a sibling guide, by slug. A guide that isn't written yet
+ * renders as plain text instead of a dead link. It is the same rule relatedGuides()
+ * applies to the "Keep going" block, so a page can be written against the whole
+ * planned set and the links simply switch on as the guides land.
+ */
+export function GuideLink({ slug, children }: { slug: string; children: React.ReactNode }) {
+  if (!guideBySlug(slug)) return <>{children}</>
+  return (
+    <Link
+      href={`/learn/${slug}`}
+      className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
+    >
+      {children}
+    </Link>
+  )
+}
+
+/**
  * The direct answer, before any preamble. Set a step up from body copy because
  * it is the part someone who opened the page mid-hand actually needs.
  */
