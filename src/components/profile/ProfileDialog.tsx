@@ -58,16 +58,23 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
   }
 
   return (
-    <div className="pt-2">
+    // Four blocks (editor, Chips/Stats, Save, account) have to fit a phone in
+    // portrait, and they didn't: the dialog is centred and clipped rather than
+    // scrolled, so the bottom of the account row was falling off the screen.
+    // Everything below is the same content spaced tighter. The max-height is
+    // the backstop, not the fix - dvh so browser chrome counts against it, and
+    // it only bites on the shortest devices, where scrolling beats clipping.
+    <div className="-mx-1 max-h-[calc(100dvh-9rem)] overflow-y-auto px-1 pt-1">
       <AvatarEditor
         spec={spec}
         name={name}
         onSpecChange={setSpec}
         onNameChange={setLocalName}
         onSubmit={save}
-        avatarSize={112}
+        avatarSize={88}
+        compact
       />
-      <div className="mt-5 flex gap-2">
+      <div className="mt-4 flex gap-2">
         <button
           onClick={() => {
             sound.play('tap')
@@ -90,7 +97,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       <button
         onClick={save}
         disabled={!name.trim()}
-        className="mt-3 w-full rounded-2xl bg-primary py-3.5 font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 enabled:active:scale-[0.98] disabled:opacity-30"
+        className="mt-2.5 w-full rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 enabled:active:scale-[0.98] disabled:opacity-30"
       >
         Save
       </button>
