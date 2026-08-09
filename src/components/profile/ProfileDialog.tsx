@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
+import { AccountRow } from './AccountRow'
 import { AvatarEditor } from './AvatarEditor'
 import { ChipsDialog } from './ChipsDialog'
 import { AWARDS } from '@/lib/awards'
@@ -93,6 +94,7 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
       >
         Save
       </button>
+      <AccountRow name={name} />
       <ChipsDialog open={chipsOpen} onOpenChange={setChipsOpen} />
     </div>
   )

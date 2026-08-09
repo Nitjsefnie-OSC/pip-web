@@ -279,7 +279,7 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
     {
       icon: WifiOff,
       title: 'No account needed',
-      body: 'Play everything without one. Add an account only if you want your progress on a second device.',
+      body: 'Play everything without one. Add one, free, whenever you want your progress backed up and on every device.',
     },
     {
       icon: Sparkles,

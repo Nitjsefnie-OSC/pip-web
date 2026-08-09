@@ -181,12 +181,18 @@ function ResetSection() {
 }
 
 /**
- * Getting your progress onto another device: one section, two buttons.
+ * Keeping your progress: one section, two buttons.
  *
  * This had grown into two headings, five buttons and a stray text link, all
  * answering the same question, with a four-field sign-in flow sharing a scroll
  * with the dark-mode toggle. Both real tasks now open their own dialog and
  * Settings keeps only the doors.
+ *
+ * The heading names the account when there is one to name. "Move to another
+ * device" describes only the by-hand route, and filing the account under it
+ * hid the account from everyone who had one device and simply didn't want to
+ * lose it. Builds with no Supabase project keep the old heading, because in
+ * those the by-hand route is genuinely all there is.
  */
 function TransferSection() {
   const [transferOpen, setTransferOpen] = useState(false)
@@ -195,7 +201,7 @@ function TransferSection() {
   return (
     <div>
       <p className="mb-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
-        Move to another device
+        {syncOff ? 'Move to another device' : 'Your account'}
       </p>
 
       {syncOff ? (
