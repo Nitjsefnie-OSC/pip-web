@@ -187,7 +187,7 @@ function LearnCard({ delay = 0 }: { delay?: number }) {
           {webb && <PlayerAvatar spec={webb.avatar} size={44} />}
         </div>
         <div className="min-w-0 flex-1">
-          <span className="font-medium">Learn poker with Webb</span>
+          <span className="font-medium">Learn with Webb</span>
           {/* Kept short enough to survive the half-width card: at two-up this
               line has ~350px, and the old one truncated mid-word. */}
           <p className="truncate text-sm text-muted-foreground">
