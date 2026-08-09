@@ -1,15 +1,9 @@
 import type { Metadata } from 'next'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
+import { StartingHandChart } from '@/components/learn/StartingHandChart'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug } from '@/config/learn'
-import {
-  BAND_LABEL,
-  BAND_SYMBOL,
-  CHART_RANKS,
-  chartHand,
-  cumulativeShare,
-  HAND_BANDS,
-} from '@/config/startingHands'
+import { cumulativeShare } from '@/config/startingHands'
 
 const guide = guideBySlug('starting-hands')!
 
@@ -55,62 +49,6 @@ const DEALT = [
 
 const strong = 'font-medium text-foreground'
 
-/**
- * The 13x13 grid. Drawn from the band lists rather than written out, so the
- * 169 cells and the percentages in the prose come from one source.
- */
-function Chart() {
-  return (
-    <GuideTable>
-      <thead>
-        <tr>
-          <th scope="col">
-            <span className="sr-only">Higher card</span>
-          </th>
-          {CHART_RANKS.map((rank) => (
-            <th key={rank} scope="col" className="text-center">
-              {rank}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {CHART_RANKS.map((rowRank, row) => (
-          <tr key={rowRank}>
-            <th scope="row" className="pt-2.5 align-top">
-              {rowRank}
-            </th>
-            {CHART_RANKS.map((colRank, col) => {
-              const hand = chartHand(row, col)
-              const band = HAND_BANDS[hand]
-              return (
-                <td key={colRank} className="whitespace-nowrap text-center">
-                  <span className={band ? strong : undefined}>{hand}</span>
-                  {band ? (
-                    <>
-                      {/* The symbol is a key a screen reader cannot use, so the
-                          band is spelled out and the glyph is hidden. */}
-                      <span className="ml-1" aria-hidden="true">
-                        {BAND_SYMBOL[band]}
-                      </span>
-                      {/* Dropped from the Markdown mirror: 169 repeats of
-                          "Late only, the cutoff or the button" is noise to a
-                          reader that can see the legend once, above. */}
-                      <span className="sr-only" data-mirror="skip">
-                        , {BAND_LABEL[band]}
-                      </span>
-                    </>
-                  ) : null}
-                </td>
-              )
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </GuideTable>
-  )
-}
-
 export default function StartingHandsGuide() {
   return (
     <GuidePage slug="starting-hands">
@@ -131,16 +69,11 @@ export default function StartingHandsGuide() {
       <Section title="The chart">
         <p>
           The action has folded to you and you are deciding whether to come in. Find your two cards,
-          and the symbol tells you the earliest seat you should open them from.
-        </p>
-        <p>
-          <strong className={strong}>{BAND_SYMBOL.any} Any position</strong> ·{' '}
-          <strong className={strong}>{BAND_SYMBOL.middle} Middle onwards</strong> ·{' '}
-          <strong className={strong}>{BAND_SYMBOL.late} Late only, the cutoff or the button</strong>{' '}
-          · unmarked, fold
+          and the colour and symbol tell you the earliest seat you should open them from. Tap any
+          hand for the detail.
         </p>
         <p>Suited hands are above the diagonal, pairs are on it, offsuit hands are below.</p>
-        <Chart />
+        <StartingHandChart />
         <p>
           That works out at{' '}
           <strong className={strong}>

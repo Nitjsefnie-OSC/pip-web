@@ -52,6 +52,100 @@ export const WHO_WINS: WhoWinsExample[] = [
   },
 ]
 
+export interface BestFiveExample {
+  id: string
+  /** Your two private cards. */
+  hole: string[]
+  /** The five community cards. */
+  board: string[]
+  /**
+   * The five cards that actually make the hand, in the order the widget shows
+   * them. tests/learnExamples.test.ts settles this against the evaluator.
+   */
+  best: string[]
+  /** The evaluator's own name for the hand, so the test can pin it. */
+  engineName: string
+  /** How the page says it, in words. */
+  hand: string
+  why: string
+}
+
+/**
+ * Which five of the seven cards play. That your hand need not include your own
+ * cards is the mechanic the whole game rests on, and the one prose keeps
+ * failing to land: "best five of seven" reads as obvious and then people fold
+ * a split pot. Three spots, in the order the misunderstanding gets harder:
+ * both cards play, one plays, neither does.
+ */
+export const BEST_FIVE: BestFiveExample[] = [
+  {
+    id: 'both-play',
+    hole: ['Ks', 'Qs'],
+    board: ['Kd', 'Qh', '8s', '3h', '5c'],
+    best: ['Ks', 'Kd', 'Qs', 'Qh', '8s'],
+    engineName: 'Two Pair',
+    hand: 'Two pair, kings and queens',
+    why: 'Both of your cards play, and the eight on the table comes along as the fifth card.',
+  },
+  {
+    id: 'one-plays',
+    hole: ['Ac', '2d'],
+    board: ['Ah', 'Ks', 'Qd', '9c', '4s'],
+    best: ['Ac', 'Ah', 'Ks', 'Qd', '9c'],
+    engineName: 'Pair',
+    hand: 'A pair of aces',
+    why: 'Your ace plays and your two does not. Four cards on the table are better than it, so it never makes the hand.',
+  },
+  {
+    id: 'neither-plays',
+    hole: ['7c', '2d'],
+    board: ['Ah', 'Ad', 'Ac', 'Ks', 'Kh'],
+    best: ['Ah', 'Ad', 'Ac', 'Ks', 'Kh'],
+    engineName: 'Full House',
+    hand: 'A full house, aces full of kings',
+    why: 'The five cards on the table are already the best five, so your cards are irrelevant. Everyone still in the hand has this exact hand and the pot splits.',
+  },
+]
+
+export interface CanYouCheckExample {
+  id: string
+  situation: string
+  canCheck: boolean
+  verdict: string
+}
+
+/**
+ * When checking is available. The most common first-night mistake, and the
+ * answer is one rule: you can only check when there is nothing to call.
+ *
+ * No cards in it, so there is nothing for the evaluator to settle. It is a
+ * claim about the rules rather than about a hand, and prose review is the
+ * right gate for it (the CMO's spec says so too).
+ */
+export const CAN_YOU_CHECK: CanYouCheckExample[] = [
+  {
+    id: 'flop-no-bet',
+    situation: 'The flop is out. Nobody has bet yet, and the action is on you.',
+    canCheck: true,
+    verdict: 'Yes. There is nothing to call, so checking is free and passes the action along.',
+  },
+  {
+    id: 'facing-a-bet',
+    situation: 'The flop is out and the player before you bet 40.',
+    canCheck: false,
+    verdict:
+      'No. There is a bet in front of you, so your options are call 40, raise to at least 80, or fold.',
+  },
+  {
+    id: 'big-blind-limped',
+    situation:
+      'Preflop. You are in the big blind, three players have called 20, and nobody raised.',
+    canCheck: true,
+    verdict:
+      'Yes. Your blind already covers the bet, so there is nothing to call. This is the one time preflop that checking is available.',
+  },
+]
+
 export interface AceRunExample {
   id: string
   label: string

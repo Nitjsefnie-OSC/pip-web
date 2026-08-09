@@ -5,9 +5,13 @@ import {
   chartHand,
   comboCount,
   cumulativeShare,
+  dealtOdds,
   HAND_BANDS,
+  HAND_NOTES,
+  handCards,
   TOTAL_COMBOS,
 } from '@/config/startingHands'
+import { cardToString } from '@/lib/poker/cards'
 
 // The chart on /learn/starting-hands is 169 cells, and the prose above it says
 // the bands cover 13%, 20% and 41% of hands. A reader cannot check either. So
@@ -66,6 +70,52 @@ test('the bands cover the share of hands the page claims', (t) => {
   t.is(cumulativeShare('any').toFixed(1), '13.1')
   t.is(cumulativeShare('middle').toFixed(1), '20.4')
   t.is(cumulativeShare('late').toFixed(1), '40.9')
+})
+
+// The chart is tappable, so a cell now also states how often the hand arrives
+// and shows it as two real cards. Both are computed rather than written out,
+// which is the only reason 169 of them can be trusted.
+
+test('the dealt odds a cell quotes match the frequency table in the prose', (t) => {
+  // The rows of the "How often you actually get the good stuff" table that name
+  // a single hand. If a cell and the table above it ever disagreed, a reader
+  // would have no way to tell which one was lying.
+  const pair = dealtOdds('AA')
+  t.is(pair.pct.toFixed(2), '0.45')
+  t.is(pair.oneIn, 221)
+
+  const suited = dealtOdds('AKs')
+  t.is(suited.pct.toFixed(2), '0.30')
+  t.is(suited.oneIn, 332)
+
+  const offsuit = dealtOdds('AKo')
+  t.is(offsuit.pct.toFixed(2), '0.90')
+  t.is(offsuit.oneIn, 111)
+})
+
+test('every cell quotes a share of the deck, and the 169 of them add to all of it', (t) => {
+  const total = CHART_RANKS.flatMap((_, row) =>
+    CHART_RANKS.map((__, col) => dealtOdds(chartHand(row, col)).pct),
+  ).reduce((sum, pct) => sum + pct, 0)
+  t.is(total.toFixed(4), '100.0000')
+})
+
+test('a cell shows two real cards of the shape its notation claims', (t) => {
+  for (const hand of ALL_HANDS) {
+    const [a, b] = handCards(hand)
+    t.is(a.rank, hand[0] as typeof a.rank, `${hand}: first card`)
+    t.is(b.rank, hand[1] as typeof b.rank, `${hand}: second card`)
+    const sameSuit = a.suit === b.suit
+    t.is(sameSuit, hand.endsWith('s'), `${hand}: suitedness`)
+    t.not(cardToString(a), cardToString(b), `${hand}: the same card twice`)
+  }
+})
+
+test('every note is attached to a hand that exists on the grid', (t) => {
+  for (const hand of Object.keys(HAND_NOTES)) {
+    t.true(ALL_HANDS.has(hand), `${hand} has a note but is not a cell on the chart`)
+    t.true(HAND_NOTES[hand].length > 0, `${hand}: empty note`)
+  }
 })
 
 test('a few hands the copy names by hand are in the band the copy puts them in', (t) => {

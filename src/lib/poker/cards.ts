@@ -82,3 +82,35 @@ export function cardFromString(s: string): Card {
   const suit = s[1] as Suit
   return { rank, suit }
 }
+
+const RANK_WORD: Record<Rank, string> = {
+  '2': 'two',
+  '3': 'three',
+  '4': 'four',
+  '5': 'five',
+  '6': 'six',
+  '7': 'seven',
+  '8': 'eight',
+  '9': 'nine',
+  T: 'ten',
+  J: 'jack',
+  Q: 'queen',
+  K: 'king',
+  A: 'ace',
+}
+
+const SUIT_WORD: Record<Suit, string> = {
+  c: 'clubs',
+  d: 'diamonds',
+  h: 'hearts',
+  s: 'spades',
+}
+
+/**
+ * A card said out loud, e.g. "ace of spades". A card face renders as "A♠",
+ * which a screen reader reads inconsistently and sometimes not at all, so
+ * anywhere a card is the control rather than the decoration needs this.
+ */
+export function cardName(card: Card): string {
+  return `${RANK_WORD[card.rank]} of ${SUIT_WORD[card.suit]}`
+}

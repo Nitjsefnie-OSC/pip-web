@@ -10,6 +10,8 @@
 // correctness of the strategy: tests/startingHands.test.ts checks the lists are
 // disjoint, name real hands, and add up to the percentages the copy quotes.
 
+import { cardFromString, type Card } from '@/lib/poker/cards'
+
 /** Aces first, so the grid reads the way every printed chart does. */
 export const CHART_RANKS = [
   'A',
@@ -177,4 +179,45 @@ export function cumulativeShare(band: Band): number {
   const upTo = order.slice(0, order.indexOf(band) + 1)
   const combos = upTo.flatMap((b) => BAND_LISTS[b]).reduce((sum, hand) => sum + comboCount(hand), 0)
   return (combos / TOTAL_COMBOS) * 100
+}
+
+/**
+ * How often a hand is dealt. Computed from the combination count rather than
+ * written out, so there is no table of 169 numbers to keep correct.
+ */
+export function dealtOdds(hand: string): { pct: number; oneIn: number } {
+  const combos = comboCount(hand)
+  return { pct: (combos / TOTAL_COMBOS) * 100, oneIn: Math.round(TOTAL_COMBOS / combos) }
+}
+
+// Suits are arbitrary here (a hand is "AKs", not "A♠K♠"), so the detail panel
+// picks a fixed pair rather than a random one, and reads the same every visit.
+const SPADE = 's'
+const HEART = 'h'
+
+/**
+ * Two real cards for a grid cell, so the panel shows the hand rather than
+ * describing it. Suited hands get two spades, offsuit and pairs get a spade
+ * and a heart, which reads as "not the same suit" at a glance.
+ */
+export function handCards(hand: string): Card[] {
+  const [hi, lo] = [hand[0], hand[1]]
+  const suited = hand.endsWith('s')
+  return [cardFromString(hi + SPADE), cardFromString(lo + (suited ? SPADE : HEART))]
+}
+
+/**
+ * The cells worth a sentence. Most are not: the band and the frequency say
+ * everything there is to say about K4s. These are the hands a beginner most
+ * reliably misreads, and the notes are the CMO's.
+ */
+export const HAND_NOTES: Record<string, string> = {
+  AA: 'Once in 221 hands. Raise it.',
+  '72o':
+    'The worst hand in Hold’em: the lowest two cards that cannot make a straight together, and unsuited.',
+  A5s: 'Better than it looks. The ace still plays as the highest card, and A-2-3-4-5 is a straight, so the gap between the two cards is not the dead weight it appears to be.',
+  KJo: 'Looks like a raise and behaves like a trap. It makes second-best pairs against the hands that raise.',
+  '22': 'Worth playing for what it becomes, not what it is. Flops a set once in 8.5 hands.',
+  JTs: 'The most connected hand on the chart. Straights, flushes and two decent pairs.',
+  ATo: 'The most overplayed hand in poker. Top pair, bad kicker, wins small and loses big.',
 }

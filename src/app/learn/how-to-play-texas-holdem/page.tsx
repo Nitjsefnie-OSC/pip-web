@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { BestFive } from '@/components/learn/BestFive'
+import { CanYouCheck } from '@/components/learn/CanYouCheck'
 import { GuideLink, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { Section } from '@/components/marketing/LegalPage'
 import { guideBySlug } from '@/config/learn'
@@ -156,6 +158,7 @@ export default function HowToPlayGuide() {
           point, betting every chip in front of you. You can never be forced to bet more than you
           have, and you can never lose more than is on the table.
         </p>
+        <CanYouCheck />
       </Section>
 
       <Section title="A hand, from the deal to the showdown">
@@ -215,6 +218,7 @@ export default function HowToPlayGuide() {
           People who have played Omaha often get this backwards, because Omaha makes you use exactly
           two of your four cards. Hold’em has no such rule. Count to the best five and stop.
         </p>
+        <BestFive />
       </Section>
 
       <Section title="The showdown, in detail">
