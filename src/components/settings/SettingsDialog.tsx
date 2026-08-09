@@ -155,13 +155,23 @@ function TableTalkSection() {
   )
 }
 
-/** Wipe the profile and Roll back to a clean start — guarded by a confirm. */
+/**
+ * Wipe the profile and Roll back to a clean start — guarded by a confirm.
+ *
+ * Resetting clears the account's copy too, so the confirm has to say so while
+ * signed in. This is the one button that can cost someone their progress on
+ * every device at once, and it must not read like a local-only tidy-up.
+ */
 function ResetSection() {
-  const reset = useProfile((s) => s.reset)
+  const resetEverywhere = useSync((s) => s.resetEverywhere)
+  const signedIn = useSync((s) => s.status === 'signed-in')
   return (
     <button
       onClick={() => {
-        if (confirm('Reset your profile and Roll?')) reset()
+        const message = signedIn
+          ? 'Reset your profile and Roll? This clears your account’s copy too, on every device.'
+          : 'Reset your profile and Roll?'
+        if (confirm(message)) void resetEverywhere()
       }}
       className="flex items-center justify-center gap-2 rounded-xl bg-foreground/[0.06] py-2.5 text-sm font-medium text-suit-red transition hover:bg-foreground/[0.12]"
     >

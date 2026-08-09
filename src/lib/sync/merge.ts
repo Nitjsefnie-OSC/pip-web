@@ -16,6 +16,7 @@
 
 import type { CastRecord, ProfileState, RollPoint, VenueRecord } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
+import { STARTING_ROLL } from '@/config/venues'
 
 /** The persisted half of the profile — the data fields, none of the actions. */
 export type ProfileData = Omit<
@@ -103,6 +104,41 @@ export function hasDivergence(local: ProfileData, remote: ProfileData): boolean 
   return (
     local.stats.handsPlayed !== remote.stats.handsPlayed ||
     local.stats.tournamentsEntered !== remote.stats.tournamentsEntered
+  )
+}
+
+/**
+ * Has this device got anything of its own to lose?
+ *
+ * A profile fresh out of onboarding is not progress. It is the shape of a
+ * player — a name, an avatar, the starting Roll — with nothing behind it, and
+ * signing in on it is a restore rather than a merge.
+ *
+ * Merging there is actively wrong, not merely unnecessary. `createProfile`
+ * seeds `rollHistory` with an origin point stamped `Date.now()`, which is later
+ * than every point in the account's real history, so the union sorts it last
+ * and the graph ends in a cliff back down to the starting Roll. `awards` and
+ * `owned` take the same shape of damage: onboarding's empty sets union
+ * harmlessly, but the account's row is the only side that holds truth and it
+ * should simply be adopted.
+ *
+ * Deliberately strict — every clause has to hold. A false negative just falls
+ * back to merging, which is the behaviour this replaces; a false positive would
+ * drop something the player actually did.
+ */
+export function isPristine(p: ProfileData): boolean {
+  return (
+    p.roll === STARTING_ROLL &&
+    p.peakRoll === STARTING_ROLL &&
+    p.stats.handsPlayed === 0 &&
+    p.stats.tournamentsEntered === 0 &&
+    // At most the single origin point `createProfile` seeds.
+    p.rollHistory.length <= 1 &&
+    Object.keys(p.awards).length === 0 &&
+    Object.keys(p.venueRecords).length === 0 &&
+    Object.keys(p.castRecords).length === 0 &&
+    p.owned.length === 0 &&
+    p.daily === null
   )
 }
 

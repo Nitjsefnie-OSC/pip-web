@@ -20,6 +20,7 @@ import { create } from 'zustand'
 import { deviceId, getSupabase, syncConfigured, type ProfileRow } from '@/lib/sync/client'
 import {
   hasDivergence,
+  isPristine,
   mergeProfiles,
   summarise,
   type ProfileData,
@@ -93,6 +94,7 @@ interface SyncState {
   sendReset: (email: string) => Promise<boolean>
   updatePassword: (password: string) => Promise<boolean>
   syncNow: () => Promise<void>
+  resetEverywhere: () => Promise<void>
   resolveConflict: (side: 'local' | 'remote') => Promise<void>
   deleteAccount: () => Promise<boolean>
   clearError: () => void
@@ -259,6 +261,29 @@ export const useSync = create<SyncState>()((set, get) => ({
     const remote = migrateProfile(structuredClone(data.state), data.version) as ProfileData
     const local = localData()
     const bookmark = readBookmark()
+
+    // This device has nothing of its own and the account has real progress:
+    // restore the row outright, whatever the bookmark says. Checked before
+    // `movedWithoutUs` on purpose, because the two cases that reach here both
+    // have a bookmark that looks current:
+    //
+    //   - Signing in on a fresh device. Merging would fold onboarding's
+    //     placeholder origin point into the account's real history and hang a
+    //     cliff back down to the starting Roll off the end of the graph.
+    //   - Storage half-cleared: drop `pip.profile` and keep `pip.sync`, and the
+    //     bookmark still matches the row while the profile is empty. The pull
+    //     would be skipped, and the first change after onboarding would push
+    //     the empty profile over the account. That one costs real progress.
+    //
+    // `dirty` is what separates this from a reset, which produces an identical
+    // profile deliberately and is waiting to go up. See merge#isPristine.
+    if (!get().dirty && isPristine(local) && !isPristine(remote)) {
+      applyMerged(remote)
+      writeBookmark(data.updated_at)
+      set({ busy: false, dirty: false, lastSyncedAt: Date.now() })
+      return
+    }
+
     const movedWithoutUs = data.updated_at !== bookmark.seen && data.device_id !== deviceId()
 
     if (!movedWithoutUs) {
@@ -296,6 +321,27 @@ export const useSync = create<SyncState>()((set, get) => ({
     applyMerged(mergeProfiles(local, remote, 'local'))
     writeBookmark(data.updated_at)
     set({ busy: false })
+    await push(set, get)
+  },
+
+  /**
+   * Reset the profile on this device *and* in the account. Resetting means
+   * starting again, not starting again until the next sync puts it all back.
+   *
+   * The push is immediate rather than left to the 4-second debounce, because
+   * the wipe and the empty profile it produces are indistinguishable from a
+   * device whose storage was cleared — and `syncNow` restores that one from the
+   * account (see above). Getting the write in now keeps the window where a
+   * reload would undo the reset as small as it can be. Offline, the profile
+   * stays dirty and the reset goes up on reconnect like any other change.
+   *
+   * A no-op on the account when signed out: `push` returns early, and the
+   * device is reset either way.
+   */
+  resetEverywhere: async () => {
+    useProfile.getState().reset()
+    if (get().status !== 'signed-in') return
+    set({ dirty: true })
     await push(set, get)
   },
 

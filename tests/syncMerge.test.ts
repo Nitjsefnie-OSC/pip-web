@@ -4,8 +4,15 @@
 // pure functions rather than in the sync store.
 
 import test from 'ava'
-import { hasDivergence, mergeProfiles, summarise, type ProfileData } from '../src/lib/sync/merge'
+import {
+  hasDivergence,
+  isPristine,
+  mergeProfiles,
+  summarise,
+  type ProfileData,
+} from '../src/lib/sync/merge'
 import { emptySeatStats } from '../src/lib/reads'
+import { STARTING_ROLL } from '../src/config/venues'
 
 function profile(over: Partial<ProfileData> = {}): ProfileData {
   return {
@@ -36,6 +43,34 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     tableFinish: null,
     ...over,
   } as ProfileData
+}
+
+/** What onboarding leaves behind: a name and the starting Roll, nothing played. */
+function pristine(over: Partial<ProfileData> = {}): ProfileData {
+  return profile({
+    roll: STARTING_ROLL,
+    peakRoll: STARTING_ROLL,
+    // `createProfile` seeds one origin point, stamped with the moment of
+    // onboarding — which is always later than the account's real history.
+    rollHistory: [{ t: 9_999, roll: STARTING_ROLL }],
+    ...over,
+  })
+}
+
+/** A real account: chips won, hands played, a graph behind it. */
+function account(over: Partial<ProfileData> = {}): ProfileData {
+  return profile({
+    roll: 12_000,
+    peakRoll: 14_000,
+    stats: { ...profile().stats, handsPlayed: 940, tournamentsEntered: 31 },
+    rollHistory: [
+      { t: 10, roll: 500 },
+      { t: 20, roll: 12_000 },
+    ],
+    awards: { rounder: 15 },
+    owned: ['ocean'],
+    ...over,
+  })
 }
 
 // --- the contested fields --------------------------------------------------
@@ -186,6 +221,78 @@ test('divergence › hands played apart prompts even at the same Roll', (t) => {
 test('summarise › gives the dialog the two numbers it shows', (t) => {
   const p = profile({ roll: 4_200, stats: { ...profile().stats, handsPlayed: 312 } })
   t.deepEqual(summarise(p), { roll: 4_200, handsPlayed: 312 })
+})
+
+// --- signing in on a device that has just onboarded ------------------------
+
+test('pristine › a profile straight out of onboarding has nothing to lose', (t) => {
+  t.true(isPristine(pristine()))
+  t.true(isPristine(pristine({ rollHistory: [] })), 'before the origin point is seeded')
+  t.true(isPristine(pristine({ name: 'Will', cardBack: 'ocean' })), 'identity is not progress')
+})
+
+test('pristine › anything the player actually did disqualifies a profile', (t) => {
+  const played: Array<[string, Partial<ProfileData>]> = [
+    ['a hand played', { stats: { ...profile().stats, handsPlayed: 1 } }],
+    ['a tournament entered', { stats: { ...profile().stats, tournamentsEntered: 1 } }],
+    ['a Roll that moved', { roll: STARTING_ROLL + 5 }],
+    ['a peak above the start', { peakRoll: STARTING_ROLL + 5 }],
+    [
+      'a second graph point',
+      {
+        rollHistory: [
+          { t: 1, roll: 200 },
+          { t: 2, roll: 400 },
+        ],
+      },
+    ],
+    ['an award', { awards: { rounder: 1 } }],
+    ['a purchase', { owned: ['ocean'] }],
+    [
+      'a venue record',
+      { venueRecords: { garage: { entered: 1, won: 0, bestFinish: 4, fastestWinHands: null } } },
+    ],
+    ['a cast record', { castRecords: { sable: { stats: emptySeatStats(), kos: 1 } } }],
+    ['a Daily played', { daily: { date: '2026-07-31', dayNo: 11, place: 2, hands: 30 } }],
+  ]
+
+  for (const [what, over] of played) {
+    t.false(isPristine(pristine(over)), `${what} means this device has something to lose`)
+  }
+})
+
+test('pristine › an account with progress is never mistaken for a fresh device', (t) => {
+  t.false(isPristine(account()))
+})
+
+test('pristine › merging a fresh device in would tack the starting Roll onto the graph', (t) => {
+  // The reason isPristine exists. Onboarding's origin point is stamped later
+  // than every real point, so the union sorts it last and the graph ends in a
+  // crash back down to the starting Roll that never happened.
+  const merged = mergeProfiles(pristine(), account(), 'remote')
+
+  t.deepEqual(
+    merged.rollHistory.at(-1),
+    { t: 9_999, roll: STARTING_ROLL },
+    'the placeholder sorts last and reads as a bust',
+  )
+  t.is(merged.roll, 12_000, 'while the Roll itself is correctly the account’s')
+})
+
+test('pristine › adopting the account’s row outright keeps its history intact', (t) => {
+  // What sync does instead when the local side is pristine: no merge at all.
+  const adopted = account()
+  t.deepEqual(adopted.rollHistory.at(-1), { t: 20, roll: 12_000 })
+  t.is(adopted.rollHistory.length, 2, 'no placeholder point appended')
+})
+
+test('pristine › two fresh devices still merge, so the name just typed survives', (t) => {
+  // Both sides pristine falls through to the ordinary merge rather than
+  // adopting an empty remote row over the profile just created.
+  const local = pristine({ name: 'Will' })
+  const remote = pristine({ name: '', rollHistory: [] })
+  t.true(isPristine(local) && isPristine(remote), 'so sync takes the merge path')
+  t.is(mergeProfiles(local, remote, 'local').name, 'Will')
 })
 
 // --- the safety property that matters most --------------------------------

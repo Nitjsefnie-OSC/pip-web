@@ -89,6 +89,37 @@ Only when all three are true:
 Change your card back on the bus and nothing prompts. Play a session on each of two devices and
 it does. If only one side moved, the merge is silent because there is nothing to lose.
 
+## An empty device is a restore, not a merge
+
+A profile straight out of onboarding — starting Roll, nothing played, no awards, no purchases — is
+not progress, it is the shape of a player. When such a device pulls a row with real history, sync
+**adopts the row outright** rather than merging (`isPristine` in `lib/sync/merge`).
+
+This is checked **before** `movedWithoutUs`, because the two cases it covers both have a bookmark
+that looks current:
+
+- **Signing in on a fresh device.** `createProfile` seeds `rollHistory` with an origin point
+  stamped `Date.now()`, later than every point in the account's history, so a union sorts it
+  **last** and the Roll graph ends in a cliff back down to 200 that never happened.
+- **Storage half-cleared.** Drop `pip.profile` and keep `pip.sync` and the bookmark still matches
+  the row, so the pull is skipped entirely — and the first change after onboarding pushes the empty
+  profile over the account. That one costs real progress, not just a wrong-looking graph.
+
+The check is deliberately strict, and both sides are tested: if the account's row is pristine too it
+falls through to the ordinary merge, so the name just typed in isn't overwritten by an empty row.
+
+## Resetting resets everything
+
+**Reset profile in Settings clears the account's copy too, on every device.** Resetting means
+starting again, not starting again until the next sync puts it all back, and the confirm says so
+while signed in.
+
+`resetEverywhere` pushes immediately rather than waiting for the 4-second debounce. A reset produces
+a profile indistinguishable from a cleared device, and the restore above would undo it — so the
+write goes up now, keeping the window where a reload would resurrect the old profile as small as it
+can be. What separates the two is `dirty`: a reset is waiting to go up, a cleared device isn't.
+Offline, the reset stays dirty and goes up on reconnect like any other change.
+
 ## Bundle cost
 
 `@supabase/supabase-js` is **imported dynamically**, not statically. Importing it normally put
