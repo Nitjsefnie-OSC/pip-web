@@ -51,11 +51,10 @@ export default function PrivacyPage() {
           working the way it did before.
         </p>
         <p>
-          You can also just ask. Email{' '}
-          <A href="mailto:playpipcards@gmail.com">playpipcards@gmail.com</A> from the address on the
-          account and we’ll delete it for you within 7 working days, whether or not you can still
-          get into the app. Once it’s gone we keep nothing: no archive, no copy set aside, nothing
-          to come back later and find.
+          You can also just ask. Email <A href="mailto:hello@playpip.io">hello@playpip.io</A> from
+          the address on the account and we’ll delete it for you within 7 working days, whether or
+          not you can still get into the app. Once it’s gone we keep nothing: no archive, no copy
+          set aside, nothing to come back later and find.
         </p>
       </Section>
 
