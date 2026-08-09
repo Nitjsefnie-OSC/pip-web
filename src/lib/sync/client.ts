@@ -64,8 +64,17 @@ export async function getSupabase(): Promise<SupabaseClient<Database> | null> {
           // it, and it sits in the URL until this client loads and strips it.
           // Anything reading location in the meantime sees it: that is how it
           // reached analytics (fixed with data-exclude-hash in app/layout.tsx),
-          // and it is still in browser history. Moving to the PKCE flow is the
-          // fix that removes the token from the URL entirely. See technology#30.
+          // and it is still in browser history.
+          //
+          // The PKCE flow would take the token out of the URL entirely, and we
+          // deliberately are not using it: ruled 2026-08-09, technology#30.
+          // PKCE keeps its code verifier in the browser that asked for the link,
+          // so a reset opened in a mail app's webview, or on a phone when the
+          // account is on a laptop, fails outright. That is a login failure for
+          // someone doing a normal thing, traded against an exposure that ends
+          // up in the player's own history on their own device. Do not set
+          // flowType without reopening that decision: it is a user-facing
+          // regression risk, not a config tidy-up.
           detectSessionInUrl: true,
         },
       })
