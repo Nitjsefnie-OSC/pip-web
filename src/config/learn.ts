@@ -90,6 +90,24 @@ export const LEARN_GUIDES: LearnGuide[] = [
       height: 3464,
     },
   },
+  {
+    slug: 'how-to-play-texas-holdem',
+    title: 'How to play Texas Hold’em',
+    metaTitle: 'How to play Texas Hold’em: the rules, in the order they happen',
+    description:
+      'The rules of Texas Hold’em in the order you meet them at a table: the blinds, the four betting rounds, what you can do on your turn, and a full hand played out. No signup, and you can practise straight away.',
+    date: '2026-08-09',
+    related: ['hand-rankings', 'starting-hands', 'position'],
+  },
+  {
+    slug: 'starting-hands',
+    title: 'Which starting hands to play',
+    metaTitle: 'Poker starting hands: a chart that tells you when, not just what',
+    description:
+      'All 169 starting hands in one chart, sorted by the earliest position you should open them from. Plus how often each one arrives and what suitedness is actually worth. No signup, and you can practise straight away.',
+    date: '2026-08-09',
+    related: ['hand-rankings', 'how-to-play-texas-holdem', 'position'],
+  },
 ]
 
 export function guideBySlug(slug: string): LearnGuide | undefined {

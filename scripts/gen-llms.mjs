@@ -109,6 +109,23 @@ function collect(node, names) {
   return found
 }
 
+/**
+ * A cell's text, minus anything marked data-mirror="skip".
+ *
+ * textContent alone would be simpler and is wrong: Turndown's remove() filters
+ * never run inside this rule, because the rule reads the DOM directly. So a
+ * skip marker inside a table was silently ignored, and the starting-hands grid
+ * repeated its screen-reader band label in all 169 cells.
+ */
+function cellText(node) {
+  if (node.nodeType === 3) return node.data ?? ''
+  if (node.nodeType !== 1) return ''
+  if (node.getAttribute?.('data-mirror') === 'skip') return ''
+  return Array.from(node.childNodes ?? [])
+    .map(cellText)
+    .join('')
+}
+
 // Tables are a GFM extension that Turndown core doesn't implement, so without
 // this a rankings table flattens into a column of loose lines with no way to
 // tell which cell belonged to which column. That is the opposite of the job
@@ -120,7 +137,7 @@ turndown.addRule('gfmTable', {
   replacement: (_content, node) => {
     const rows = collect(node, ['TR']).map((tr) =>
       collect(tr, ['TH', 'TD']).map((cell) =>
-        cell.textContent.replace(/\s+/g, ' ').replaceAll('|', '\\|').trim(),
+        cellText(cell).replace(/\s+/g, ' ').replaceAll('|', '\\|').trim(),
       ),
     )
     if (rows.length === 0) return ''
