@@ -39,7 +39,7 @@ export function AccountRow({ name }: { name: string }) {
   }
 
   return (
-    <div className="mt-5 border-t border-foreground/10 pt-4">
+    <div className="mt-4 border-t border-foreground/10 pt-3">
       {signedIn ? (
         <div className="flex items-center justify-between gap-3">
           <p className="min-w-0 text-xs leading-relaxed text-muted-foreground">
@@ -63,7 +63,7 @@ export function AccountRow({ name }: { name: string }) {
               stay the loudest thing in it. This only has to outrank Sign in. */}
           <button
             onClick={() => open('signup')}
-            className="mt-3 min-h-11 w-full rounded-xl border border-foreground/15 py-3 text-sm font-medium transition hover:bg-foreground/[0.06]"
+            className="mt-2.5 min-h-11 w-full rounded-xl border border-foreground/15 py-3 text-sm font-medium transition hover:bg-foreground/[0.06]"
           >
             Create an account
           </button>

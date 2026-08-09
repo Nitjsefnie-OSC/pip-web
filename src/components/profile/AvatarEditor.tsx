@@ -20,6 +20,7 @@ export function AvatarEditor({
   onNameChange,
   onSubmit,
   avatarSize = 132,
+  compact = false,
 }: {
   spec: AvatarSpec
   name: string
@@ -27,6 +28,12 @@ export function AvatarEditor({
   onNameChange: (name: string) => void
   onSubmit?: () => void
   avatarSize?: number
+  /**
+   * Tighter rhythm for the profile dialog, which has a viewport to fit inside
+   * and three more blocks under it. Onboarding owns a whole screen and keeps
+   * the roomy default. Same elements either way, only the spacing changes.
+   */
+  compact?: boolean
 }) {
   const shuffle = () => {
     sound.play('tap')
@@ -34,7 +41,7 @@ export function AvatarEditor({
   }
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className={cn('flex flex-col items-center', compact ? 'gap-4' : 'gap-6')}>
       <motion.div
         key={spec.seed}
         initial={{ scale: 0.9, opacity: 0 }}
@@ -46,7 +53,10 @@ export function AvatarEditor({
       <button
         type="button"
         onClick={shuffle}
-        className="flex items-center gap-2 rounded-full bg-foreground/5 px-4 py-2 text-sm font-medium text-foreground transition hover:bg-foreground/10 active:scale-95"
+        className={cn(
+          'flex items-center gap-2 rounded-full bg-foreground/5 px-4 text-sm font-medium text-foreground transition hover:bg-foreground/10 active:scale-95',
+          compact ? 'py-1.5' : 'py-2',
+        )}
       >
         <Shuffle className="size-4" /> Shuffle
       </button>
@@ -79,7 +89,10 @@ export function AvatarEditor({
         value={name}
         onChange={(e) => onNameChange(e.target.value.slice(0, 16))}
         placeholder="Your name"
-        className="w-full rounded-2xl border border-foreground/10 bg-foreground/5 px-4 py-3 text-center text-lg outline-none transition focus:border-foreground/30"
+        className={cn(
+          'w-full rounded-2xl border border-foreground/10 bg-foreground/5 px-4 text-center outline-none transition focus:border-foreground/30',
+          compact ? 'py-2.5 text-base' : 'py-3 text-lg',
+        )}
         onKeyDown={(e) => e.key === 'Enter' && name.trim() && onSubmit?.()}
       />
     </div>
