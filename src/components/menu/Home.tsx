@@ -110,15 +110,31 @@ export function Home() {
 
       {/* the main menu — one tap into each corner, then the two side rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
+        {/* The two side rooms, paired: the shop and Learn are both places you
+            step out of the game into, so they read better as a shelf than as
+            two full-width bands. Sitting directly under the Roll puts Pearl's
+            counter first — the Roll is what you spend there. Two up from md,
+            stacked below it. */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <ShopCard
+            delay={0}
+            onOpen={() => {
+              sound.play('tap')
+              setShopOpen(true)
+            }}
+          />
+          <LearnCard delay={0.05} />
+        </div>
+
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-          {hydrated && <DailyTile roll={roll} delay={0} />}
+          {hydrated && <DailyTile roll={roll} delay={0.1} />}
           <CategoryCard
             art="rail"
             accent="#4FB477"
             title="The Rail"
             subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
             onClick={() => go('/game/rail')}
-            delay={0.05}
+            delay={0.15}
           />
           <CategoryCard
             art="venues"
@@ -126,7 +142,7 @@ export function Home() {
             title="Venues"
             subtitle={`${VENUES.length} rungs · from ${money(VENUES[0].buyIn)}`}
             onClick={() => go('/game/ladder')}
-            delay={0.1}
+            delay={0.2}
           />
           <CategoryCard
             art="side"
@@ -134,21 +150,7 @@ export function Home() {
             title="Side Tables"
             subtitle={`${SIDE_TABLES.length} formats`}
             onClick={() => go('/game/side')}
-            delay={0.15}
-          />
-        </div>
-
-        {/* The two side rooms, paired: Learn and the shop are both places you
-            step out of the game into, so they read better as a shelf than as
-            two full-width bands with the tiles sandwiched between them. Two up
-            from md, stacked below it. */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <LearnCard />
-          <ShopCard
-            onOpen={() => {
-              sound.play('tap')
-              setShopOpen(true)
-            }}
+            delay={0.25}
           />
         </div>
       </div>
@@ -163,7 +165,7 @@ export function Home() {
  * replaced: a one-line "New to poker?" under the menu read as small print, and
  * the guides are the one part of Pip a beginner most needs to find.
  */
-function LearnCard() {
+function LearnCard({ delay = 0 }: { delay?: number }) {
   // Webb keeps the Learn section the way Pearl keeps the shop: he is the one in
   // the cast who "wrote the book", so his face is the least arbitrary icon here.
   const webb = characterById('webb')
@@ -174,7 +176,7 @@ function LearnCard() {
       className="h-full"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2, duration: 0.35, ease: 'easeOut' }}
+      transition={{ delay, duration: 0.35, ease: 'easeOut' }}
     >
       <Link
         href="/learn"
@@ -362,10 +364,10 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
 }
 
 /**
- * The Chip Shop's storefront — paired with the Learn card under the grid, with
+ * The Chip Shop's storefront — paired with the Learn card under the Roll, with
  * Pearl in the window. Same quiet card language as everything else on the menu.
  */
-function ShopCard({ onOpen }: { onOpen: () => void }) {
+function ShopCard({ onOpen, delay = 0 }: { onOpen: () => void; delay?: number }) {
   const pearl = characterById('pearl')
   return (
     // Same as the tiles: animate the wrapper, keep the rounded card static so
@@ -374,7 +376,7 @@ function ShopCard({ onOpen }: { onOpen: () => void }) {
       className="h-full"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
+      transition={{ delay, duration: 0.35, ease: 'easeOut' }}
     >
       <button
         onClick={onOpen}
