@@ -101,7 +101,7 @@ export interface SocialImage {
  * `ogSize` in src/lib/og.tsx, written out rather than imported so that a page's
  * metadata does not pull `next/og` in behind it.
  */
-const SITE_CARD: SocialImage = {
+export const SITE_CARD: SocialImage = {
   url: `${SITE_URL}/opengraph-image`,
   width: 1200,
   height: 630,

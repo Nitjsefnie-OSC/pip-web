@@ -1,10 +1,13 @@
+import { SITE_CARD } from '@/config/site'
 import { ogContentType, ogImage, ogSize } from '@/lib/og'
 
 // Site-wide social card (root). Next merges this into `openGraph.images` and
 // `twitter.images` automatically. Prerendered to a static PNG at build.
 // Prerender to a static PNG at build (required under `output: 'export'`).
 export const dynamic = 'force-static'
-export const alt = 'Pip — poker without the casino'
+// Alt text lives in SITE_CARD, because every page that falls back to this
+// picture quotes it too, and two copies of an alt string drift.
+export const alt = SITE_CARD.alt
 export const size = ogSize
 export const contentType = ogContentType
 

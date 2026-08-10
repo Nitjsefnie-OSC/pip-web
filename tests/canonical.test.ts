@@ -63,14 +63,17 @@ test('declaring a canonical does not drop the RSS link', async (t) => {
 // layout's `openGraph` — right title in the tab, home page's card in the
 // timeline. All four blog posts shipped that way and nothing failed.
 //
-// The guides under /learn/<slug> are the same kind of link but not yet the same
-// code: they hand-write a block each and build the image from the Learn
-// registry's art. Route them through contentSocial() and this widens to
-// startsWith('/learn') on its own.
-const isShared = (url: string) => url.startsWith(`${SITE_URL}/blog`) || url === `${SITE_URL}/learn`
+// Written as an exclusion rather than a list of the routes we happen to share:
+// a new indexable route is one somebody will paste somewhere, and the version
+// of this that named /blog and /learn would have let it ship without a card.
+const SITE_CARD_ROUTES = new Set([
+  '', // the home page — the root layout's card is the home page's card
+  '/privacy',
+  '/terms',
+])
 
 test('every shared content route previews as itself, not as the home page', async (t) => {
-  const shared = sitemap().filter((entry) => isShared(entry.url))
+  const shared = sitemap().filter((entry) => !SITE_CARD_ROUTES.has(pathOf(entry.url)))
   t.true(shared.length > 0)
   for (const { url } of shared) {
     const meta = await metadataFor(pathOf(url))
@@ -94,6 +97,17 @@ test('every shared content route previews as itself, not as the home page', asyn
     t.true(image?.url.startsWith(`${SITE_URL}/`), `og:image is absolute: ${url}`)
     t.true((image?.alt.length ?? 0) > 0, `og:image:alt: ${url}`)
     t.deepEqual(twitter?.images, og?.images, `twitter image matches: ${url}`)
+  }
+})
+
+// The other half of the rule. Without this, "no card" and "card deliberately
+// inherited from the root layout" look identical from the outside, and the next
+// page to forget one gets read as a decision.
+test('the pages that inherit the site card do it on purpose', async (t) => {
+  for (const path of SITE_CARD_ROUTES) {
+    const meta = await metadataFor(path)
+    t.is(meta.openGraph, undefined, `${path || '/'} declares no card of its own`)
+    t.is(meta.twitter, undefined, `${path || '/'} declares no card of its own`)
   }
 })
 
