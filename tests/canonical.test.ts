@@ -55,3 +55,63 @@ test('declaring a canonical does not drop the RSS link', async (t) => {
     t.is(types?.['application/rss+xml'], RSS_URL, `feed link: ${url}`)
   }
 })
+
+// The routes we hand to other people: posts get pasted into X, Reddit threads
+// and directory submissions, so what the link unfurls into is the first thing
+// most readers see of them. Metadata merges a field at a time here too, so a
+// page that sets `title` and `description` and stops there keeps the root
+// layout's `openGraph` — right title in the tab, home page's card in the
+// timeline. All four blog posts shipped that way and nothing failed.
+//
+// Written as an exclusion rather than a list of the routes we happen to share:
+// a new indexable route is one somebody will paste somewhere, and the version
+// of this that named /blog and /learn would have let it ship without a card.
+const SITE_CARD_ROUTES = new Set([
+  '', // the home page — the root layout's card is the home page's card
+  '/privacy',
+  '/terms',
+])
+
+test('every shared content route previews as itself, not as the home page', async (t) => {
+  const shared = sitemap().filter((entry) => !SITE_CARD_ROUTES.has(pathOf(entry.url)))
+  t.true(shared.length > 0)
+  for (const { url } of shared) {
+    const meta = await metadataFor(pathOf(url))
+    const og = meta.openGraph as
+      | { title?: string; description?: string; url?: string | URL; images?: Card[] }
+      | undefined
+    const twitter = meta.twitter as
+      | { title?: string; description?: string; images?: Card[] }
+      | undefined
+    t.truthy(og, `openGraph block: ${url}`)
+    t.true((og?.title?.length ?? 0) > 0, `og:title: ${url}`)
+    t.is(og?.description, meta.description ?? undefined, `og:description is the page's own: ${url}`)
+    t.is(String(og?.url), url, `og:url points at itself: ${url}`)
+    t.is(twitter?.title, og?.title, `twitter:title matches og:title: ${url}`)
+    t.is(twitter?.description, og?.description, `twitter:description matches: ${url}`)
+    // The image has to be named here too. It does not come along with the rest
+    // of the root layout's block, and a summary_large_image card with nothing
+    // to show is a worse share than the generic picture it replaced.
+    const [image] = og?.images ?? []
+    t.truthy(image, `og:image: ${url}`)
+    t.true(image?.url.startsWith(`${SITE_URL}/`), `og:image is absolute: ${url}`)
+    t.true((image?.alt.length ?? 0) > 0, `og:image:alt: ${url}`)
+    t.deepEqual(twitter?.images, og?.images, `twitter image matches: ${url}`)
+  }
+})
+
+// The other half of the rule. Without this, "no card" and "card deliberately
+// inherited from the root layout" look identical from the outside, and the next
+// page to forget one gets read as a decision.
+test('the pages that inherit the site card do it on purpose', async (t) => {
+  for (const path of SITE_CARD_ROUTES) {
+    const meta = await metadataFor(path)
+    t.is(meta.openGraph, undefined, `${path || '/'} declares no card of its own`)
+    t.is(meta.twitter, undefined, `${path || '/'} declares no card of its own`)
+  }
+})
+
+interface Card {
+  url: string
+  alt: string
+}
