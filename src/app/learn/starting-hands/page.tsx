@@ -158,9 +158,9 @@ export default function StartingHandsGuide() {
             So suitedness is worth about three to four points. It is a tiebreaker, not a
             transformation.
           </strong>{' '}
-          It is enough to move a hand one band on the chart above, which is exactly what it does:
-          KTs is playable from anywhere and KTo waits for the button. It is not enough to make two
-          low suited cards worth playing, and “but they were suited” has probably cost more
+          It is usually enough to move a hand one band on the chart above, which is exactly what it
+          does: ATs is playable from anywhere and ATo waits for the middle. It is not enough to make
+          two low suited cards worth playing, and “but they were suited” has probably cost more
           beginners more money than any other sentence in poker.
         </p>
       </Section>
