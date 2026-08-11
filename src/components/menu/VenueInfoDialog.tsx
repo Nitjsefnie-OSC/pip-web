@@ -101,7 +101,7 @@ export function VenueInfoDialog({
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-sm" showCloseButton={false}>
         {/* cover photo — the venue art bleeds to the edges and fades into the
             dialog, with the name and format riding the gradient at the bottom. */}
-        <header className="relative overflow-hidden">
+        <header className="relative shrink-0 overflow-hidden">
           {/* Softly blurred + scaled so the flat art reads as a cover photo and
               melts into the dialog; scale hides the blur's transparent edges. */}
           {venue.cash || venue.daily ? (
@@ -146,7 +146,10 @@ export function VenueInfoDialog({
           </div>
         </header>
 
-        <div className="flex flex-col gap-5 p-4">
+        {/* Scrolls on its own: the popup clips (`overflow-hidden` keeps the
+            cover art inside the rounded corners) so it cannot be the scroller
+            here, and the cover has to stay whole while the text below it grows. */}
+        <div className="flex min-h-0 flex-col gap-5 overflow-y-auto p-4">
           {/* difficulty */}
           <section>
             <div className="mb-1.5 flex items-center justify-between">

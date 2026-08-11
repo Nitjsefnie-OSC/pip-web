@@ -67,6 +67,22 @@ caption left in px stays small while the paragraph around it doubles.
   -> type capped in `vw` via `min()`. The caps are the size the type already has on the narrowest
   phone, so nothing moves at 100%.
 
+### Dialogs are capped and scroll, never clipped
+
+A dialog is centred with a transform, so content taller than the viewport spills off **both**
+ends and neither is reachable. `DialogContent` therefore caps itself at `100dvh - 2rem` and
+scrolls, and it is a **column flex** so a body that opts in with `min-h-0 overflow-y-auto`
+shrinks under pressure and keeps the header and the footer on screen. (`tests/textScale.test.ts`
+holds the primitive to it.)
+
+- **A `max-h-[Nvh]` scroll region inside a dialog wants `min-h-0` beside it.** The vh cap is the
+  look at 100%; `min-h-0` is what lets it give way when the type is twice the size.
+- **A dialog that sets its own `overflow-hidden`** (the ones with cover art: `VenueInfoDialog`,
+  `ShopDialog`) has opted out of the popup's scroll, so it has to own one inside. Its art header
+  needs `shrink-0` or the flex will squash the picture instead of scrolling the words.
+- **Never cap a dialog's body against the viewport by hand** (`max-h-[calc(100dvh-9rem)]`). The
+  subtracted figure is a guess about the header's height, and the text size setting can double it.
+
 ## Motion (Framer Motion)
 
 Subtle, physical, purposeful:

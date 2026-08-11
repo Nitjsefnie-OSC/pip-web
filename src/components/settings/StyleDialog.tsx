@@ -69,7 +69,7 @@ export function StyleDialog({
           <DialogDescription>Card back, deck and table — yours to set.</DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-1.5 flex max-h-[62vh] min-w-0 flex-col gap-6 overflow-y-auto px-1.5 pt-1">
+        <div className="-mx-1.5 flex max-h-[62vh] min-h-0 min-w-0 flex-col gap-6 overflow-y-auto px-1.5 pt-1">
           {/* --- card back ------------------------------------------------- */}
           <section>
             <SectionLabel>Card back</SectionLabel>
