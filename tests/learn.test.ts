@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import test from 'ava'
 import { type GuideArt, LEARN_GUIDES, guideBySlug, relatedGuides } from '@/config/learn'
+import { breakevenFolds, pct } from '@/config/potOdds'
 
 test('every guide has a valid slug, ISO date, and non-empty copy', (t) => {
   for (const guide of LEARN_GUIDES) {
@@ -75,6 +76,22 @@ test('every piece of art exists and is the size the registry claims', (t) => {
     t.is(header.readUInt32BE(0), piece.width, `${piece.src} width`)
     t.is(header.readUInt32BE(4), piece.height, `${piece.src} height`)
     t.true(piece.alt.length > 0, `${piece.src} has no alt text`)
+  }
+})
+
+// The bet-sizing hero is the one piece of art whose subject is numbers rather
+// than cards: three stacks captioned 25%, 33.3% and 50%. Those came out of
+// breakevenFolds() in the marketing repo's capture harness, which cannot import
+// this file, so nothing here would notice the day the picture and the page stop
+// agreeing — and a PNG is the one thing in the build no reviewer re-reads. The
+// alt text is the only copy of the figures that lives in this repo, so pinning
+// it is the closest a test can get to pinning the image.
+test('the bet-sizing hero repeats the break-even numbers the page computes', (t) => {
+  const alt = guideBySlug('bet-sizing')?.hero?.alt
+  t.truthy(alt)
+  for (const fraction of [1 / 3, 1 / 2, 1]) {
+    const figure = `${pct(breakevenFolds(fraction))}%`
+    t.true(alt?.includes(figure), `hero alt text is missing ${figure}`)
   }
 })
 

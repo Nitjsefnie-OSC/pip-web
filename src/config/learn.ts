@@ -171,6 +171,12 @@ export const LEARN_GUIDES: LearnGuide[] = [
       'Pot odds in one formula, with the price every common bet size sets, how many outs each draw really has, and the mistake that makes most pot-odds advice wrong. No signup, and you can practise straight away.',
     date: '2026-08-10',
     related: ['hand-rankings', 'starting-hands', 'position', 'bet-sizing'],
+    hero: {
+      src: '/learn/pot-odds-hero.png',
+      alt: 'Two hole cards, the eight and seven of spades, beside a flop of the nine of spades, the four of spades and the two of hearts: four spades, so a flush draw.',
+      width: 2400,
+      height: 1260,
+    },
   },
   {
     slug: 'position',
@@ -180,6 +186,12 @@ export const LEARN_GUIDES: LearnGuide[] = [
       'What position means, the six seats in the order they act, and why the same two cards are a fold in one seat and a raise in another. With the numbers behind it. No signup, and you can practise straight away.',
     date: '2026-08-10',
     related: ['starting-hands', 'how-to-play-texas-holdem', 'pot-odds'],
+    hero: {
+      src: '/learn/position-hero.png',
+      alt: 'Two hole cards, the jack and nine of spades, with the dealer button beside them.',
+      width: 2400,
+      height: 1260,
+    },
   },
   {
     slug: 'bet-sizing',
@@ -189,6 +201,12 @@ export const LEARN_GUIDES: LearnGuide[] = [
       'Every bet sets two prices, one for the other player and one for you. The four sizes worth using, what each one charges a draw, and why a pot-sized bluff has to work half the time. No signup, and you can practise straight away.',
     date: '2026-08-10',
     related: ['pot-odds', 'position', 'starting-hands'],
+    hero: {
+      src: '/learn/bet-sizing-hero.png',
+      alt: 'Three stacks of chips of increasing height, labelled third pot, half pot and pot, marked with how often a bluff of that size has to work to break even: 25%, 33.3% and 50%.',
+      width: 2400,
+      height: 1260,
+    },
   },
 ]
 
