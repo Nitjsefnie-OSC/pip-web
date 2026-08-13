@@ -83,7 +83,7 @@ test('every piece of art exists and is the size the registry claims', (t) => {
 // than cards: three stacks captioned 25%, 33.3% and 50%. Those came out of
 // breakevenFolds() in the marketing repo's capture harness, which cannot import
 // this file, so nothing here would notice the day the picture and the page stop
-// agreeing — and a PNG is the one thing in the build no reviewer re-reads. The
+// agreeing, and a PNG is the one thing in the build no reviewer re-reads. The
 // alt text is the only copy of the figures that lives in this repo, so pinning
 // it is the closest a test can get to pinning the image.
 test('the bet-sizing hero repeats the break-even numbers the page computes', (t) => {
