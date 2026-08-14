@@ -37,6 +37,11 @@ src/
     equity.ts               # Monte-Carlo equity (win %)
     ai/policy.ts            # heuristic AI decision policy (equity + pot odds + personality)
 
+  lib/drills/               # ── DRILLS (pure, unit-tested, no storage) ──
+    types.ts                # the contract: a spot, its seed, its choices, its one-sentence grade
+    whichHandWins.ts        # the free kind: generate + reject + explain, graded by determineWinners
+    index.ts                # nextDrill (a filtered stream of spots) + gradeDrill
+
   lib/
     avatar.ts               # notionists render helpers + seeds
     sound.ts                # Web Audio SFX engine (cue-based)
@@ -52,6 +57,7 @@ src/
     cast.ts                 # the cast — opponent characters, avatars, table-talk, drafting
     opponents.ts            # AI style labels + bankroll ranges (flavour helpers)
     cardBacks.ts            # card-back colours + patterns
+    drills.ts               # the drill kinds: one page each under /drills, one entry each here
     handNames.ts            # display names for made hands
     ranks.ts                # rank titles (by peak Roll)
     shop.ts                 # the Chip Shop catalogue (earned cosmetic unlocks)
