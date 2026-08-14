@@ -131,12 +131,12 @@ export default function HandRankingsGuide() {
       <p className="mt-4 text-md leading-relaxed text-muted-foreground">
         Those three are written out and they stay put. If you want them dealt fresh instead, the{' '}
         <Link
-          href="/drills/which-hand-wins"
+          href="/game/drills/which-hand-wins"
           className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
         >
           which hand wins drill
         </Link>{' '}
-        deals a new pair of hands every time and settles each one the same way.
+        in the app deals a new pair of hands every time and settles each one the same way.
       </p>
 
       <Section title="How often each hand actually turns up">

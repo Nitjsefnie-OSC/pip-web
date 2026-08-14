@@ -209,24 +209,28 @@ test('the stream always finds a spot, and quickly', (t) => {
 })
 
 test('every registered kind has a first spot that generates', (t) => {
-  const folders = readdirSync(new URL('../src/app/drills', import.meta.url), {
-    withFileTypes: true,
-  })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort()
-  t.deepEqual(folders, DRILL_KINDS.map((kind) => kind.id).sort())
-
   for (const kind of DRILL_KINDS) {
     t.is(drillKind(kind.id), kind)
     t.regex(kind.id, /^[a-z0-9-]+$/)
-    t.regex(kind.date, /^\d{4}-\d{2}-\d{2}$/)
-    t.true(kind.title.length > 0 && kind.metaTitle.length > 0 && kind.description.length > 0)
-    // The spot in the page's own HTML. It has to be there when the page is
-    // built, and it has to be the seed the registry names rather than the next
-    // one the filter happened to accept.
+    t.true(kind.title.length > 0 && kind.blurb.length > 0 && kind.question.length > 0)
+    t.true(kind.gradedBy.length > 0)
+    // The spot the screen is prerendered with. It has to be there when the app
+    // is built, and it has to be the seed the registry names rather than the
+    // next one the filter happened to accept, or the prerendered cards and the
+    // hydrated cards disagree.
     t.is(nextDrill(kind.id, kind.firstSeed).seed, kind.firstSeed)
   }
+})
+
+// The kinds are one route, /game/drills/[kind], enumerated from the registry
+// rather than a folder each. So the thing worth holding is the other way round
+// from the old one: the route exists, it is inside the app, and there is no
+// drill left out on the website.
+test('drills are app routes, and only app routes', (t) => {
+  t.true(readdirSync(new URL('../src/app/game/drills', import.meta.url)).includes('[kind]'))
+  t.throws(() => readdirSync(new URL('../src/app/drills', import.meta.url)), {
+    code: 'ENOENT',
+  })
 })
 
 // The free kind is free forever and unmetered by ruling (technology#38), and

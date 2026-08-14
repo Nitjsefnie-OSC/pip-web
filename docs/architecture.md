@@ -27,6 +27,7 @@ src/
     layout.tsx              # fonts, ThemeProvider, <html>
     page.tsx                # "/" — onboarding vs home (hydration-gated)
     play/[venue]/page.tsx   # sits the player down at a venue, renders <Table>
+    game/drills/[kind]/     # the drills — one screen per kind, in the app, off the menu
     globals.css             # Tailwind + theme tokens (light/dark + pip palette)
 
   lib/poker/                # ── PURE ENGINE (no React, unit-tested) ──
@@ -57,7 +58,7 @@ src/
     cast.ts                 # the cast — opponent characters, avatars, table-talk, drafting
     opponents.ts            # AI style labels + bankroll ranges (flavour helpers)
     cardBacks.ts            # card-back colours + patterns
-    drills.ts               # the drill kinds: one page each under /drills, one entry each here
+    drills.ts               # the drill kinds: one screen each under /game/drills, one entry each here
     handNames.ts            # display names for made hands
     ranks.ts                # rank titles (by peak Roll)
     shop.ts                 # the Chip Shop catalogue (earned cosmetic unlocks)

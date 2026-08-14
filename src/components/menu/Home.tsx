@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { BookOpen, Moon, MoonStar, Store, Sun, Sunrise } from 'lucide-react'
+import { BookOpen, Moon, MoonStar, Play, Store, Sun, Sunrise, Target } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { CountUp } from '@/components/CountUp'
@@ -119,14 +119,14 @@ export function Home() {
         )}
       </motion.div>
 
-      {/* the main menu — one tap into each corner, then the two side rooms */}
+      {/* the main menu — one tap into each corner, plus the three side rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
-        {/* The two side rooms, paired: the shop and Learn are both places you
-            step out of the game into, so they read better as a shelf than as
-            two full-width bands. Sitting directly under the Roll puts Pearl's
-            counter first — the Roll is what you spend there. Two up from md,
+        {/* The three side rooms: the shop, Learn and the drills are all places
+            you step out of a hand into, so they read better as a shelf than as
+            three full-width bands. Sitting directly under the Roll puts Pearl's
+            counter first — the Roll is what you spend there. Three up from md,
             stacked below it. */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <ShopCard
             delay={0}
             onOpen={() => {
@@ -135,6 +135,7 @@ export function Home() {
             }}
           />
           <LearnCard delay={0.05} />
+          <DrillsCard delay={0.1} />
         </div>
 
         {/* The tables. The challenger leads it: they are a table you sit at
@@ -219,6 +220,42 @@ function LearnCard({ delay = 0 }: { delay?: number }) {
         <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
           <BookOpen className="size-4" />
           Open
+        </span>
+      </Link>
+    </motion.div>
+  )
+}
+
+/**
+ * The way into the drills. In the app and on the menu rather than out on the
+ * website (Will, 14 Aug): a drill is something you play, so it belongs next to
+ * the tables and the shop, not on a page you read.
+ */
+function DrillsCard({ delay = 0 }: { delay?: number }) {
+  return (
+    <motion.div
+      className="h-full"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.35, ease: 'easeOut' }}
+    >
+      <Link
+        href="/game/drills"
+        onClick={() => sound.play('tap')}
+        className="group flex h-full w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
+      >
+        {/* No face on this one: the shop is Pearl's and Learn is Webb's, and a
+            drill is nobody's. */}
+        <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-foreground/[0.04]">
+          <Target className="size-6 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <span className="font-medium">Drills</span>
+          <p className="truncate text-sm text-muted-foreground">Short spots with a right answer.</p>
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
+          <Play className="size-4" />
+          Play
         </span>
       </Link>
     </motion.div>

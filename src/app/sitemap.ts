@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next'
 import { BLOG_POSTS } from '@/config/blog'
-import { DRILL_KINDS } from '@/config/drills'
 import { LEARN_GUIDES } from '@/config/learn'
 import { SITE_URL } from '@/config/site'
 
@@ -18,7 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const pages: MetadataRoute.Sitemap = [
     '',
     '/learn',
-    '/drills',
     '/tutorial',
     '/play-poker-free-no-signup',
     '/poker-odds-calculator',
@@ -35,9 +33,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     url: `${BASE}/learn/${guide.slug}`,
     lastModified: guide.date,
   }))
-  const drills: MetadataRoute.Sitemap = DRILL_KINDS.map((kind) => ({
-    url: `${BASE}/drills/${kind.id}`,
-    lastModified: kind.date,
-  }))
-  return [...pages, ...posts, ...guides, ...drills]
+  return [...pages, ...posts, ...guides]
 }
