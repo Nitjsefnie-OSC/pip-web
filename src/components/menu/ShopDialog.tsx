@@ -58,7 +58,7 @@ export function ShopDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md" showCloseButton={false}>
-        <header className="relative text-center">
+        <header className="relative shrink-0 text-center">
           {/* warm cover strip drawn from Pearl's palette */}
           <div
             aria-hidden
@@ -87,7 +87,7 @@ export function ShopDialog({
           </div>
         </header>
 
-        <div className="flex max-h-[55vh] flex-col gap-5 overflow-y-auto px-4 pt-4 pb-4">
+        <div className="flex max-h-[55vh] min-h-0 flex-col gap-5 overflow-y-auto px-4 pt-4 pb-4">
           <Section title="Card backs" items={SHOP_BACKS.map((d) => shopBackItem(d.id))} />
           <Section title="The deck" items={[...DECK_FACES]} />
           <Section title="Table finishes" items={[...TABLE_FINISHES]} />

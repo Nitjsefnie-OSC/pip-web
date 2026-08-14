@@ -71,7 +71,7 @@ export function HandsHelpDialog({
           <DialogDescription>Strongest to weakest.</DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-1 flex max-h-[65vh] flex-col gap-2 overflow-y-auto px-1 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-1 flex max-h-[65vh] min-h-0 flex-col gap-2 overflow-y-auto px-1 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {HANDS.map((hand, i) => (
             <div
               key={hand.name}

@@ -59,12 +59,13 @@ function ProfileForm({ onDone }: { onDone: () => void }) {
 
   return (
     // Four blocks (editor, Chips/Stats, Save, account) have to fit a phone in
-    // portrait, and they didn't: the dialog is centred and clipped rather than
-    // scrolled, so the bottom of the account row was falling off the screen.
-    // Everything below is the same content spaced tighter. The max-height is
-    // the backstop, not the fix - dvh so browser chrome counts against it, and
-    // it only bites on the shortest devices, where scrolling beats clipping.
-    <div className="-mx-1 max-h-[calc(100dvh-9rem)] overflow-y-auto px-1 pt-1">
+    // portrait, and they didn't: the bottom of the account row was falling off
+    // the screen. Everything below is the same content spaced tighter, and the
+    // scroll is the backstop, not the fix. The height it scrolls within is the
+    // dialog's own cap now (see ui/dialog.tsx) rather than a hand-guessed
+    // `100dvh - 9rem`, which was a guess about the header's height and stopped
+    // being true the moment the text size setting could double it.
+    <div className="-mx-1 min-h-0 overflow-y-auto px-1 pt-1">
       <AvatarEditor
         spec={spec}
         name={name}

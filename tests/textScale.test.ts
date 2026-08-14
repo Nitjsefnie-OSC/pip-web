@@ -62,3 +62,32 @@ test('no text is sized in px, so the setting reaches all of it', (t) => {
   }
   t.deepEqual(offenders, [], `use a rem size or a token instead:\n${offenders.join('\n')}`)
 })
+
+test('the dialog primitive caps itself at the viewport and scrolls', (t) => {
+  // A dialog is centred with a transform, so content taller than the screen
+  // spills off the top *and* the bottom with no way to reach either. At 200%
+  // most of them are taller than a phone, which is how a fix for WCAG 1.4.4
+  // turns into a new loss of content. The cap plus the scroll is the fix; the
+  // column flex is what lets a body shrink instead of pushing the header off.
+  const source = readFileSync(new URL('components/ui/dialog.tsx', SRC), 'utf-8')
+  const popup = source.split('data-slot="dialog-content"')[1]?.split('{...props}')[0] ?? ''
+  for (const required of ['max-h-[calc(100dvh-2rem)]', 'overflow-y-auto', 'flex-col']) {
+    t.true(popup.includes(required), `dialog-content lost ${required}`)
+  }
+})
+
+test('a dialog scroll region capped in vh can still give way', (t) => {
+  // `max-h-[62vh]` is the look at 100%. Without `min-h-0` beside it the region
+  // refuses to shrink when the header and footer around it double, and the
+  // dialog goes back to overflowing the screen.
+  const offenders: string[] = []
+  for (const file of sourceFiles(SRC)) {
+    const source = readFileSync(file, 'utf-8')
+    for (const [, , classes] of source.matchAll(/(['"`])([^'"`]*max-h-\[[0-9.]+vh\][^'"`]*)\1/g)) {
+      if (!classes.includes('min-h-0')) {
+        offenders.push(`${file.pathname.split('/src/')[1]}: ${classes.trim()}`)
+      }
+    }
+  }
+  t.deepEqual(offenders, [], `add min-h-0 alongside the cap:\n${offenders.join('\n')}`)
+})

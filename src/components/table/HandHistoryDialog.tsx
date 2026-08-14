@@ -55,7 +55,7 @@ export function HandHistoryDialog({
 
         {record && (
           <>
-            <div className="flex max-h-[60vh] flex-col gap-1 overflow-y-auto pt-1">
+            <div className="flex max-h-[60vh] min-h-0 flex-col gap-1 overflow-y-auto pt-1">
               <HandTimeline record={record} />
             </div>
             <button

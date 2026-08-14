@@ -98,7 +98,7 @@ export function ChipsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-1.5 flex max-h-[62vh] flex-col gap-5 overflow-y-auto px-1.5 py-1">
+        <div className="-mx-1.5 flex max-h-[62vh] min-h-0 flex-col gap-5 overflow-y-auto px-1.5 py-1">
           {SECTIONS.map(({ kind, title }) => (
             <section key={kind}>
               <p className="mb-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground">
@@ -166,7 +166,7 @@ export function ChipsDialog({
           </section>
         </div>
 
-        <p className="min-h-4 border-t border-foreground/10 pt-3 text-center text-xs text-muted-foreground">
+        <p className="min-h-4 shrink-0 border-t border-foreground/10 pt-3 text-center text-xs text-muted-foreground">
           {selected
             ? `${selected.name} — ${selected.how.toLowerCase()}`
             : 'Tap a chip for its story.'}
