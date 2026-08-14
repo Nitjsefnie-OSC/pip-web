@@ -38,6 +38,23 @@ export function nextDrill(kind: DrillKindId, seed: number): Drill {
 }
 
 /**
+ * A seed for a spot nobody has seen yet.
+ *
+ * `Math.random`, not the engine's rng: which spot comes next is not a thing
+ * that has to be reproducible, and the spot it produces still is, from the seed
+ * it carries.
+ *
+ * **Never call this during render.** The app is a static export, so a spot
+ * generated while rendering is generated once, at build time, and baked into
+ * the HTML — the screen then opens on the same cards forever, which is exactly
+ * what a fixed first seed did here (Will, 14 Aug: "it seems to always show me
+ * the same drill"). The screens deal on mount instead.
+ */
+export function randomSeed(): number {
+  return Math.floor(Math.random() * 2 ** 32)
+}
+
+/**
  * Grade an answer. One seam for every kind, and deliberately dumb: the grade
  * was settled at generation time by the engine, so nothing is recomputed here
  * and there is nothing for a second reading of the hand to disagree with.

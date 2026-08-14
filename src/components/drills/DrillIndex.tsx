@@ -1,13 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronRight } from 'lucide-react'
 import { SectionScreen } from '@/components/menu/SectionScreen'
 import { DRILL_KINDS, type DrillKind } from '@/config/drills'
-import { nextDrill } from '@/lib/drills'
+import { nextDrill, randomSeed } from '@/lib/drills'
 import { PlayingCard } from '@/components/PlayingCard'
 import { sound } from '@/lib/sound'
+import { useHydrated } from '@/lib/useHydrated'
 
 /**
  * The drills room: one tile per kind, the same shape as the venue browsers.
@@ -33,13 +35,15 @@ export function DrillIndex() {
 }
 
 /**
- * A kind's tile, with a real spot from that kind drawn on it — the first seed,
- * the same one the drill itself opens on, so the tile is a window into the
- * thing rather than an illustration of it.
+ * A kind's tile, with a real spot from that kind drawn on it: a window into the
+ * thing rather than an illustration of it, and a different board every time the
+ * room is opened. The board mounts as a client-only child for the reason the
+ * runner's does — generated during render it would be generated once, at build
+ * time, and this tile would show the same five cards forever.
  */
 function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
   const router = useRouter()
-  const drill = nextDrill(kind.id, kind.firstSeed)
+  const hydrated = useHydrated()
 
   return (
     <motion.div
@@ -56,9 +60,11 @@ function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
         className="group flex h-full w-full flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-foreground/[0.02] text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
       >
         <div className="relative flex w-full items-center justify-center gap-1.5 bg-foreground/[0.04] px-4 py-6">
-          {drill.board.map((card) => (
-            <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
-          ))}
+          {hydrated ? (
+            <TileBoard kind={kind} />
+          ) : (
+            [0, 1, 2, 3, 4].map((i) => <PlayingCard key={i} size="sm" />)
+          )}
           <span className="absolute right-2 top-2 grid size-7 place-items-center rounded-md bg-black/30 backdrop-blur-sm">
             <ChevronRight className="size-4 text-white/85 transition group-hover:translate-x-0.5" />
           </span>
@@ -69,5 +75,17 @@ function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
         </div>
       </button>
     </motion.div>
+  )
+}
+
+/** One real board from the kind, dealt on mount. Held so it is stable. */
+function TileBoard({ kind }: { kind: DrillKind }) {
+  const [drill] = useState(() => nextDrill(kind.id, randomSeed()))
+  return (
+    <>
+      {drill.board.map((card) => (
+        <PlayingCard key={`${card.rank}${card.suit}`} card={card} size="sm" />
+      ))}
+    </>
   )
 }

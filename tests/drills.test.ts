@@ -208,17 +208,33 @@ test('the stream always finds a spot, and quickly', (t) => {
   t.true(MAX_ATTEMPTS > worst * 10)
 })
 
-test('every registered kind has a first spot that generates', (t) => {
+test('every registered kind is complete and generates', (t) => {
   for (const kind of DRILL_KINDS) {
     t.is(drillKind(kind.id), kind)
     t.regex(kind.id, /^[a-z0-9-]+$/)
     t.true(kind.title.length > 0 && kind.blurb.length > 0 && kind.question.length > 0)
     t.true(kind.gradedBy.length > 0)
-    // The spot the screen is prerendered with. It has to be there when the app
-    // is built, and it has to be the seed the registry names rather than the
-    // next one the filter happened to accept, or the prerendered cards and the
-    // hydrated cards disagree.
-    t.is(nextDrill(kind.id, kind.firstSeed).seed, kind.firstSeed)
+    t.is(nextDrill(kind.id, 1).kind, kind.id)
+  }
+})
+
+// The bug this pins shipped, and it was invisible from every angle a test
+// usually looks from: the engine was right, the grades were right, and the
+// screen still showed one player the same nine cards every time they opened it
+// (Will, 14 Aug). The app is a static export, so a spot generated during a
+// render is generated once — at build time — and baked into the HTML. Every
+// screen therefore deals from `randomSeed()`, on mount, and a fixed seed
+// reaching a component is the thing to fail on.
+test('the screens deal a fresh spot, never a fixed one', (t) => {
+  for (const file of readdirSync(new URL('../src/components/drills', import.meta.url))) {
+    const source = readFileSync(
+      new URL(`../src/components/drills/${file}`, import.meta.url),
+      'utf-8',
+    )
+    const calls = source.match(/nextDrill\([^)]*\)/g) ?? []
+    for (const call of calls) {
+      t.regex(call, /randomSeed\(\)/, `${file}: "${call}" is the same spot for every visitor`)
+    }
   }
 })
 

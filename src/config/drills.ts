@@ -30,15 +30,14 @@ export interface DrillKind {
   question: string
   /** What settles the answer, said once in small print under the drill. */
   gradedBy: string
-  /**
-   * The seed behind the first spot of a run.
-   *
-   * Fixed rather than random so the prerendered screen and the hydrated screen
-   * agree on the cards: the app is a static export, so the first spot is dealt
-   * at build time. Every spot after it comes from a fresh seed.
-   */
-  firstSeed: number
 }
+
+// **No seed lives here.** It used to: a `firstSeed` per kind, fixed so that the
+// prerendered screen and the hydrated screen could not disagree about the
+// cards. They agreed, and the cost was that every visit to the screen — and
+// every tile on the index — opened on that one spot for the life of the build
+// (Will, 14 Aug). Both screens deal from `randomSeed()` on mount now, and show
+// card backs for the frame before it lands.
 
 export const DRILL_KINDS: DrillKind[] = [
   {
@@ -47,7 +46,6 @@ export const DRILL_KINDS: DrillKind[] = [
     blurb: 'Two hands, a finished board, one question. Free and unlimited.',
     question: 'Which hand takes it?',
     gradedBy: 'Settled by the same code that settles a showdown at the table, card by card.',
-    firstSeed: 36,
   },
 ]
 

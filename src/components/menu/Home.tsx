@@ -48,6 +48,11 @@ export function Home() {
     useProfile()
   const money = useMoney()
   const [shopOpen, setShopOpen] = useState(false)
+  // The two faces on the shelf. Pearl keeps the shop; Webb keeps Learn, being
+  // the one in the cast who "wrote the book", so his face is the least
+  // arbitrary icon available for it.
+  const pearl = characterById('pearl')
+  const webb = characterById('webb')
 
   const broke = freerollOpen(roll)
   // Clock-derived copy renders client-side only (SSR has no local hour).
@@ -121,43 +126,30 @@ export function Home() {
 
       {/* the main menu — one tap into each corner, plus the three side rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
-        {/* The three side rooms: the shop, Learn and the drills are all places
-            you step out of a hand into, so they read better as a shelf than as
-            three full-width bands. Sitting directly under the Roll puts Pearl's
-            counter first — the Roll is what you spend there. Three up from md,
-            stacked below it. */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <ShopCard
-            delay={0}
-            onOpen={() => {
-              sound.play('tap')
-              setShopOpen(true)
-            }}
-          />
-          <LearnCard delay={0.05} />
-          <DrillsCard delay={0.1} />
-        </div>
-
-        {/* The tables. The challenger leads it: they are a table you sit at
-            like any other, so they read as a place here rather than as the
-            banner they used to be, and they stay first because they are the one
-            tile whose contents change on their own. The row widens to hold
-            them instead of stranding a fifth tile on a row of its own. */}
+        {/* The tables come first, and that is the whole hierarchy of this
+            screen: this is a poker app, so the places you sit down sit directly
+            under the Roll. They used to sit under the shop, Learn and the
+            drills, and three full-width bands on a phone pushed them off the
+            bottom of it (Will, 14 Aug: "the venue and play cards get lost").
+            The challenger leads the row: a challenge is a table you sit at like
+            any other, and it is the one tile whose contents change on their
+            own. The row widens to hold it instead of stranding a fifth tile on
+            a row of its own. */}
         <div
           className={cn(
             'grid grid-cols-2 gap-3 md:gap-4',
             challenge ? 'md:grid-cols-5' : 'md:grid-cols-4',
           )}
         >
-          {challenge && <ChallengeCard challenge={challenge} delay={0.1} />}
-          {hydrated && <DailyTile roll={roll} delay={0.15} />}
+          {challenge && <ChallengeCard challenge={challenge} delay={0.05} />}
+          {hydrated && <DailyTile roll={roll} delay={0.1} />}
           <CategoryCard
             art="rail"
             accent="#4FB477"
             title="The Rail"
             subtitle={`Cash · from ${money(RING_TABLES[0].buyIn)}`}
             onClick={() => go('/game/rail')}
-            delay={0.2}
+            delay={0.15}
           />
           <CategoryCard
             art="venues"
@@ -165,7 +157,7 @@ export function Home() {
             title="Venues"
             subtitle={`${VENUES.length} rungs · from ${money(VENUES[0].buyIn)}`}
             onClick={() => go('/game/ladder')}
-            delay={0.25}
+            delay={0.2}
           />
           <CategoryCard
             art="side"
@@ -173,7 +165,47 @@ export function Home() {
             title="Side Tables"
             subtitle={`${SIDE_TABLES.length} formats`}
             onClick={() => go('/game/side')}
+            delay={0.25}
+          />
+        </div>
+
+        {/* The three side rooms: the shop, Learn and the drills are places you
+            step out of a hand into, so they belong under the tables and they
+            read as a shelf. Three across at every width — on a phone that is
+            one row of faces rather than three bands, which is what keeps them
+            from competing with the tables. */}
+        <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <RoomCard
+            title="Pearl’s counter"
+            blurb="Card backs, deck faces, souvenirs — style, never edge."
+            verb="Browse"
+            icon={Store}
+            face={pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
+            onClick={() => {
+              sound.play('tap')
+              setShopOpen(true)
+            }}
             delay={0.3}
+          />
+          <RoomCard
+            title="Learn with Webb"
+            blurb="A three-minute tour, plus written guides."
+            verb="Open"
+            icon={BookOpen}
+            face={webb && <PlayerAvatar spec={webb.avatar} size={44} />}
+            href="/learn"
+            delay={0.34}
+          />
+          <RoomCard
+            title="Drills"
+            blurb="Short spots with a right answer."
+            verb="Play"
+            icon={Play}
+            // No face on this one: the shop is Pearl's and Learn is Webb's, and
+            // a drill is nobody's.
+            face={<Target className="size-5 text-muted-foreground md:size-6" />}
+            href="/game/drills"
+            delay={0.38}
           />
         </div>
       </div>
@@ -184,80 +216,75 @@ export function Home() {
 }
 
 /**
- * The way into the Learn section. Deliberately a card and not the footnote it
- * replaced: a one-line "New to poker?" under the menu read as small print, and
- * the guides are the one part of Pip a beginner most needs to find.
+ * One of the three side rooms: the shop, Learn, the drills. A link or a button,
+ * depending on whether the room is a screen or a dialog.
+ *
+ * **Two shapes, one card, and the narrow one is the point.** Below md it is a
+ * face over a label, three across in a single row; from md there is width for
+ * the sentence and the verb and it is the wide card it always was. These were
+ * three full-width bands at every size, which on a phone is most of the screen
+ * spent on the places you are not playing (Will, 14 Aug).
  */
-function LearnCard({ delay = 0 }: { delay?: number }) {
-  // Webb keeps the Learn section the way Pearl keeps the shop: he is the one in
-  // the cast who "wrote the book", so his face is the least arbitrary icon here.
-  const webb = characterById('webb')
-  return (
-    // Same treatment as the shop card: animate the wrapper, keep the rounded
-    // card static so iOS doesn't re-rasterise its mask each frame.
-    <motion.div
-      className="h-full"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.35, ease: 'easeOut' }}
-    >
-      <Link
-        href="/learn"
-        onClick={() => sound.play('tap')}
-        className="group flex h-full w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
-      >
-        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
-          {webb && <PlayerAvatar spec={webb.avatar} size={44} />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="font-medium">Learn with Webb</span>
-          {/* Kept short enough to survive the half-width card: at two-up this
-              line has ~350px, and the old one truncated mid-word. */}
-          <p className="truncate text-sm text-muted-foreground">
-            A three-minute tour, plus written guides.
-          </p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
-          <BookOpen className="size-4" />
-          Open
-        </span>
-      </Link>
-    </motion.div>
-  )
-}
+function RoomCard({
+  title,
+  blurb,
+  verb,
+  icon: Icon,
+  face,
+  href,
+  onClick,
+  delay = 0,
+}: {
+  title: string
+  blurb: string
+  verb: string
+  icon: LucideIcon
+  face: React.ReactNode
+  href?: string
+  onClick?: () => void
+  delay?: number
+}) {
+  const className =
+    'group flex h-full w-full flex-col items-center gap-2 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-center transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99] md:flex-row md:gap-4 md:text-left'
 
-/**
- * The way into the drills. In the app and on the menu rather than out on the
- * website (Will, 14 Aug): a drill is something you play, so it belongs next to
- * the tables and the shop, not on a page you read.
- */
-function DrillsCard({ delay = 0 }: { delay?: number }) {
+  const body = (
+    <>
+      <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-foreground/[0.04] md:size-14">
+        {face}
+      </span>
+      <span className="min-w-0 md:flex-1">
+        <span className="block text-xs font-medium leading-tight md:text-base md:leading-normal">
+          {title}
+        </span>
+        {/* Desktop only: at a third of a phone this line either truncates
+            mid-word or doubles the height of the shelf. */}
+        <span className="hidden truncate text-sm text-muted-foreground md:block">{blurb}</span>
+      </span>
+      <span className="hidden shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12] md:flex">
+        <Icon className="size-4" />
+        {verb}
+      </span>
+    </>
+  )
+
   return (
+    // Animate the wrapper, keep the rounded card static: animating a clipped,
+    // rounded element makes iOS WebKit re-rasterise its mask each frame.
     <motion.div
       className="h-full"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.35, ease: 'easeOut' }}
     >
-      <Link
-        href="/game/drills"
-        onClick={() => sound.play('tap')}
-        className="group flex h-full w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
-      >
-        {/* No face on this one: the shop is Pearl's and Learn is Webb's, and a
-            drill is nobody's. */}
-        <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-foreground/[0.04]">
-          <Target className="size-6 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="font-medium">Drills</span>
-          <p className="truncate text-sm text-muted-foreground">Short spots with a right answer.</p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
-          <Play className="size-4" />
-          Play
-        </span>
-      </Link>
+      {href ? (
+        <Link href={href} onClick={() => sound.play('tap')} className={className}>
+          {body}
+        </Link>
+      ) : (
+        <button type="button" onClick={onClick} className={className}>
+          {body}
+        </button>
+      )}
     </motion.div>
   )
 }
@@ -353,42 +380,5 @@ function DailyTile({ roll, delay }: { roll: number; delay: number }) {
         }}
       />
     </>
-  )
-}
-
-/**
- * The Chip Shop's storefront — paired with the Learn card under the Roll, with
- * Pearl in the window. Same quiet card language as everything else on the menu.
- */
-function ShopCard({ onOpen, delay = 0 }: { onOpen: () => void; delay?: number }) {
-  const pearl = characterById('pearl')
-  return (
-    // Same as the tiles: animate the wrapper, keep the rounded card static so
-    // iOS doesn't re-rasterise (and flicker) its rounded mask each frame.
-    <motion.div
-      className="h-full"
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.35, ease: 'easeOut' }}
-    >
-      <button
-        onClick={onOpen}
-        className="group flex h-full w-full items-center gap-4 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-3 text-left transition hover:border-foreground/25 hover:bg-foreground/[0.05] active:scale-[0.99]"
-      >
-        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-foreground/[0.04]">
-          {pearl && <PlayerAvatar spec={pearl.avatar} size={44} />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <span className="font-medium">Pearl’s counter</span>
-          <p className="truncate text-sm text-muted-foreground">
-            Card backs, deck faces, souvenirs — style, never edge.
-          </p>
-        </div>
-        <span className="flex shrink-0 items-center gap-1.5 rounded-xl bg-foreground/[0.06] px-4 py-2.5 text-sm font-medium transition group-hover:bg-foreground/[0.12]">
-          <Store className="size-4" />
-          Browse
-        </span>
-      </button>
-    </motion.div>
   )
 }
