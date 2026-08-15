@@ -14,10 +14,13 @@ import type { DrillKindId } from '@/lib/drills/types'
 // side of (see src/config/learnExamples.ts): a guide's widget illustrates what
 // its page already says and never generates anything.
 //
-// **Nothing here is metered.** No counter of how many you have left, no
-// interstitial, nothing written to storage. The one kind that exists is free
-// forever by ruling, and progress that outlives the screen belongs to a later
-// build.
+// **Nothing here is metered, and that is not the same as nothing being kept.**
+// A rating, a best run and an accuracy per kind live on the profile and follow
+// the account (see lib/drills/rating.ts). What may never exist is a number you
+// run out of: no counter of how many you have left, no lockout, no
+// interstitial. The one kind that exists is free forever by ruling
+// (technology#38) and unlimited is the half of that which is easiest to erode
+// for a good reason.
 
 export interface DrillKind {
   /** URL segment under /game/drills, and the kind's id in the engine. */
@@ -43,7 +46,7 @@ export const DRILL_KINDS: DrillKind[] = [
   {
     id: 'which-hand-wins',
     title: 'Which hand wins?',
-    blurb: 'Two hands, a finished board, one question. Free and unlimited.',
+    blurb: 'Two hands, a finished board, one question. Harder spots are worth more.',
     question: 'Which hand takes it?',
     gradedBy: 'Settled by the same code that settles a showdown at the table, card by card.',
   },

@@ -1,11 +1,13 @@
 import type { Card } from '@/lib/poker/cards'
+import type { SettledBy } from './rating'
 
 // The drill contract. A drill is a generated spot, a decision, and a grade that
 // can explain itself in one sentence from our own engine.
 //
 // Pure and React-free, like the engine it sits on: a drill is data, the runner
-// only draws it. Nothing here reads or writes storage, and nothing counts how
-// many you have done. See the note on DrillKindId.
+// only draws it. Nothing here reads or writes storage, nothing counts how many
+// you have done, and nothing can read the clock. See the note on DrillKindId
+// and the one at the top of rating.ts.
 
 /**
  * The kinds. One today, and it is free forever and unmetered: "which hand
@@ -56,6 +58,18 @@ export interface Drill {
   /** The id of the correct choice. */
   answer: string
   /**
+   * What settled it, taken from the same evaluation that set `answer` and wrote
+   * `explanation`. One reading of the hand feeds the grade, the sentence and
+   * the difficulty, so none of the three can disagree with the other two.
+   */
+  settledBy: SettledBy
+  /**
+   * What this spot is rated, on the same scale as the player's rating. Carried
+   * on the drill rather than recomputed by whatever is scoring, for the same
+   * reason the seed is: the spot answers for itself, forever.
+   */
+  difficulty: number
+  /**
    * Why, in one sentence, written at generation time out of the same evaluation
    * that set `answer`. A drill that cannot explain its own answer is not a
    * drill we ship, so the generator throws that spot away instead.
@@ -69,6 +83,8 @@ export interface Grade {
   /** The id of the correct choice, whether or not it was picked. */
   answer: string
   explanation: string
+  /** What the spot was rated. What the answer is worth is arithmetic on this. */
+  difficulty: number
 }
 
 /**

@@ -1,5 +1,6 @@
 import { RANKS, type Card, type Rank, mulberry32, rankName, shuffledDeck } from '@/lib/poker/cards'
 import { type EvaluatedHand, bestFive, determineWinners, handPhrase } from '@/lib/poker/handEval'
+import { type SettledBy, spotDifficulty } from './rating'
 import { type DrillChoice, type Generated, accept, reject } from './types'
 
 // The free kind: two holdings, one board, who takes it.
@@ -91,8 +92,8 @@ export function generateWhichHandWins(seed: number): Generated {
 
   const split = winners.length > 1
   const answer = split ? SPLIT : winners[0]
-  const explanation = explain(answer, evalA, evalB)
-  if (!explanation) return reject('unexplainable')
+  const read = explain(answer, evalA, evalB)
+  if (!read) return reject('unexplainable')
 
   // On a split both hands are winners and the split button is the answer, so
   // all three are marked: the reveal shows what happened, not what was typed.
@@ -102,7 +103,33 @@ export function generateWhichHandWins(seed: number): Generated {
     { id: SPLIT, label: 'They split it', cards: [], winning: split },
   ]
 
-  return accept({ kind: 'which-hand-wins', seed, board, choices, answer, explanation })
+  return accept({
+    kind: 'which-hand-wins',
+    seed,
+    board,
+    choices,
+    answer,
+    settledBy: read.settledBy,
+    difficulty: spotDifficulty(read.settledBy, decoys(answer, a, b)),
+    explanation: read.explanation,
+  })
+}
+
+/**
+ * Does the hand that loses hold the higher card?
+ *
+ * The one thing about a spot that can be called hard from the cards rather than
+ * asserted about it: an ace sitting in the hand that does not win is what makes
+ * a reader answer before they have read the board. Compared on the hole cards
+ * alone, which is what a player looks at first.
+ *
+ * False on a split, where there is no losing hand to be misled by.
+ */
+function decoys(answer: string, a: Card[], b: Card[]): boolean {
+  if (answer === SPLIT) return false
+  const [winner, loser] = answer === 'a' ? [a, b] : [b, a]
+  const high = (cards: Card[]) => Math.max(...cards.map((card) => rankValue(card.rank)))
+  return high(loser) > high(winner)
 }
 
 function hand(
@@ -126,23 +153,34 @@ function hand(
 }
 
 /**
- * The one sentence. Three shapes, and every one of them is a fact about this
- * spot rather than a template with the answer dropped in:
+ * The one sentence, and what settled it. Three shapes, and every one of them is
+ * a fact about this spot rather than a template with the answer dropped in:
  *
  * - a split: the two hands come to the same thing;
  * - different hands: the category that beats the other one;
  * - the same hand twice: the card that settles it.
  *
  * Never scolds and never says "correct". The reader gets the arithmetic.
+ *
+ * `settledBy` comes back with the sentence rather than being worked out again
+ * later, because the two would then be free to disagree: the difficulty on the
+ * spot has to describe the same reading of the hand the reader is shown.
  */
-function explain(answer: string, evalA: EvaluatedHand, evalB: EvaluatedHand): string | null {
+function explain(
+  answer: string,
+  evalA: EvaluatedHand,
+  evalB: EvaluatedHand,
+): { explanation: string; settledBy: SettledBy } | null {
   const phraseA = handPhrase(evalA)
   const phraseB = handPhrase(evalB)
   if (!phraseA || !phraseB) return null
 
   if (answer === SPLIT) {
     if (phraseA !== phraseB) return null
-    return `${capitalise(shared(phraseA))}, and neither is higher, so the pot is split.`
+    return {
+      explanation: `${capitalise(shared(phraseA))}, and neither is higher, so the pot is split.`,
+      settledBy: 'split',
+    }
   }
 
   const won = answer === 'a'
@@ -150,15 +188,22 @@ function explain(answer: string, evalA: EvaluatedHand, evalB: EvaluatedHand): st
   const [winner, loser] = won ? [evalA, evalB] : [evalB, evalA]
   const [winnerPhrase, loserPhrase] = won ? [phraseA, phraseB] : [phraseB, phraseA]
   if (winnerPhrase !== loserPhrase) {
-    return `${label} takes it: ${winnerPhrase} beats ${loserPhrase}.`
+    return {
+      explanation: `${label} takes it: ${winnerPhrase} beats ${loserPhrase}.`,
+      settledBy: 'category',
+    }
   }
 
   const decided = decidingRanks(bestFive(winner), bestFive(loser))
   if (!decided) return null
   // Past the made cards, the two hands are the same hand and a kicker settles
   // it. Before them, the hands themselves differ.
-  const verb = decided.index >= (MADE_CARDS[winner.name] ?? 5) ? 'outkicks' : 'outranks'
-  return `${label} takes it: ${shared(winnerPhrase)}, and the ${rankName(decided.won)} ${verb} the ${rankName(decided.lost)}.`
+  const kicker = decided.index >= (MADE_CARDS[winner.name] ?? 5)
+  const verb = kicker ? 'outkicks' : 'outranks'
+  return {
+    explanation: `${label} takes it: ${shared(winnerPhrase)}, and the ${rankName(decided.won)} ${verb} the ${rankName(decided.lost)}.`,
+    settledBy: kicker ? 'kicker' : 'rank',
+  }
 }
 
 /** "both make a flush", or the readable form of both making nothing. */

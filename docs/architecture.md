@@ -38,9 +38,10 @@ src/
     equity.ts               # Monte-Carlo equity (win %)
     ai/policy.ts            # heuristic AI decision policy (equity + pot odds + personality)
 
-  lib/drills/               # ── DRILLS (pure, unit-tested, no storage) ──
-    types.ts                # the contract: a spot, its seed, its choices, its one-sentence grade
+  lib/drills/               # ── DRILLS (pure, unit-tested, no storage, no clock) ──
+    types.ts                # the contract: a spot, its seed, its difficulty, its one-sentence grade
     whichHandWins.ts        # the free kind: generate + reject + explain, graded by determineWinners
+    rating.ts               # the Elo arithmetic: what a spot is worth, what an answer moves
     index.ts                # nextDrill (a filtered stream of spots) + gradeDrill
 
   lib/

@@ -10,20 +10,25 @@ import { nextDrill, randomSeed } from '@/lib/drills'
 import { PlayingCard } from '@/components/PlayingCard'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
+import { useProfile } from '@/store/profile'
 
 /**
  * The drills room: one tile per kind, the same shape as the venue browsers.
  *
  * It exists with one kind on it because it is where the kinds land, and because
  * "Drills" on the menu going straight into one kind would have to be rewired
- * the day there are two. Nothing here is counted, scored or remembered — see
- * the note in config/drills.ts.
+ * the day there are two.
+ *
+ * A tile carries your rating for that kind once you have answered one, which is
+ * what makes this room worth walking back into. It carries no cap, no
+ * countdown and nothing you can be behind on — see the note at the top of
+ * lib/drills/rating.ts.
  */
 export function DrillIndex() {
   return (
     <SectionScreen
       title="Drills"
-      subtitle="Short spots with a right answer. Play one, play forty, nothing is keeping score."
+      subtitle="Short spots with a right answer. Your rating moves with every one, and there is no limit on how many you play."
     >
       <div className="grid gap-4 md:grid-cols-2">
         {DRILL_KINDS.map((kind, i) => (
@@ -70,11 +75,32 @@ function DrillTile({ kind, delay }: { kind: DrillKind; delay: number }) {
           </span>
         </div>
         <div className="p-4">
-          <h3 className="font-semibold">{kind.title}</h3>
+          <div className="flex items-baseline justify-between gap-3">
+            <h3 className="font-semibold">{kind.title}</h3>
+            {hydrated && <Standing kind={kind} />}
+          </div>
           <p className="mt-0.5 text-sm text-muted-foreground">{kind.blurb}</p>
         </div>
       </button>
     </motion.div>
+  )
+}
+
+/**
+ * Where you stand on this kind, or nothing at all.
+ *
+ * Client-only for the same reason the board is: the profile hydrates after
+ * first paint, so a prerendered rating would be a stranger's zero flashing on
+ * every visit. Absent until the first answer, because "0%" is not a fact about
+ * a player who has not played.
+ */
+function Standing({ kind }: { kind: DrillKind }) {
+  const record = useProfile((s) => s.drills[kind.id])
+  if (!record || record.answered === 0) return null
+  return (
+    <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
+      {record.rating}
+    </span>
   )
 }
 

@@ -1,7 +1,19 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import test from 'ava'
 import { DRILL_KINDS, drillKind } from '@/config/drills'
-import { MAX_ATTEMPTS, drillAt, gradeDrill, nextDrill } from '@/lib/drills'
+import {
+  EASIEST_SPOT,
+  HARDEST_SPOT,
+  MAX_ATTEMPTS,
+  RATING_FLOOR,
+  STARTING_RATING,
+  drillAt,
+  expectedScore,
+  gradeDrill,
+  kFactor,
+  nextDrill,
+  nextRating,
+} from '@/lib/drills'
 import type { Drill, RejectReason } from '@/lib/drills/types'
 import { cardToString } from '@/lib/poker/cards'
 import { determineWinners, evaluateHand } from '@/lib/poker/handEval'
@@ -249,21 +261,151 @@ test('drills are app routes, and only app routes', (t) => {
   })
 })
 
-// The free kind is free forever and unmetered by ruling (technology#38), and
-// the way that erodes is not a decision, it is a counter added for a good
-// reason. Nothing in the drill engine or its runner may read or write storage,
-// or reach for the persisted profile.
-test('nothing in the drills layer counts anything or remembers anything', (t) => {
-  const sources = [
-    ...readdirSync(new URL('../src/lib/drills', import.meta.url)).map((f) => `src/lib/drills/${f}`),
-    ...readdirSync(new URL('../src/components/drills', import.meta.url)).map(
-      (f) => `src/components/drills/${f}`,
-    ),
-  ]
-  t.true(sources.length >= 4)
-  for (const path of sources) {
-    const source = readFileSync(new URL(`../${path}`, import.meta.url), 'utf-8')
-    t.notRegex(source, /localStorage|sessionStorage|indexedDB/, `${path}: storage`)
-    t.notRegex(source, /@\/store\//, `${path}: reaches for a store`)
+// --- what may never be built here ------------------------------------------
+//
+// Three rules, each of which would otherwise be eroded by one reasonable-looking
+// commit rather than by a decision anyone would notice making. They are tests
+// and not comments for exactly that reason.
+
+const libSources = () =>
+  readdirSync(new URL('../src/lib/drills', import.meta.url)).map((f) => `src/lib/drills/${f}`)
+
+const drillSources = () => [
+  ...libSources(),
+  ...readdirSync(new URL('../src/components/drills', import.meta.url)).map(
+    (f) => `src/components/drills/${f}`,
+  ),
+]
+
+const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf-8')
+
+/**
+ * A file with its comments taken out.
+ *
+ * The bans below are on what the code does, not on what it is allowed to say
+ * about itself: a note explaining why there is no allowance here must not read
+ * as an allowance. String literals are kept, because a meter's worst form is a
+ * line of copy telling somebody what they have left.
+ */
+const code = (path: string) =>
+  read(path)
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^\s*\/\/.*$/gm, ' ')
+
+// 1. The free kind is unmetered by ruling (technology#38). Progress is now kept
+//    — a rating, a best run, an accuracy — and that is a different thing from a
+//    meter: one is a mirror of what you did, the other is a number you run out
+//    of. The engine stays pure so the only place that can hold either is the
+//    profile, and the words a meter would need are banned outright.
+test('the drills layer keeps a score and never keeps a limit', (t) => {
+  for (const path of libSources()) {
+    const source = code(path)
+    t.notRegex(source, /localStorage|sessionStorage|indexedDB/, `${path}: storage in the engine`)
+    t.notRegex(source, /@\/store\//, `${path}: the engine reaches for a store`)
   }
+  for (const path of drillSources()) {
+    const source = code(path)
+    // The screens read the profile, which persists itself. Nothing in the
+    // drills layer talks to storage directly.
+    t.notRegex(source, /localStorage|sessionStorage|indexedDB/, `${path}: storage`)
+    // The vocabulary of a meter. If one of these is genuinely needed for
+    // something else, that is the moment to check it is not this.
+    t.notRegex(
+      source,
+      /\b(remaining|lockout|locked|paywall|quota|allowance|freeTrial|drillsLeft)\b/i,
+      `${path}: reads like a meter`,
+    )
+  }
+})
+
+// 2. No clock. A daily streak, a decay, a "come back tomorrow" and a "you have
+//    not played since Tuesday" all need to know what day it is, and none of
+//    them can be built in a folder that cannot find out. This is the house
+//    position from lib/daily.ts ("no streaks, no history pressure") made
+//    mechanical, and it is the guard that stops the rating quietly becoming a
+//    thing you can be behind on.
+test('nothing in the drills layer can read the clock', (t) => {
+  for (const path of drillSources()) {
+    t.notRegex(code(path), /\bDate\b|\bperformance\.now\b/, `${path}: reads the clock`)
+  }
+})
+
+// 3. The rating is arithmetic on the answers and nothing else — no bonus for
+//    turning up, no floor under a wrong answer, no multiplier.
+test('the rating only ever moves on the answer', (t) => {
+  // Right on a spot above you is worth a lot; right on a spot far below you is
+  // worth nothing at all, and says so rather than inventing a point.
+  t.true(nextRating(1_000, 1_400, true, 100) > 1_000)
+  t.is(nextRating(1_600, 820, true, 100), 1_600)
+  t.true(nextRating(1_600, 820, false, 100) <= 1_581)
+  // Wrong on a spot far above you costs almost nothing.
+  t.true(nextRating(800, 1_400, false, 100) >= 794)
+
+  // It cannot fall through the floor however long you get it wrong.
+  let rating = STARTING_RATING
+  for (let i = 0; i < 500; i++) rating = nextRating(rating, EASIEST_SPOT, false, i)
+  t.is(rating, RATING_FLOOR)
+
+  // And missing the hardest spots does not drag you to the floor at all: it
+  // settles where missing them is what somebody at that rating is expected to
+  // do. Elo doing its job, and worth pinning because it is the difference
+  // between a rating and a punishment.
+  rating = STARTING_RATING
+  for (let i = 0; i < 500; i++) rating = nextRating(rating, HARDEST_SPOT, false, i)
+  t.true(rating > RATING_FLOOR + 200, `the hardest spots alone bottomed it out at ${rating}`)
+
+  // And it settles rather than running away. There is no ceiling in the code —
+  // the spots are the ceiling: once the gain from the hardest spot this kind
+  // can deal rounds to nothing, the number stops, and answering another two
+  // thousand perfectly does not move it a point. That is why nothing here has
+  // to cap it.
+  rating = STARTING_RATING
+  for (let i = 0; i < 2_000; i++) rating = nextRating(rating, HARDEST_SPOT, true, i)
+  const settled = rating
+  for (let i = 2_000; i < 4_000; i++) rating = nextRating(rating, HARDEST_SPOT, true, i)
+  t.is(rating, settled, `still climbing at ${rating}`)
+  t.true(settled < HARDEST_SPOT + 800, `runaway rating: ${settled}`)
+
+  // Calibration is fast, then it is not.
+  t.true(kFactor(0) > kFactor(20))
+  t.true(kFactor(20) > kFactor(200))
+  t.is(kFactor(200), kFactor(20_000), 'the K-factor stops moving')
+
+  // Elo's own identity, which is what makes the two directions fair against
+  // each other: at your own level the spot is a coin flip.
+  t.is(expectedScore(1_000, 1_000), 0.5)
+})
+
+// The difficulty on a spot is part of the contract and travels with the seed,
+// like the sentence and the grade do. Everything that scores an answer reads
+// it off the drill rather than working it out again from the cards.
+test('every spot carries a difficulty, and it matches how it was settled', (t) => {
+  const seen = new Set<string>()
+  for (const drill of accepted(1, 3_000)) {
+    seen.add(drill.settledBy)
+    t.is(drill.difficulty, gradeDrill(drill, drill.answer).difficulty, `seed ${drill.seed}`)
+    t.true(
+      drill.difficulty >= EASIEST_SPOT && drill.difficulty <= HARDEST_SPOT,
+      `seed ${drill.seed}`,
+    )
+    // A split is the hardest shape and takes no decoy adjustment, so it is the
+    // one difficulty that is a fixed number.
+    if (drill.settledBy === 'split') t.is(drill.difficulty, HARDEST_SPOT, `seed ${drill.seed}`)
+    // The sentence and the shape are one reading of the hand, not two.
+    if (drill.settledBy === 'kicker') t.regex(drill.explanation, /outkicks/, `seed ${drill.seed}`)
+    if (drill.settledBy === 'rank') t.regex(drill.explanation, /outranks/, `seed ${drill.seed}`)
+    if (drill.settledBy === 'category') t.regex(drill.explanation, / beats /, `seed ${drill.seed}`)
+  }
+  // All four shapes turn up in a normal sample. If one stopped, the ordering
+  // the rating rests on would be describing spots that no longer exist.
+  t.deepEqual([...seen].sort(), ['category', 'kicker', 'rank', 'split'])
+})
+
+// The point of rating the spots at all: a mixed sample has to spread, or the
+// rating is a coin flip with extra steps.
+test('the spots are not all worth the same', (t) => {
+  const difficulties = accepted(1, 2_000).map((drill) => drill.difficulty)
+  t.true(new Set(difficulties).size >= 4, 'the difficulties barely differ')
+  const spread = Math.max(...difficulties) - Math.min(...difficulties)
+  t.true(spread >= 400, `only ${spread} points between the easiest and hardest spot`)
 })

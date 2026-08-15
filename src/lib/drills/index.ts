@@ -3,6 +3,14 @@ import { generateWhichHandWins } from './whichHandWins'
 
 // The drill engine's public seam: generate a spot, grade an answer. One entry
 // per kind, so a new kind is a generator and a line here.
+//
+// Pure and storage-free on purpose: what a spot is worth lives on the spot
+// (`difficulty`), what a player is rated lives on the profile, and the
+// arithmetic between them is `./rating`. Nothing in this folder may read
+// storage, reach for a store, or read the clock — `tests/drills.test.ts` fails
+// the build on any of the three.
+
+export * from './rating'
 
 const GENERATORS: Record<DrillKindId, (seed: number) => Generated> = {
   'which-hand-wins': generateWhichHandWins,
@@ -64,5 +72,6 @@ export function gradeDrill(drill: Drill, choiceId: string): Grade {
     correct: choiceId === drill.answer,
     answer: drill.answer,
     explanation: drill.explanation,
+    difficulty: drill.difficulty,
   }
 }

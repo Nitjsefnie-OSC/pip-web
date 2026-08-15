@@ -13,6 +13,7 @@ import { type Card, cardName } from '@/lib/poker/cards'
 import { haptics } from '@/lib/haptics'
 import { sound } from '@/lib/sound'
 import { useHydrated } from '@/lib/useHydrated'
+import { emptyDrillRecord, useProfile } from '@/store/profile'
 import { cn } from '@/lib/utils'
 
 /**
@@ -25,11 +26,19 @@ import { cn } from '@/lib/utils'
  * board is dealt at table size and the keyboard works: 1 / 2 pick a hand,
  * 3 says they split it, and space moves on.
  *
- * **The run counter is the only thing kept, and it is kept in React state.**
- * Nothing here writes to storage or reaches for the profile: this kind is free
- * and unmetered by ruling (technology#38), so there is no counter of how many
- * you have used, no interstitial, and nothing that survives a reload. Leaving
- * the screen loses the run, which is the point of it.
+ * **There is a score, and it is a rating.** Will asked for something that keeps
+ * a player coming back (15 Aug) and the honest version of that is a number
+ * that only ever reflects how you actually read these spots: it goes up on a
+ * hard one, down on an easy one missed, and sits exactly where you left it for
+ * as long as you are away. The alternative, a daily streak, is the chess.com
+ * behaviour this app is positioned against, so it is not here. See the note at
+ * the top of lib/drills/rating.ts.
+ *
+ * The number is kept and the kind is still unmetered: those are different
+ * things and the difference is the whole strategy (technology#38). Nothing
+ * here counts down, locks, or interrupts. The run is React state and dies with
+ * the screen; the rating, the best run and the accuracy live on the profile
+ * (`PERSIST_VERSION` 15) and follow the account if there is one.
  *
  * **No spot is ever generated during a render that the build could run**, and
  * that is a rule rather than a preference. The app is a static export: the
@@ -51,29 +60,86 @@ export function DrillRunner({ kind }: { kind: DrillKind }) {
         {hydrated ? <Run kind={kind} /> : <Dealing kind={kind} />}
 
         {/* Small print, at the foot of the screen where it belongs. Both halves
-            are load-bearing: what settles the answer, and the fact that nothing
-            about this is being kept. */}
+            are load-bearing: what settles the answer, and what happens to the
+            number. Never a cap, never a countdown. */}
         <p className="mt-auto pt-8 text-center text-xs text-muted-foreground/80">
-          {kind.gradedBy} Nothing here is saved, and the run resets when you leave.
+          {kind.gradedBy} Your rating is yours, it never expires, and there is no limit on how many
+          you play.
         </p>
       </div>
     </PageShell>
   )
 }
 
-/** The title, and the run beside it once there is one. */
-function Header({ title, run = 0 }: { title: string; run?: number }) {
+/**
+ * The title and the score.
+ *
+ * One line of numbers under the title rather than a panel: a scoreboard that
+ * takes a quarter of a phone screen is competing with the cards, and the cards
+ * are the drill. The rating sits opposite the title where the eye lands on
+ * arriving, and everything else is one muted line of facts.
+ *
+ * The delta is the reason the rating is worth showing at all. A number that
+ * only ever appears in its settled state is furniture; a number you watch move
+ * is the thing you came back for.
+ */
+function Header({
+  title,
+  rating,
+  delta = null,
+  run = 0,
+  answered = 0,
+  correct = 0,
+  bestRun = 0,
+}: {
+  title: string
+  rating?: number
+  delta?: number | null
+  run?: number
+  answered?: number
+  correct?: number
+  bestRun?: number
+}) {
+  // Facts, in the order they change. Nothing is shown before it means
+  // something: a first-timer gets a title and a rating to move, not a row of
+  // zeros telling them how little they have done.
+  const facts = [
+    run > 1 ? `${run} in a row` : null,
+    bestRun > 1 ? `best ${bestRun}` : null,
+    answered > 0 ? `${Math.round((correct / answered) * 100)}% of ${answered}` : null,
+  ].filter(Boolean)
+
   return (
-    <div className="mb-6 flex items-center justify-between gap-3 px-1">
-      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
-      {run > 0 && (
-        <motion.span
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="shrink-0 rounded-full bg-foreground/[0.06] px-3 py-1 text-sm font-medium tabular-nums text-muted-foreground"
-        >
-          {run} in a row
-        </motion.span>
+    <div className="mb-6 flex items-start justify-between gap-3 px-1">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+        {facts.length > 0 && (
+          <p className="mt-1 text-xs tabular-nums text-muted-foreground">{facts.join(' · ')}</p>
+        )}
+      </div>
+
+      {rating !== undefined && (
+        <div className="flex shrink-0 items-baseline gap-1.5">
+          {delta !== null && delta !== 0 && (
+            <motion.span
+              // Keyed by the value so a second answer worth the same as the
+              // first still animates rather than sitting there.
+              key={`${rating}-${delta}`}
+              initial={{ opacity: 0, y: delta > 0 ? 6 : -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                'text-sm font-medium tabular-nums',
+                delta > 0 ? 'text-emerald-500' : 'text-muted-foreground',
+              )}
+            >
+              {delta > 0 ? '+' : ''}
+              {delta}
+            </motion.span>
+          )}
+          <span className="rounded-full bg-foreground/[0.06] px-3 py-1 text-sm font-semibold tabular-nums">
+            {rating}
+          </span>
+        </div>
       )}
     </div>
   )
@@ -116,25 +182,42 @@ function Run({ kind }: { kind: DrillKind }) {
   const [drill, setDrill] = useState<Drill>(() => nextDrill(kind.id, randomSeed()))
   const [picked, setPicked] = useState<string | null>(null)
   const [run, setRun] = useState(0)
+  // Where the record stood before the answer on screen. The delta beside the
+  // rating is then a subtraction rather than a second run of the same
+  // arithmetic: one place moves the number (`recordDrill`) and this only reads
+  // what it did.
+  const [before, setBefore] = useState<{ rating: number; bestRun: number } | null>(null)
+
+  const record = useProfile((s) => s.drills[kind.id])
+  const recordDrill = useProfile((s) => s.recordDrill)
+  const progress = record ?? emptyDrillRecord()
 
   const grade = picked === null ? null : gradeDrill(drill, picked)
   const hands = drill.choices.filter((choice) => choice.cards.length > 0)
   const outcomes = drill.choices.filter((choice) => choice.cards.length === 0)
+  // A personal best worth saying out loud: strictly beaten, and at least three.
+  // "Best run yet" on your first correct answer is a participation trophy, and
+  // equalling your best is not a best.
+  const newBest = grade?.correct === true && run >= 3 && before !== null && run > before.bestRun
 
   const pick = useCallback(
     (choiceId: string) => {
       if (picked !== null) return
       const result = gradeDrill(drill, choiceId)
+      const next = result.correct ? run + 1 : 0
       setPicked(choiceId)
-      setRun((current) => (result.correct ? current + 1 : 0))
+      setRun(next)
+      setBefore({ rating: progress.rating, bestRun: progress.bestRun })
+      recordDrill(kind.id, result.correct, result.difficulty, next)
       sound.play(result.correct ? 'win' : 'fold')
       haptics.fire(result.correct ? 'win' : 'bust')
     },
-    [drill, picked],
+    [drill, picked, run, progress.rating, progress.bestRun, recordDrill, kind.id],
   )
 
   const another = useCallback(() => {
     setPicked(null)
+    setBefore(null)
     setDrill(nextDrill(kind.id, randomSeed()))
     sound.play('deal')
     haptics.fire('deal')
@@ -170,7 +253,15 @@ function Run({ kind }: { kind: DrillKind }) {
 
   return (
     <>
-      <Header title={kind.title} run={run} />
+      <Header
+        title={kind.title}
+        rating={progress.rating}
+        delta={before === null ? null : progress.rating - before.rating}
+        run={run}
+        answered={progress.answered}
+        correct={progress.correct}
+        bestRun={progress.bestRun}
+      />
 
       {/* The spot. Keyed by seed so a new one arrives rather than mutating
           the old one in place. */}
@@ -239,7 +330,7 @@ function Run({ kind }: { kind: DrillKind }) {
           className="mt-5 rounded-2xl border border-foreground/10 bg-foreground/[0.02] p-4"
         >
           <p className="text-sm font-medium">
-            {grade.correct ? 'That’s it.' : 'Not this time.'}{' '}
+            {newBest ? 'Best run yet.' : grade.correct ? 'That’s it.' : 'Not this time.'}{' '}
             <span className="font-normal text-muted-foreground">{grade.explanation}</span>
           </p>
           <button
