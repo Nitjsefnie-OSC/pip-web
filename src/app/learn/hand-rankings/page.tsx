@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { AceRuns } from '@/components/learn/AceRuns'
 import { GuideChart, GuidePage, GuideTable, Lead, TryIt } from '@/components/learn/Guide'
 import { WhoWins } from '@/components/learn/WhoWins'
@@ -126,6 +127,17 @@ export default function HandRankingsGuide() {
           rules and the board-plays case, which is what the three examples
           turn on. */}
       <WhoWins />
+
+      <p className="mt-4 text-md leading-relaxed text-muted-foreground">
+        Those three are written out and they stay put. If you want them dealt fresh instead, the{' '}
+        <Link
+          href="/game/drills/which-hand-wins"
+          className="font-medium text-foreground underline decoration-foreground/25 underline-offset-2 transition hover:decoration-foreground"
+        >
+          which hand wins drill
+        </Link>{' '}
+        in the app deals a new pair of hands every time and settles each one the same way.
+      </p>
 
       <Section title="How often each hand actually turns up">
         <p>

@@ -52,6 +52,17 @@ export const SIZES = {
     pad: 'p-[min(0.5rem,2.5vw)] sm:p-2.5',
     r: 'rounded-xl',
   },
+  // The drill board — the table's five cards inside a padded content column
+  // rather than full-bleed felt, so a touch narrower than `board` or the row
+  // runs into the gutter on a small phone.
+  drill: {
+    w: 'w-[16vw] sm:w-16',
+    h: 'h-[22.4vw] sm:h-24',
+    rank: 'text-[min(1.6rem,8.3vw)] sm:text-3xl',
+    suit: 'text-[min(1.05rem,5.6vw)] sm:text-xl',
+    pad: 'p-[min(0.45rem,2.2vw)] sm:p-2',
+    r: 'rounded-xl',
+  },
   // Hero hole cards — oversized on mobile so they anchor the bottom of the
   // screen; matches the board size on desktop.
   hero: {

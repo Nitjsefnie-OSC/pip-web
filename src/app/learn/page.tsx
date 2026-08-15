@@ -97,6 +97,31 @@ export default function LearnPage() {
           </ul>
         </section>
       )}
+
+      {/* The practice half, which is in the app rather than on this side of the
+          wall: reading and doing are different things, and doing one is closer
+          to sitting at a table than it is to reading a guide. Separate from the
+          guides list rather than another card in it, because that list is what
+          a search brought most people here for. */}
+      <section className="mt-12">
+        <h2 className="text-lg font-semibold tracking-tight">Practice</h2>
+        <p className="mt-2 text-md leading-relaxed text-muted-foreground">
+          Spots dealt fresh and marked by the engine, rather than worked examples that stay put.
+          Drills live in the app, next to the tables.
+        </p>
+        <Link
+          href="/game/drills"
+          className="group mt-6 block rounded-2xl border border-foreground/10 p-5 transition hover:border-foreground/20 hover:bg-foreground/[0.02]"
+        >
+          <h3 className="flex items-center gap-1.5 text-[1.0625rem] font-semibold tracking-tight">
+            Drills
+            <ArrowRight className="size-4 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-foreground" />
+          </h3>
+          <p className="mt-1.5 text-md leading-relaxed text-muted-foreground">
+            One question at a time, with the arithmetic underneath it. Free, unlimited, no signup.
+          </p>
+        </Link>
+      </section>
     </LegalPage>
   )
 }

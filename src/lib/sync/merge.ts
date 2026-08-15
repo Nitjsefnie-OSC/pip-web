@@ -14,7 +14,7 @@
 // device, which is a much bigger build for a single-player game where one device
 // is almost always the active one. If players complain, that's the upgrade path.
 
-import type { CastRecord, ProfileState, RollPoint, VenueRecord } from '@/store/profile'
+import type { CastRecord, DrillRecord, ProfileState, RollPoint, VenueRecord } from '@/store/profile'
 import type { SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 
@@ -80,6 +80,7 @@ export function mergeProfiles(local: ProfileData, remote: ProfileData, side: Sid
     // Per-key best-of.
     venueRecords: mergeVenueRecords(local.venueRecords, remote.venueRecords),
     castRecords: mergeCastRecords(local.castRecords, remote.castRecords),
+    drills: mergeDrills(local.drills, remote.drills),
 
     // Onboarding is one-way: if either device says you're a player, you are.
     created: local.created || remote.created,
@@ -151,7 +152,11 @@ export function isPristine(p: ProfileData): boolean {
     Object.keys(p.venueRecords).length === 0 &&
     Object.keys(p.castRecords).length === 0 &&
     p.owned.length === 0 &&
-    p.daily === null
+    p.daily === null &&
+    // Drills are reachable without ever sitting down, so a rating is progress
+    // even on a profile that has played no hands. Without this clause, signing
+    // in on that device adopts the account's row and the rating is gone.
+    Object.keys(p.drills ?? {}).length === 0
   )
 }
 
@@ -230,6 +235,40 @@ function mergeCastRecords(
   return out
 }
 
+/**
+ * Drill progress, per kind.
+ *
+ * Counters and the personal best take the better of the two, same reasoning as
+ * `venueRecords`: summing double-counts everything answered before the split.
+ *
+ * **The rating follows the side that answered more, and does not average.** It
+ * is not monotonic — the whole point is that it goes down when you get an easy
+ * spot wrong — so max() would quietly ratchet it up every time two devices met,
+ * and the mean of two ratings is a number neither device ever earned. More
+ * answers is the better reading of the same player, so it wins.
+ */
+function mergeDrills(
+  a: Record<string, DrillRecord>,
+  b: Record<string, DrillRecord>,
+): Record<string, DrillRecord> {
+  const out: Record<string, DrillRecord> = {}
+  for (const id of new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})])) {
+    const x = a?.[id]
+    const y = b?.[id]
+    if (!x || !y) {
+      out[id] = (x ?? y) as DrillRecord
+      continue
+    }
+    out[id] = {
+      answered: Math.max(x.answered, y.answered),
+      correct: Math.max(x.correct, y.correct),
+      rating: x.answered >= y.answered ? x.rating : y.rating,
+      bestRun: Math.max(x.bestRun, y.bestRun),
+    }
+  }
+  return out
+}
+
 function mergeDaily(a: ProfileData['daily'], b: ProfileData['daily']) {
   if (!a) return b
   if (!b) return a
@@ -288,6 +327,7 @@ function pickUnhandled(winner: ProfileData, loser: ProfileData): Partial<Profile
     'daily',
     'challengeWins',
     'challengesPlayed',
+    'drills',
   ])
   const out: Record<string, unknown> = {}
   for (const key of new Set([...Object.keys(winner), ...Object.keys(loser)])) {

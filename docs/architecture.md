@@ -27,6 +27,7 @@ src/
     layout.tsx              # fonts, ThemeProvider, <html>
     page.tsx                # "/" — onboarding vs home (hydration-gated)
     play/[venue]/page.tsx   # sits the player down at a venue, renders <Table>
+    game/drills/[kind]/     # the drills — one screen per kind, in the app, off the menu
     globals.css             # Tailwind + theme tokens (light/dark + pip palette)
 
   lib/poker/                # ── PURE ENGINE (no React, unit-tested) ──
@@ -36,6 +37,12 @@ src/
     engine.ts               # betting state machine: blinds, streets, actions, showdown
     equity.ts               # Monte-Carlo equity (win %)
     ai/policy.ts            # heuristic AI decision policy (equity + pot odds + personality)
+
+  lib/drills/               # ── DRILLS (pure, unit-tested, no storage, no clock) ──
+    types.ts                # the contract: a spot, its seed, its difficulty, its one-sentence grade
+    whichHandWins.ts        # the free kind: generate + reject + explain, graded by determineWinners
+    rating.ts               # the Elo arithmetic: what a spot is worth, what an answer moves
+    index.ts                # nextDrill (a filtered stream of spots) + gradeDrill
 
   lib/
     avatar.ts               # notionists render helpers + seeds
@@ -52,6 +59,7 @@ src/
     cast.ts                 # the cast — opponent characters, avatars, table-talk, drafting
     opponents.ts            # AI style labels + bankroll ranges (flavour helpers)
     cardBacks.ts            # card-back colours + patterns
+    drills.ts               # the drill kinds: one screen each under /game/drills, one entry each here
     handNames.ts            # display names for made hands
     ranks.ts                # rank titles (by peak Roll)
     shop.ts                 # the Chip Shop catalogue (earned cosmetic unlocks)

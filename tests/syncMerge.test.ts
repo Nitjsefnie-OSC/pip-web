@@ -46,6 +46,7 @@ function profile(over: Partial<ProfileData> = {}): ProfileData {
     tableFinish: null,
     challengeWins: [],
     challengesPlayed: 0,
+    drills: {},
     ...over,
   } as ProfileData
 }
@@ -187,6 +188,37 @@ test('merge › challenge scalps union, whichever side wins', (t) => {
   }
 })
 
+test('merge › drill progress takes the best of each side, and the busier rating', (t) => {
+  const phone = profile({
+    drills: { 'which-hand-wins': { answered: 200, correct: 150, rating: 1_310, bestRun: 14 } },
+  })
+  const laptop = profile({
+    drills: { 'which-hand-wins': { answered: 12, correct: 3, rating: 780, bestRun: 22 } },
+  })
+
+  for (const side of ['local', 'remote'] as const) {
+    const merged = mergeProfiles(phone, laptop, side).drills['which-hand-wins']
+    t.is(merged.answered, 200, `answered on ${side}`)
+    t.is(merged.correct, 150, `correct on ${side}`)
+    t.is(merged.bestRun, 22, `a personal best is never lost on ${side}`)
+    // Not max() and not the mean. The rating is the one field here that is
+    // meant to go down, so taking the better of two would ratchet it up every
+    // time two devices met; averaging invents a number neither device earned.
+    // Twelve answers is a worse reading of the same player than two hundred.
+    t.is(merged.rating, 1_310, `rating on ${side}`)
+  }
+})
+
+test('merge › a kind only one device has ever played survives', (t) => {
+  const played = profile({
+    drills: { 'which-hand-wins': { answered: 30, correct: 20, rating: 1_050, bestRun: 6 } },
+  })
+  for (const side of ['local', 'remote'] as const) {
+    t.is(mergeProfiles(played, profile(), side).drills['which-hand-wins'].rating, 1_050, side)
+    t.is(mergeProfiles(profile(), played, side).drills['which-hand-wins'].answered, 30, side)
+  }
+})
+
 test('merge › challenges played is monotonic, like the peak Roll', (t) => {
   const local = profile({ challengesPlayed: 3 })
   const remote = profile({ challengesPlayed: 11 })
@@ -301,6 +333,12 @@ test('pristine › anything the player actually did disqualifies a profile', (t)
     ],
     ['a cast record', { castRecords: { sable: { stats: emptySeatStats(), kos: 1 } } }],
     ['a Daily played', { daily: { date: '2026-07-31', dayNo: 11, place: 2, hands: 30 } }],
+    // Drills are reachable without ever sitting down, so this is the one entry
+    // here that can be true of a device which has played no poker at all.
+    [
+      'a drill answered',
+      { drills: { 'which-hand-wins': { answered: 1, correct: 1, rating: 1_024, bestRun: 1 } } },
+    ],
   ]
 
   for (const [what, over] of played) {

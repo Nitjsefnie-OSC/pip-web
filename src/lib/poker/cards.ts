@@ -113,11 +113,16 @@ const SUIT_WORD: Record<Suit, string> = {
   s: 'spades',
 }
 
+/** A rank said out loud, e.g. "queen". */
+export function rankName(rank: Rank): string {
+  return RANK_WORD[rank]
+}
+
 /**
  * A card said out loud, e.g. "ace of spades". A card face renders as "A♠",
  * which a screen reader reads inconsistently and sometimes not at all, so
  * anywhere a card is the control rather than the decoration needs this.
  */
 export function cardName(card: Card): string {
-  return `${RANK_WORD[card.rank]} of ${SUIT_WORD[card.suit]}`
+  return `${rankName(card.rank)} of ${SUIT_WORD[card.suit]}`
 }

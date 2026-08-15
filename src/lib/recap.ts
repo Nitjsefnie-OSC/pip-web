@@ -31,6 +31,7 @@
  * by accident: a trend needs a second run, and there is nowhere to put one.
  */
 
+import { handPhrase } from './poker/handEval'
 import { derivePlayStyle } from './playStyle'
 import type { SeatStats } from './reads'
 import { formatChips } from './useMoney'
@@ -205,30 +206,6 @@ const pct = (x: number) => `${Math.round(x * 100)}%`
 function signedChips(delta: number): string {
   if (delta === 0) return '0'
   return `${delta > 0 ? '+' : '-'}${formatChips(Math.abs(delta))}`
-}
-
-/**
- * "a full house" / "two pair". The article is part of the phrase because
- * English will not give it up. Names come from the evaluator (pokersolver via
- * `lib/poker/handEval`); anything unrecognised returns null and the clause is
- * simply left off, rather than shipping "won with undefined".
- */
-const HAND_PHRASES: Record<string, string> = {
-  'High Card': 'high card',
-  Pair: 'a pair',
-  'Two Pair': 'two pair',
-  'Three of a Kind': 'three of a kind',
-  Straight: 'a straight',
-  Flush: 'a flush',
-  'Full House': 'a full house',
-  'Four of a Kind': 'four of a kind',
-  // A royal is a straight flush by name; only the description tells them apart.
-  'Straight Flush': 'a straight flush',
-}
-
-function handPhrase(hand: { name: string; description: string }): string | null {
-  if (hand.description === 'Royal Flush') return 'a royal flush'
-  return HAND_PHRASES[hand.name] ?? null
 }
 
 /** "Frank", "Frank and Vivienne", "Frank, Vivienne and Marta". */

@@ -10,6 +10,7 @@ import type { AvatarSpec } from '@/lib/avatar'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 import { STARTING_ROLL } from '@/config/venues'
 import { DEFAULT_CARD_BACK, nearestCardBack } from '@/config/cardBacks'
+import { STARTING_RATING, nextRating } from '@/lib/drills/rating'
 import { track } from '@/lib/analytics'
 
 export interface LifetimeStats {
@@ -65,6 +66,26 @@ export interface CastRecord {
 }
 
 const emptyCastRecord = (): CastRecord => ({ stats: emptySeatStats(), kos: 0 })
+
+/**
+ * What one drill kind knows about you. Four numbers, and every one of them is a
+ * mirror rather than a lever (see lib/drills/rating.ts):
+ *
+ * - none of them decays, because nothing in the drills layer can read the clock;
+ * - none of them is an allowance, because the free kind is never metered;
+ * - `bestRun` is a personal best and not a streak. A streak is a thing you lose
+ *   by not turning up. This is a thing you did, and it stays done.
+ */
+export interface DrillRecord {
+  /** Spots answered, ever. */
+  answered: number
+  /** How many of those were right. */
+  correct: number
+  /** The rating, on the same scale as the spots (lib/drills/rating.ts). */
+  rating: number
+  /** The longest unbroken run of correct answers, ever. */
+  bestRun: number
+}
 
 /** Today's Daily Deal — one play per UTC day; abandoning counts as played. */
 export interface DailyRecord {
@@ -124,6 +145,11 @@ export interface ProfileState {
    * becoming a wall (see lib/challenge).
    */
   challengesPlayed: number
+  /**
+   * Drill progress, keyed by drill kind id (see config/drills.ts). Absent until
+   * the first answer, so a player who has never opened a drill carries nothing.
+   */
+  drills: Record<string, DrillRecord>
 
   createProfile: (name: string, avatar: AvatarSpec) => void
   setName: (name: string) => void
@@ -140,6 +166,16 @@ export interface ProfileState {
   recordCastKnockout: (characterId: string) => void
   /** A challenge finished. Any outcome rotates the challenger; only a win records the scalp. */
   recordChallenge: (characterId: string, won: boolean) => void
+  /**
+   * One drill answered. `run` is the length of the current unbroken run of
+   * correct answers *including* this one, which the screen already holds.
+   *
+   * The rating arithmetic lives in lib/drills/rating.ts and is called from
+   * here, so there is one place a spot can move the number and it is the same
+   * place that counts the spot. Returns nothing: what the screen shows is
+   * derived from the record, never from a second copy of the sum.
+   */
+  recordDrill: (kindId: string, correct: boolean, difficulty: number, run: number) => void
   setTableTalk: (value: boolean) => void
   setHandCoaching: (value: boolean) => void
   setHaptics: (value: boolean) => void
@@ -161,8 +197,16 @@ export interface ProfileState {
   reset: () => void
 }
 
-export const PERSIST_VERSION = 14
+export const PERSIST_VERSION = 15
 const PERSIST_KEY = 'pip.profile'
+
+/** A kind you have never answered a spot from. */
+export const emptyDrillRecord = (): DrillRecord => ({
+  answered: 0,
+  correct: 0,
+  rating: STARTING_RATING,
+  bestRun: 0,
+})
 
 export const useProfile = create<ProfileState>()(
   persist(
@@ -189,6 +233,7 @@ export const useProfile = create<ProfileState>()(
       tableFinish: null,
       challengeWins: [],
       challengesPlayed: 0,
+      drills: {},
 
       createProfile: (name, avatar) => {
         // Activation — the one moment a visitor becomes a player. Anonymous.
@@ -247,6 +292,23 @@ export const useProfile = create<ProfileState>()(
               ? [...s.challengeWins, characterId]
               : s.challengeWins,
         })),
+      recordDrill: (kindId, correct, difficulty, run) =>
+        set((s) => {
+          const rec = s.drills[kindId] ?? emptyDrillRecord()
+          return {
+            drills: {
+              ...s.drills,
+              [kindId]: {
+                answered: rec.answered + 1,
+                correct: rec.correct + (correct ? 1 : 0),
+                // `rec.answered` is the count before this spot, which is what
+                // the K-factor is asking about.
+                rating: nextRating(rec.rating, difficulty, correct, rec.answered),
+                bestRun: Math.max(rec.bestRun, run),
+              },
+            },
+          }
+        }),
       setTableTalk: (value) => set({ tableTalk: value }),
       setHandCoaching: (value) => set({ handCoaching: value }),
       setHaptics: (value) => set({ haptics: value }),
@@ -319,6 +381,7 @@ export const useProfile = create<ProfileState>()(
           tableFinish: null,
           challengeWins: [],
           challengesPlayed: 0,
+          drills: {},
         }),
     }),
     {
@@ -402,6 +465,11 @@ export function migrateProfile(persisted: unknown, fromVersion: number): Profile
   // on because neither can startle you; a vibration can, and one that nobody
   // asked for reads as a casino tell in an app whose whole pitch is calm.
   if (fromVersion < 14) s.haptics = false
+  // v14 -> v15: drill progress. Empty for everyone, including a player who has
+  // already answered spots on a build that kept nothing: there is no record of
+  // those to honour, and seeding a rating from the tables would be a claim
+  // about how somebody reads a showdown made out of how they play a hand.
+  if (fromVersion < 15) s.drills = {}
   return s
 }
 

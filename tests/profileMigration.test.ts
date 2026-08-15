@@ -97,6 +97,22 @@ test('v13 → v14 leaves haptics off for an existing player', (t) => {
   t.true(after.handCoaching, 'the post-hand read was not disturbed')
 })
 
+test('v14 → v15 gives an existing player an empty drill record', (t) => {
+  // Empty, not seeded. There is nothing to honour — the shipped drills kept
+  // nothing — and deriving an opening rating from hands played would be a
+  // claim about how somebody reads a showdown made out of how they bet.
+  const v14 = {
+    ...v11(),
+    challengeWins: [],
+    challengesPlayed: 0,
+    handCoaching: true,
+    haptics: true,
+  }
+  const after = migrateProfile(v14, 14)
+  t.deepEqual(after.drills, {})
+  t.true(after.haptics, 'nothing else moved')
+})
+
 test('an ancient profile survives the whole chain', (t) => {
   // A v1 save is a name, a Roll and nothing else. Every branch has to fire.
   const ancient = { created: true, name: 'Player', avatar: null, roll: 800 }
@@ -110,13 +126,23 @@ test('an ancient profile survives the whole chain', (t) => {
   t.is(p.challengesPlayed, 0)
   t.true(p.handCoaching)
   t.false(p.haptics)
+  t.deepEqual(p.drills, {})
   // v10 → v11 grandfathers the three card backs that moved into the Chip Shop.
   t.deepEqual([...p.owned].sort(), ['midnight', 'ocean', 'slate'])
 })
 
 test('migrating an already-current profile is a no-op', (t) => {
-  const current = { ...v11(), challengeWins: ['doris'], challengesPlayed: 2 }
+  const current = {
+    ...v11(),
+    challengeWins: ['doris'],
+    challengesPlayed: 2,
+    drills: { 'which-hand-wins': { answered: 40, correct: 31, rating: 1_120, bestRun: 9 } },
+  }
   const p = migrateProfile(structuredClone(current), PERSIST_VERSION)
   t.deepEqual(p.challengeWins, ['doris'])
   t.is(p.challengesPlayed, 2)
+  // The one that would be silent: a chain that reset `drills` on a current
+  // profile would wipe a rating on every load and nothing would report it.
+  t.is(p.drills['which-hand-wins'].rating, 1_120)
+  t.is(p.drills['which-hand-wins'].bestRun, 9)
 })
