@@ -20,6 +20,7 @@
     "test:lint": "biome lint .",
     "test:knip": "knip",
     "test:audit": "pnpm audit --audit-level=high",
+    "test:sync-config": "node scripts/assert-sync-config.mjs out",
     "typecheck": "tsc --noEmit",
     "sim": "tsx scripts/sim.ts",
     "supabase:db:push": "supabase db push",
