@@ -18,6 +18,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'what-we-got-wrong',
+    title: 'Everything we have published that was wrong',
+    description:
+      'Seven false claims we shipped, what each one said, how long it served, how we found it, and the test that now fails if it comes back. One of them is still wrong.',
+    date: '2026-08-24',
+  },
+  {
     slug: 'verify-todays-deal',
     title: 'Verify today’s deal yourself',
     description:
