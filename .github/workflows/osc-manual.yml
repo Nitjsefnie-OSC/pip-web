@@ -1,0 +1,60 @@
+name: OSS Manual CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Fork branch or ref to validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout candidate ref
+        uses: actions/checkout@v7
+        with:
+          repository: Nitjsefnie-OSC/pip-web
+          ref: ${{ inputs.target_ref }}
+
+      - name: Report checked-out SHA
+        run: |
+          echo "checked-out SHA: $(git rev-parse HEAD)"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm test:format
+
+      - name: Check types
+        run: pnpm test:types
+
+      - name: Lint
+        run: pnpm test:lint
+
+      - name: Run engine tests (AVA)
+        run: pnpm test:ava
+
+      - name: Check for unused code (knip)
+        run: pnpm test:knip
+
+      - name: Security audit
+        run: pnpm test:audit
+
+      - name: Build static export
+        run: pnpm build
