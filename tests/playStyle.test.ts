@@ -1,11 +1,8 @@
 import test from 'ava'
-import { derivePlayStyle, STYLE_MIN_HANDS, type StyleKey } from '@/lib/playStyle'
+import { derivePlayStyle, STYLE_MIN_HANDS } from '@/lib/playStyle'
 import { emptySeatStats, type SeatStats } from '@/lib/reads'
 
 const stats = (over: Partial<SeatStats> = {}): SeatStats => ({ ...emptySeatStats(), ...over })
-
-const publicKeys: StyleKey[] = ['shark', 'maniac', 'rock', 'station']
-const publicNames = ['The Shark', 'The Maniac', 'The Rock', 'The Station']
 
 const archetypeCases = [
   {
@@ -93,8 +90,20 @@ test('derivePlayStyle returns zero for each empty rate denominator', (t) => {
 })
 
 const readinessCases = [
-  { label: 'below the minimum sample', hands: STYLE_MIN_HANDS - 1, ready: false },
-  { label: 'at the minimum sample', hands: STYLE_MIN_HANDS, ready: true },
+  {
+    label: 'below the minimum sample',
+    hands: STYLE_MIN_HANDS - 1,
+    ready: false,
+    key: 'maniac' as const,
+    name: 'The Maniac',
+  },
+  {
+    label: 'at the minimum sample',
+    hands: STYLE_MIN_HANDS,
+    ready: true,
+    key: 'maniac' as const,
+    name: 'The Maniac',
+  },
 ]
 
 test('derivePlayStyle gates readiness without losing a valid classification', (t) => {
@@ -109,7 +118,7 @@ test('derivePlayStyle gates readiness without losing a valid classification', (t
     )
 
     t.is(style.ready, sample.ready, sample.label)
-    t.true(publicKeys.includes(style.key), `${sample.label} key`)
-    t.true(publicNames.includes(style.name), `${sample.label} name`)
+    t.is(style.key, sample.key, `${sample.label} key`)
+    t.is(style.name, sample.name, `${sample.label} name`)
   }
 })
