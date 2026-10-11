@@ -296,6 +296,49 @@ export function MediaControls({
   )
 }
 
+/**
+ * Camera and mic as two separate small buttons, for a phone: in the corners of
+ * your own panel at the table and beside your face in the lobby, by your thumb,
+ * because the top bar has no room for them there.
+ */
+export function CameraToggle() {
+  const camera = useMedia((s) => s.camera)
+  const toggleCamera = useMedia((s) => s.toggleCamera)
+  if (!mediaSupported()) return null
+  return (
+    <MediaButton
+      bar
+      on={camera}
+      label={camera ? 'Turn camera off' : 'Turn camera on'}
+      onClick={() => {
+        sound.play('tap')
+        void toggleCamera()
+      }}
+    >
+      {camera ? <Video className="size-4" /> : <VideoOff className="size-4" />}
+    </MediaButton>
+  )
+}
+
+export function MicToggle() {
+  const mic = useMedia((s) => s.mic)
+  const toggleMic = useMedia((s) => s.toggleMic)
+  if (!mediaSupported()) return null
+  return (
+    <MediaButton
+      bar
+      on={mic}
+      label={mic ? 'Mute' : 'Turn mic on'}
+      onClick={() => {
+        sound.play('tap')
+        void toggleMic()
+      }}
+    >
+      {mic ? <Mic className="size-4" /> : <MicOff className="size-4" />}
+    </MediaButton>
+  )
+}
+
 /** Why the camera or mic would not start, said once, quietly. */
 export function MediaProblem({ className }: { className?: string }) {
   const problem = useMedia((s) => s.problem)

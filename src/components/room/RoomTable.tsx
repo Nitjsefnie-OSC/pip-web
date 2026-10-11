@@ -36,7 +36,15 @@ import { cn } from '@/lib/utils'
 import { useMedia } from '@/store/media'
 import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
-import { FaceViewer, MediaControls, MediaProblem, SeatFace, TableAudio } from './live'
+import {
+  CameraToggle,
+  FaceViewer,
+  MediaControls,
+  MediaProblem,
+  MicToggle,
+  SeatFace,
+  TableAudio,
+} from './live'
 import { PlayerSheet } from './PlayerSheet'
 import { TurnClock } from './TurnClock'
 
@@ -247,9 +255,10 @@ export function RoomTable({
             }
             actions={
               <>
-                {live && <MediaControls bar />}
-                {/* On a phone, help lives in the corner of your own panel. */}
-                {!isMobile && helpButton}
+                {/* On a phone, camera and mic live in the corners of your own
+                    panel, by your thumb; help moves up here into their room. */}
+                {live && !isMobile && <MediaControls bar />}
+                {helpButton}
               </>
             }
           />
@@ -316,7 +325,9 @@ export function RoomTable({
                   equity={null}
                   isButton={hero.id === buttonId}
                   isActive={activeId === hero.id}
-                  corners={isMobile ? { left: helpButton } : undefined}
+                  corners={
+                    isMobile && live ? { left: <CameraToggle />, right: <MicToggle /> } : undefined
+                  }
                   face={face(hero.id, 36, hero.status === 'folded', () => setBig(hero.id))}
                 />
               </div>
@@ -331,13 +342,16 @@ export function RoomTable({
                 : 'mx-auto max-w-xl px-6 pt-4 pb-7',
             )}
           >
-            {myTurn && view.dueAt !== null && view.dueKind === 'turn' && (
-              <TurnClock
-                dueAt={view.dueAt - clockOffset}
-                totalMs={view.settings.turnSeconds * 1000}
-                className="mb-2"
-              />
-            )}
+            {/* The clock's row is always there, empty when it is not your
+                turn, so the clock arriving never moves the table up. */}
+            <div className="mb-2 h-4">
+              {myTurn && view.dueAt !== null && view.dueKind === 'turn' && (
+                <TurnClock
+                  dueAt={view.dueAt - clockOffset}
+                  totalMs={view.settings.turnSeconds * 1000}
+                />
+              )}
+            </div>
             {hero ? (
               <ActionBar
                 hand={hand}

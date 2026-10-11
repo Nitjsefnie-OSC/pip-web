@@ -29,7 +29,15 @@ import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
 import { PlayerSheet } from './PlayerSheet'
 import { RoomRulesDialog } from './RoomSettings'
-import { FaceViewer, MediaControls, MediaProblem, SeatFace, TableAudio } from './live'
+import {
+  CameraToggle,
+  FaceViewer,
+  MediaControls,
+  MediaProblem,
+  MicToggle,
+  SeatFace,
+  TableAudio,
+} from './live'
 
 export function RoomLobby({
   view,
@@ -138,7 +146,7 @@ export function RoomLobby({
           onBack={onLeave}
           actions={
             <>
-              {live && <MediaControls bar />}
+              {live && !isMobile && <MediaControls bar />}
               <AppBarAction
                 label="Table rules"
                 onClick={() => {
@@ -306,7 +314,7 @@ export function RoomLobby({
           )}
         >
           {me && (
-            <div className="flex items-center gap-3">
+            <div className="flex w-full items-center justify-center gap-3">
               {faceFor(me, 40)}
               <div className="text-left">
                 <p className="text-sm font-semibold">{me.name}</p>
@@ -314,6 +322,13 @@ export function RoomLobby({
                   {view.settings.forRoll ? `${money(view.buyIn)} buy-in` : 'For fun'}
                 </p>
               </div>
+              {/* On a phone, camera and mic sit beside you, by your thumb. */}
+              {live && isMobile && (
+                <div className="ml-auto flex items-center gap-1">
+                  <CameraToggle />
+                  <MicToggle />
+                </div>
+              )}
             </div>
           )}
 
