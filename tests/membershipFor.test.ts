@@ -13,6 +13,7 @@ import {
 import {
   featureForDrill,
   featureForFamily,
+  MEMBERSHIP_FEATURES,
   membershipFor,
   sellableFeatures,
   tappedFeature,
@@ -40,7 +41,10 @@ import { drillSample } from '@/lib/drills/sample'
 // `/membership` link, because a guard that lists the surfaces it knows about
 // protects those surfaces and nothing added after them.
 
-const SHIPPED = new Set(sellableFeatures().map((f) => f.id))
+// Built features, whatever this build has switched on: multiplayer's call
+// sites name it whether or not the build points at a room server, and the page
+// falls back to its plain self when it does not.
+const SHIPPED = new Set(MEMBERSHIP_FEATURES.filter((f) => f.shipped).map((f) => f.id))
 
 /** Every `.ts`/`.tsx` under a directory, comments stripped: a note is not a link. */
 function sources(dir: string): { path: string; code: string }[] {
@@ -244,8 +248,12 @@ test('the page reads back what the tap sent, and nothing else', (t) => {
   t.is(tappedFeature(search(membershipFor('lessons')))?.title, 'Lessons with Webb')
   t.is(tappedFeature(''), null)
   t.is(tappedFeature('?for=nonsense'), null)
-  // Not shipped, so never advertised, even by somebody typing the URL.
-  t.is(tappedFeature('?for=multiplayer'), null)
+  // Shipped only in a build with a room server, so never advertised without
+  // one, even by somebody typing the URL.
+  t.is(
+    tappedFeature('?for=multiplayer')?.id ?? null,
+    process.env.NEXT_PUBLIC_ROOMS_URL ? 'multiplayer' : null,
+  )
 })
 
 // Back from checkout, a new member gets a link to the place they tapped. A

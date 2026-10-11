@@ -44,9 +44,15 @@ export type Reply = (id: string, payload: unknown) => void
  * (`appSupports` in src/lib/nativeApp.ts), so a newer website falls back
  * gracefully in an older app. Google and purchases are only listed once their
  * IDs are configured for the build (app.config.ts, eas.json `env`).
+ *
+ * `media` means the build can run getUserMedia: it has the camera and mic
+ * usage strings and Android permissions (app.json) and the web view's grant
+ * setting (App.tsx). It needs no message; the page calls getUserMedia and the
+ * system asks the player.
  */
 const SUPPORTS = [
   'haptic',
+  'media',
   ...(appleAvailable ? ['signIn:apple'] : []),
   ...(googleConfigured ? ['signIn:google'] : []),
   ...(purchasesConfigured ? ['purchase'] : []),

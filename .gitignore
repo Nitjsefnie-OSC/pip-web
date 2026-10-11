@@ -48,3 +48,6 @@ next-env.d.ts
 
 # wrangler pages dev cache
 .wrangler/
+
+# the rooms Worker's local secrets (see rooms/.dev.vars.example)
+.dev.vars

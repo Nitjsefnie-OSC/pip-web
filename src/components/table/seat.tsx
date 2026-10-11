@@ -36,6 +36,9 @@ export function FeltSeat({
   compact,
   side,
   onSelect,
+  face,
+  held,
+  tag,
 }: {
   player: Player
   name: string
@@ -49,12 +52,25 @@ export function FeltSeat({
   /** Which half of the table the seat is on: its cards tuck toward the middle. */
   side: 'left' | 'right' | 'top'
   onSelect: () => void
+  /**
+   * Drawn in place of the avatar, at the same size: a multiplayer seat's live
+   * camera. Absent everywhere else, so every other table draws the face.
+   */
+  face?: React.ReactNode
+  /**
+   * How many cards they are holding, when their cards are not on `player` —
+   * a multiplayer table is only ever sent its own. Defaults to what is there.
+   */
+  held?: number
+  /** A small label beside the name: "AI" on a multiplayer seat played by the computer. */
+  tag?: string
 }) {
   const money = useMoney()
   const button = useContext(TableStyleContext).button
   const folded = player.status === 'folded'
   const out = player.status === 'out'
-  const holding = !folded && !out && player.hole.length > 0
+  const cards = held ?? player.hole.length
+  const holding = !folded && !out && cards > 0
   const size = compact ? 46 : 64
   const towardMiddle = side === 'right' ? 'left' : 'right'
 
@@ -70,7 +86,7 @@ export function FeltSeat({
             towardMiddle === 'right' ? 'left-[52%]' : 'right-[52%] flex-row-reverse',
           )}
         >
-          {player.hole.slice(0, 4).map((_, i) => (
+          {Array.from({ length: Math.min(cards, 4) }, (_, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: -10, scale: 0.6 }}
@@ -115,7 +131,7 @@ export function FeltSeat({
           (folded || out) && 'opacity-55',
         )}
       >
-        <PlayerAvatar spec={avatarSpec} size={size} dimmed={folded || out} />
+        {face ?? <PlayerAvatar spec={avatarSpec} size={size} dimmed={folded || out} />}
       </motion.button>
 
       {isDealer && !out && (
@@ -219,6 +235,11 @@ export function FeltSeat({
           )}
         >
           {name}
+          {tag && (
+            <span className="ml-1 rounded-sm bg-foreground/10 px-1 text-[0.5rem] font-semibold uppercase tracking-wider text-muted-foreground/90">
+              {tag}
+            </span>
+          )}
         </span>
         <span
           className={cn(

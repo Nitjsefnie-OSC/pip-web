@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { legalActions, potSize, type HandState } from '@/lib/poker/engine'
+import { legalActions, potSize, type Action, type HandState } from '@/lib/poker/engine'
 import { useGame } from '@/store/game'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
@@ -15,21 +15,28 @@ export function ActionBar({
   hand,
   marked = [],
   onDrawn,
+  viewerId = 'hero',
+  onAct,
 }: {
   hand: HandState
   /** Five-Card Draw: the cards the hero has marked to throw away. */
   marked?: readonly number[]
   /** Called once the discard has been sent, so the selection can be cleared. */
   onDrawn?: () => void
+  /** Whose buttons these are. The single-player table's hero unless told otherwise. */
+  viewerId?: string
+  /** Where a move goes. The game store unless told otherwise (a multiplayer room). */
+  onAct?: (action: Action) => void
 }) {
-  const act = useGame((s) => s.act)
+  const localAct = useGame((s) => s.act)
+  const act = onAct ?? localAct
   const money = useMoney()
   const [sizerOpen, setSizerOpen] = useState(false)
   const [raiseTo, setRaiseTo] = useState(0)
 
   const legal = legalActions(hand)
   const hero = hand.players[hand.toActIndex]
-  const isHeroTurn = hero?.id === 'hero' && !!legal
+  const isHeroTurn = hero?.id === viewerId && !!legal
 
   // Match the real button row's height exactly (py-4 + text-base = 56px) so the
   // bar appearing/clearing on the hero's turn never resizes the layout — that

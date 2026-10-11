@@ -214,6 +214,13 @@ export interface MembershipFeature {
    * place to send them (it happens at a table, or in a dialog).
    */
   place?: { href: string; name: string }
+  /**
+   * Built, but only usable where something outside the static site is
+   * switched on. `rooms`: the multiplayer server, which a build reaches through
+   * NEXT_PUBLIC_ROOMS_URL. A build without it has no tables to sit at, so it
+   * sells nothing that needs them.
+   */
+  needs?: 'rooms'
 }
 
 /**
@@ -224,6 +231,18 @@ export interface MembershipFeature {
  * the thing rather than which array it was filed in.
  */
 export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
+  {
+    // Multiplayer (2026-10-11), first because it is the headline. The tables
+    // run on a separate Worker (rooms/, docs/multiplayer.md), so it is only for
+    // sale in a build that points at one: see `needs`.
+    id: 'multiplayer',
+    title: 'Multiplayer',
+    blurb:
+      'Open a room, send your friends the code, and deal. Turn your camera on and your face takes your seat at the table; turn your mic on and talk while you play. Friends join free with a Pip account. Or quick match at any ladder stake, with AI players in any empty seat. Nobody at the table ever sees your Roll or your rank.',
+    shipped: true,
+    needs: 'rooms',
+    place: { href: '/game/multiplayer', name: 'multiplayer' },
+  },
   {
     // Lessons with Webb (2026-09-23). The whole course is built as of
     // 2026-09-24: eight lessons across Levels 2–5, each ending in its practice
@@ -370,17 +389,14 @@ export const MEMBERSHIP_FEATURES: readonly MembershipFeature[] = [
       'Card backs that wear a real foil, a gilt ring round your avatar, a brass dealer button, a deep sound for the table and two more table finishes. Some come with the membership; the rest the membership lets you buy with chips you won — and anything you spend chips on stays yours for good, membership or not. Nothing in the Chip Shop is ever payable in money.',
     shipped: true,
   },
-  {
-    id: 'multiplayer',
-    title: 'Multiplayer, when it lands',
-    blurb: 'Real tables against real people. The biggest thing on the roadmap and not built yet.',
-    shipped: false,
-  },
 ]
 
 /** The ones a page may advertise. */
 export function sellableFeatures(): readonly MembershipFeature[] {
-  return MEMBERSHIP_FEATURES.filter((feature) => feature.shipped)
+  return MEMBERSHIP_FEATURES.filter(
+    (feature) =>
+      feature.shipped && (feature.needs !== 'rooms' || Boolean(process.env.NEXT_PUBLIC_ROOMS_URL)),
+  )
 }
 
 /**

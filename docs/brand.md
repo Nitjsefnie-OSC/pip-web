@@ -51,9 +51,11 @@ that lets us grow (paid cosmetics, multiplayer) without becoming the thing we re
    buy changes a hand** — not the cards, the odds, the information on screen, or a rebuy.
    That one holds in every case, including the one below.
 
-   ⚠️ **This argument has to be made again the day multiplayer ships**, because then there
-   is somebody to win against and "no leaderboard" stops being the answer. Whoever specs
-   multiplayer owns re-opening it — see `cto/drafts/build-multiplayer.md`.
+   **Made again for multiplayer (2026-10-11)**, because now there is somebody to play
+   against. Nobody at a table can see anybody else's Roll or rank, so rank is still private
+   pace; everyone at a table sits with the same stack, sees the same things and has the
+   same clock; and the membership changes nothing once the cards are dealt. See
+   [multiplayer.md](./multiplayer.md) and `docs/membership.md` rule 3.
 2. **Clean over decorated.** Flat, black-first, one accent at a time. The table is drawn as
    a table (a quiet cloth, a dark rail), but never as a casino: no baize texture, no
    leather, no neon, no gold.

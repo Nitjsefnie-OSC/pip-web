@@ -27,6 +27,7 @@ import { VenueInfoDialog } from './VenueInfoDialog'
 import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor } from '@/config/venues'
 import { dailyDateKey, dailyNumber, dailyShareText, ordinal } from '@/lib/daily'
 import { liveStreak } from '@/lib/streak'
+import { roomsConfigured } from '@/lib/multiplayer/client'
 import { StreakBadge } from '@/components/StreakBadge'
 import { nextUp, quickPlay } from '@/lib/nextUp'
 import { challengeOnOffer } from '@/lib/sitDown'
@@ -198,11 +199,16 @@ export function Home() {
             than by progress. Still 16:10 tiles and still one tap, but under a
             hero and a strip they read as the alternatives they are.
 
-            **Four tiles, and the lobby does not grow one per feature.** The
-            membership briefly added two, and six 16:10 tiles across made every
-            table smaller — the opposite of what this row is for (Will,
-            2026-09-19). Everything the membership adds is a format twist, so it
-            lives on the side tables with the other format twists.
+            **Four tiles, and the lobby does not grow one per feature** — with
+            one exception. The membership briefly added two, and six 16:10
+            tiles across made every table smaller (Will, 2026-09-19), so format
+            twists live on the side tables. Multiplayer is not a format twist:
+            it is the first thing in the app with other people in it, and it
+            gets a fifth tile, first in the row and full width on a phone
+            (Will, 2026-10-11). It was tried in the top row beside Next up the
+            same day, wide, upright and slim, and this is where it fits.
+            Only in a build that points at a room server; without one the row
+            is the four it was.
 
             **The Daily lives here and only here** (Will, 2026-09-20). It is a
             once-a-day novelty rather than a step up, so it never takes the hero
@@ -216,7 +222,20 @@ export function Home() {
           <h2 className="mb-2 px-1 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
             Other ways to play
           </h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5 md:gap-4">
+            {roomsConfigured() && (
+              <div className="col-span-2 flex md:col-span-1">
+                <CategoryCard
+                  art="multiplayer"
+                  accent="#F0B44C"
+                  title="Multiplayer"
+                  badge="New"
+                  subtitle="Friends, or quick match"
+                  onClick={() => go('/game/multiplayer')}
+                  delay={0.1}
+                />
+              </div>
+            )}
             <CategoryCard
               art="rail"
               accent="#4FB477"

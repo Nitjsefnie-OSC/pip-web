@@ -23,6 +23,7 @@ import {
   Spade,
   Sparkles,
   UserPlus,
+  Video,
   Volume2,
   WifiOff,
 } from 'lucide-react'
@@ -59,6 +60,7 @@ export function Landing() {
         <Hero />
         <TrustStrip />
         <Venues />
+        {ROOMS && <Multiplayer />}
         <Features />
         <Learn />
         <Membership />
@@ -68,6 +70,13 @@ export function Landing() {
     </div>
   )
 }
+
+/**
+ * Whether this build has multiplayer. Read straight from the build's
+ * environment rather than through `roomsConfigured()`, because this page is
+ * also rendered on the server for the static export and the markdown mirror.
+ */
+const ROOMS = Boolean(process.env.NEXT_PUBLIC_ROOMS_URL)
 
 /* ---------------------------------- header -------------------------------- */
 
@@ -175,8 +184,9 @@ function Hero() {
             style={riseDelay(2)}
             className="rise-in mt-6 text-lg leading-relaxed text-muted-foreground text-pretty"
           >
-            Texas Hold’em against a cast of AI regulars. Press Play and you’re dealt in. Learn as
-            you go: your odds sit beside your cards, and Level 1 of Webb’s lessons is free.
+            Texas Hold’em against a cast of AI regulars{ROOMS ? ', or your friends' : ''}. Press
+            Play and you’re dealt in. Learn as you go: your odds sit beside your cards, and Level 1
+            of Webb’s lessons is free.
           </p>
 
           <div style={riseDelay(3)} className="rise-in mt-9 flex flex-wrap items-center gap-3">
@@ -312,8 +322,10 @@ const TRUST: { icon: React.ComponentType<{ className?: string }>; title: string;
       // that a member reaching a rank sooner made "pay-to-win" false at the
       // edges. Restored (Will, 2026-09-16): pay-to-win means buying an
       // advantage over other players, and there is no leaderboard and nobody to
-      // overtake, so there is no contest for a member to win. **This becomes a
-      // live question the day multiplayer ships** — see cto/build-multiplayer.
+      // overtake, so there is no contest for a member to win. Made again for
+      // multiplayer (2026-10-11, docs/membership.md rule 3): nobody at a table
+      // sees anybody's Roll or rank, everyone sits with the same stack, and the
+      // membership changes nothing once the cards are dealt.
       body: 'No forced pop-ups, no pay-to-win, no nagging. Ever.',
     },
     {
@@ -741,6 +753,63 @@ function MiniFeature({
 
 /* --------------------------------- learn ---------------------------------- */
 
+/* ------------------------------- multiplayer ------------------------------ */
+
+function Multiplayer() {
+  return (
+    <section id="multiplayer" className="border-t border-foreground/5">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-14 px-6 py-24 md:px-10 md:py-32 lg:grid-cols-[1fr_1.05fr]">
+        <div className="max-w-xl">
+          <SectionHeading
+            eyebrow="Multiplayer"
+            title="Deal your friends in."
+            body="Open a room, send the code, and play at the same table. Turn your camera on and your face takes your seat; turn your mic on and talk while you play. Opening a room comes with the membership, and your friends join free."
+          />
+          <Reveal className="mt-9 flex flex-wrap items-center gap-3" delay={0.1}>
+            <Link
+              href="/game/multiplayer"
+              onClick={() => sound.play('tap')}
+              className="rounded-2xl bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            >
+              Play with friends
+            </Link>
+            <Link
+              href="/membership#multiplayer"
+              onClick={() => sound.play('tap')}
+              className="inline-flex items-center gap-1.5 rounded-2xl px-5 py-3.5 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+            >
+              The membership
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </Reveal>
+        </div>
+
+        {/* The table itself, with a room's code on it, the way a host sees it. */}
+        <Reveal delay={0.05}>
+          <div
+            data-mirror="skip"
+            className="relative aspect-[4/3] w-full overflow-hidden rounded-3xl border border-foreground/10 shadow-2xl shadow-black/40"
+          >
+            <img
+              src="/menu/multiplayer.jpg"
+              alt="A card table under a lamp, with two friends on camera at their seats"
+              className="absolute inset-0 size-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <div className="absolute bottom-5 left-5 flex items-center gap-3 rounded-2xl bg-black/55 px-4 py-3 backdrop-blur-md">
+              <Video className="size-4 text-white/80" />
+              <span className="text-2xs uppercase tracking-[0.2em] text-white/70">Room</span>
+              <span className="font-mono text-lg font-semibold tracking-[0.25em] text-white">
+                4YDW82
+              </span>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  )
+}
+
 function Learn() {
   // Webb keeps the Learn section the way Pearl keeps the shop, and his own bio
   // is the line: no new character copy invented for the landing page.
@@ -892,7 +961,7 @@ function Membership() {
         <SectionHeading
           eyebrow="Free, and the membership"
           title="The game is free. The membership adds to it."
-          body="The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds the side tables, other games, the rest of Webb’s lessons and drills, and reports on your play."
+          body={`The ladder, the Rail, the Daily and the freeroll are free for good. The membership adds ${features.some((f) => f.id === 'multiplayer') ? 'multiplayer with your friends, ' : ''}the side tables, other games, the rest of Webb’s lessons and drills, and reports on your play.`}
         />
 
         <div className="mt-12 grid gap-4 md:grid-cols-2">

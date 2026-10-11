@@ -180,6 +180,30 @@ export default function PrivacyPage() {
         </p>
       </Section>
 
+      {/* Multiplayer (2026-10-11). Only said in a build that has it, because a
+          privacy page describing a server the build does not talk to is as
+          wrong as one that leaves a server out. */}
+      {process.env.NEXT_PUBLIC_ROOMS_URL && (
+        <Section title="Multiplayer">
+          <p>
+            Multiplayer tables run on a small server of ours, on Cloudflare. While you are at a
+            table it holds your account’s id (to know it is you), the name and avatar you play
+            under, and the game: the cards, the chips and whose turn it is. The other players see
+            your name, your avatar and your chips, and never your Roll, your rank or your account. A
+            finished game is deleted within half an hour, and a room nobody started within two
+            hours.
+          </p>
+          <p>
+            Your camera and microphone are off until you turn them on at a table with friends, and
+            they are never available at a quick-match table. When they are on, the picture and sound
+            go directly from your device to the other players’, encrypted, and are not recorded by
+            anyone. On networks that block a direct connection they pass through Cloudflare’s relay,
+            still encrypted, so the relay cannot see or hear them. Nothing of either is stored on
+            our server.
+          </p>
+        </Section>
+      )}
+
       <Section title="Sharing a hand or a result">
         <p>
           When you copy a hand link or a Daily result, the data rides inside the link itself —

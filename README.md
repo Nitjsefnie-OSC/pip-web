@@ -215,8 +215,9 @@ are the source of truth for everything from the [brand](docs/brand.md) to the
 [economy](docs/game-flow.md).
 
 Openness is a deliberate foundation: now that Pip has things you can pay for — extra
-rooms, formats and tools, **never pay-to-win** — and multiplayer on the roadmap, a
-public codebase is what keeps the anti-scam promise honest. It does real work here:
+rooms, formats and tools, **never pay-to-win** — and multiplayer, where the cards are
+dealt by a server running this same engine, a public codebase is what keeps the anti-scam
+promise honest. It does real work here:
 anyone who suspects a member room deals differently can read
 [`config/venues.ts`](src/config/venues.ts) and the engine beside it and find that it
 does not. Contributions welcome.

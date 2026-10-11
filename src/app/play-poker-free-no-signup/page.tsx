@@ -268,8 +268,11 @@ export default function PlayPokerFreeNoSignupPage() {
 
       <Section title="The honest limits">
         <p>
-          <strong className={strong}>It is single-player.</strong> You are playing a cast of AI
-          regulars, not other people. There is no multiplayer yet.
+          <strong className={strong}>The free game is single-player.</strong> You are playing a cast
+          of AI regulars, not other people.{' '}
+          {process.env.NEXT_PUBLIC_ROOMS_URL
+            ? 'Multiplayer, with friends or a quick match, comes with the membership, and a friend can join a member’s room with nothing more than a free account.'
+            : 'There is no multiplayer yet.'}
         </p>
         <p>
           <strong className={strong}>The AI is good, not superhuman.</strong> It plays a real game,

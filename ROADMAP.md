@@ -28,6 +28,9 @@ and dates aren't listed on purpose. If something here matters to you,
   the high rollers to a cheap table and they bring their own game with them; the prize is
   the same, and nobody you invite can build you an easier one
 - **Member rooms** — four more tables and three regulars you only meet in them
+- **Multiplayer** — open a room, send your friends the code, and play at a real table
+  with your camera in your seat and your mic on. Friends join free with an account. Or
+  quick match at any ladder stake, with the regulars filling any empty chair
 - **A report on your own play** — leaks and strengths drawn from every hand you have
   played, each one showing the sample it came from
 - **Watching a tournament out after you bust**, with every hand face up
@@ -36,9 +39,6 @@ and dates aren't listed on purpose. If something here matters to you,
 
 Roughly in order of interest, honestly uncertain:
 
-- **Multiplayer** — real tables against real people, not just the AI cast. It's the
-  biggest lift on this list and a genuine goal for Pip, so it sits further out — but it's
-  on the map, and the open, deterministic engine is built to support it.
 - **A reason to come back** — Pip has no way to pull you back once you close the tab.
   A free Daily, a streak for days played and an opt-in reminder email are the first answer.
   Still to explore: push reminders in the iOS app. Retention is the honest weak spot.
@@ -74,8 +74,9 @@ mode; the practice packs "Calling the river", "Open or fold", "Bet or check" and
 fold"; the interactive lessons with
 Webb from Level 2 up; four member rooms with three regulars of their own; build-your-own-table;
 a report that reads your play across every hand you have ever played; watching a
-tournament out after you bust; the session review; and four member card backs. **Not
-built**: multiplayer, which is the big one and is honestly some way off.
+tournament out after you bust; the session review; four member card backs; and
+multiplayer — opening a room for your friends, and quick match. Joining a member's room
+needs only a free account.
 
 **One member game a day is free without joining** (2026-10-07): any one poker table on the
 side tables shelf, Omaha and Short Deck included. Lessons are not in it.
@@ -99,9 +100,10 @@ your way to the front of, and if somebody wants to farm chips all evening, that 
 evening. **The promise that holds absolutely, in every case, is that nothing you can buy
 changes a hand** — not the cards, the odds, what you are shown, or a rebuy.
 
-**That argument is ours to make again if multiplayer ships**, because then there is somebody
-to win against and "no leaderboard" stops being an answer. It is written down as a condition
-rather than left to be noticed.
+**We made that argument again when multiplayer shipped** (2026-10-11), because now there is
+somebody to play against. Nobody at a table can see anybody else's Roll or rank, everyone sits
+with the same stack and the same clock, and the membership changes nothing once the cards are
+dealt.
 
 **All of it is built, and the till is open.** The membership check is live and everything
 listed above sits behind it. `/membership` tells you the price, and checkout, billing and
@@ -138,5 +140,5 @@ and there is not one here to have. The reasoning is in `docs/brand.md`.
 - **Accounts you're forced into, ads, or tracking that identifies you.** Not happening.
   The account is optional, and Pip works fully without one.
 
-Multiplayer is a real goal — a bigger build, so further out, but on the map. Whatever lands,
-the open codebase is what keeps the anti-scam promise honest.
+Multiplayer is here, and the server that deals it runs the same open engine. Whatever lands
+next, the open codebase is what keeps the anti-scam promise honest.

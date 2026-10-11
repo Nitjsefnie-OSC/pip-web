@@ -43,6 +43,7 @@ import { Reveal } from '@/components/Reveal'
 import { CategoryArt } from '@/components/menu/CategoryArt'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { TappedFor } from '@/components/membership/TappedFor'
+import { MultiplayerSpotlight } from '@/components/membership/MultiplayerSpotlight'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
 import { DRILL_KINDS } from '@/config/drills'
 import { LESSONS } from '@/config/lessons'
@@ -145,8 +146,9 @@ const TOOLS: Record<string, { icon: typeof Target; tint: string }> = {
   'god-view': { icon: Eye, tint: '#8F6FE8' },
 }
 
-/** Has its own section rather than a card or a row. */
+/** Have their own sections rather than a card or a row. */
 const SHELF_ID = 'cosmetics'
+const MULTIPLAYER_ID = 'multiplayer'
 
 /** What stays free, said as a list. Rule 1 in docs/membership.md is the long form. */
 const FREE_FOREVER = [
@@ -192,9 +194,10 @@ export function MembershipScreen() {
     .map((id) => sellable.find((f) => f.id === id))
     .filter((f): f is MembershipFeature => Boolean(f))
   const shelf = sellable.find((f) => f.id === SHELF_ID)
+  const multiplayer = sellable.find((f) => f.id === MULTIPLAYER_ID)
   // Anything shipped that has no card lands in the tools list, so a new
   // feature is on the page the moment it is marked shipped.
-  const tools = sellable.filter((f) => !PLAY[f.id] && f.id !== SHELF_ID)
+  const tools = sellable.filter((f) => !PLAY[f.id] && f.id !== SHELF_ID && f.id !== MULTIPLAYER_ID)
   const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
   const [currency, setCurrency] = useCurrency()
   // In the store app with purchases on, every price on the page is the store's,
@@ -216,9 +219,25 @@ export function MembershipScreen() {
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">
         <TappedFor price={price} />
-        <Hero price={price} />
+        <Hero price={price} multiplayer={multiplayer !== undefined} />
 
         <div className="mx-auto w-full max-w-6xl px-4 md:px-10">
+          {/* The headline, first after the hero (Will, 2026-10-11): the one
+              thing on the page with other people in it. */}
+          {multiplayer && (
+            <section id="multiplayer" className="scroll-mt-24 pb-16 md:pb-24">
+              <Reveal>
+                <p className="text-sm font-medium text-pip">New · Multiplayer</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-4xl">
+                  Deal your friends in
+                </h2>
+              </Reveal>
+              <div className="mt-6 md:mt-8">
+                <MultiplayerSpotlight feature={multiplayer} />
+              </div>
+            </section>
+          )}
+
           <Stats />
 
           <Section
@@ -290,7 +309,7 @@ const FAN = [
   MEMBER_BACKS[3],
 ]
 
-function Hero({ price }: { price: ShownPrice }) {
+function Hero({ price, multiplayer }: { price: ShownPrice; multiplayer: boolean }) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -310,11 +329,21 @@ function Hero({ price }: { price: ShownPrice }) {
             <Star className="size-3 fill-pip text-pip" />
             Pip Membership
           </span>
+          {multiplayer && (
+            <a
+              href="#multiplayer"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold text-primary transition hover:bg-primary/25"
+            >
+              New: play with your friends, camera and all
+            </a>
+          )}
           <h1 className="mt-4 text-balance text-4xl font-semibold tracking-tight md:text-6xl">
             Get better at poker.{' '}
             <span className="block text-muted-foreground">And see it working.</span>
           </h1>
           <p className="mt-5 max-w-xl text-balance text-base text-muted-foreground md:text-lg">
+            {multiplayer &&
+              'Multiplayer: open a room, send your friends the code, and play with your camera in your seat. '}
             {HERO.lessons} lessons with Webb, played on the felt. A report that reads every hand you
             have played and names what is costing you chips, in big blinds, with the hands it
             happened in. Every session back on the table, hand by hand. Plus the side tables, the
@@ -1376,6 +1405,19 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
             play, never.
           </p>
         </Question>
+        {sellableFeatures().some((f) => f.id === MULTIPLAYER_ID) && (
+          <Question q="Do my friends need a membership to play with me?">
+            <p>
+              No. The member opens the room; everyone else joins with the code and a free Pip
+              account. Their buy-in comes out of their own Roll and their winnings go back into it,
+              exactly as on the ladder.
+            </p>
+            <p>
+              Quick match is for members. Camera and mic are only ever on in a room somebody opened
+              for their friends, never at a quick-match table.
+            </p>
+          </Question>
+        )}
         <Question q="Is this pay-to-win?">
           <p>
             Member rooms are ordinary tables — same engine, same shuffle, same opponents, same
@@ -1385,9 +1427,11 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
           </p>
           <p>
             We do not think that is pay-to-win, and here is the reasoning so you can disagree with
-            it. Pay-to-win means buying an advantage over another player. Pip is single-player:
-            there is no leaderboard and nobody to overtake. What we will not do, at any price, is
-            sell you something that changes a hand. The{' '}
+            it. Pay-to-win means buying an advantage over another player. There is no leaderboard,
+            and at a multiplayer table nobody can see anybody else’s Roll or rank, so there is
+            nobody to overtake. Everyone at a table sits with the same stack, sees the same things
+            and has the same clock; the membership does not change any of it. What we will not do,
+            at any price, is sell you something that changes a hand. The{' '}
             <a
               href="https://github.com/playpip/pip-web/blob/main/ROADMAP.md"
               target="_blank"

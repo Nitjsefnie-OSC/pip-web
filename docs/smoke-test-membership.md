@@ -196,7 +196,9 @@ Type these in. None should 404, all should turn you away somewhere useful.
 ### 11. `/membership`
 
 - [ ] Loads, back button works from inside the installed PWA
-- [ ] "What you get today" lists seven things; "What is coming" lists only **multiplayer**
+- [ ] With `NEXT_PUBLIC_ROOMS_URL` set, the **multiplayer spotlight** sits first after the
+      hero, the hero has the "New: play with your friends" pill, and there is no "What isn't
+      built yet" answer. Without it, multiplayer is nowhere on the page
 - [ ] The rank paragraph is there and reads as honest rather than defensive
 - [ ] **"Can I join yet?" says no**, and says nobody has paid anything
 - [ ] Share the URL somewhere that unfurls — the card should have an image and say

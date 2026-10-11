@@ -32,6 +32,14 @@ Flat minimalist vector illustration of a grand carpeted staircase climbing past 
 
 Flat minimalist vector illustration of a cluster of small poker tables of different shapes — a round table, a square table, a two-seat heads-up table — each under its own hanging lamp in a dim hall, cards and chips set out differently on each, warm pools of light dotting the surrounding darkness. Detailed and layered, filling the frame, cinematic. Clean modern iOS-app aesthetic, limited palette dominated by rose pink with charcoal and off-white accents, set against a near-black background (#0A0A0A). Subtle flat shading, soft ambient glow, slight isometric depth. Premium, cinematic. No text, no logos, no people.
 
+## Multiplayer — `multiplayer` (accent #F0B44C, amber)
+A small round card table seen from slightly above, a warm lamp over it, four
+chairs pulled in. Two chairs have a phone or laptop propped at the place, its
+screen glowing softly as if someone is on camera; a scatter of chips and two
+face-down cards in the middle. Friends' card night, not a casino. Same flat,
+near-black, single-accent style as the other tiles. Added 2026-10-11 as
+`public/menu/multiplayer.jpg`; the SVG scene in `CategoryArt.tsx` is its fallback.
+
 ## Wiring it up
 
 For each generated image:

@@ -359,6 +359,7 @@ export function HeroPanel({
   oddsLabel = 'to win',
   result = null,
   corners,
+  face,
 }: {
   hero: Player
   avatar: AvatarSpec
@@ -382,6 +383,8 @@ export function HeroPanel({
    * and anywhere else on the felt they look dropped (Will, 2026-10-07).
    */
   corners?: { left?: React.ReactNode; right?: React.ReactNode }
+  /** Drawn in place of your avatar: your own camera, at a multiplayer table. */
+  face?: React.ReactNode
 }) {
   const money = useMoney()
   const label = useHandLabel(hero, hand)
@@ -415,7 +418,7 @@ export function HeroPanel({
             >
               <div className="relative">
                 <div className={cn('rounded-full', isActive && 'ring-2 ring-foreground/80')}>
-                  <PlayerAvatar spec={avatar} size={36} dimmed={folded} ring={ring} />
+                  {face ?? <PlayerAvatar spec={avatar} size={36} dimmed={folded} ring={ring} />}
                 </div>
                 {isButton && (
                   <span

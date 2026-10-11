@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["functions/**/*.ts"],
+  "entry": ["functions/**/*.ts", "rooms/src/index.ts"],
   "ignore": [
     "public/**",
     "supabase/functions/**",
@@ -9,5 +9,6 @@
     "mobile/**"
   ],
   "ignoreExportsUsedInFile": true,
-  "ignoreBinaries": ["supabase"]
+  "ignoreBinaries": ["supabase"],
+  "ignoreDependencies": ["cloudflare"]
 }

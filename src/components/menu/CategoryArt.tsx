@@ -211,6 +211,41 @@ const SCENES: Record<string, Scene> = {
     </>
   ),
 
+  // Multiplayer — a table seen from above with four people round it. Two have
+  // their cameras on (the framed seats with the live dot), one is talking.
+  multiplayer: (c) => (
+    <>
+      <ellipse cx="60" cy="50" rx="27" ry="17" fill={c} fillOpacity={0.3} />
+      <ellipse cx="60" cy="50" rx="20" ry="11" fill={c} fillOpacity={0.16} />
+      {/* the two faces on camera */}
+      {(
+        [
+          [22, 41],
+          [86, 41],
+        ] as const
+      ).map(([x, y]) => (
+        <g key={x}>
+          <rect x={x} y={y} width="13" height="13" rx="4" fill={c} fillOpacity={0.9} />
+          <circle cx={x + 6.5} cy={y + 5} r="2.4" fill="#0a0a0b" fillOpacity={0.35} />
+          <path d={`M ${x + 2.5} ${y + 12} q 4 -5 8 0`} fill="#0a0a0b" fillOpacity={0.35} />
+          <circle cx={x + 11} cy={y + 2} r="1.6" fill="#fafafa" fillOpacity={0.9} />
+        </g>
+      ))}
+      {/* the other two, avatars */}
+      <circle cx="60" cy="22" r="6.5" fill={c} fillOpacity={0.65} />
+      <circle cx="60" cy="78" r="6.5" fill={c} fillOpacity={0.65} />
+      {/* somebody talking */}
+      <path
+        d="M70 18 q 3 4 0 8 M74 15 q 5 7 0 14"
+        fill="none"
+        stroke="#fafafa"
+        strokeOpacity={0.6}
+        strokeWidth={1.4}
+        strokeLinecap="round"
+      />
+    </>
+  ),
+
   // The Rail's rooms — chip towers that grow with the stakes. Micro is a couple
   // of modest stacks; the nosebleeds are a skyline.
   'ring-micro': (c) => chipStacks(c, [3, 2], 66),
@@ -231,6 +266,7 @@ const CATEGORY_IMAGES: Record<string, string> = {
   venues: '/menu/venues.jpg',
   side: '/menu/side.jpg',
   custom: '/menu/custom.jpg',
+  multiplayer: '/menu/multiplayer.jpg',
 }
 
 export function CategoryArt({

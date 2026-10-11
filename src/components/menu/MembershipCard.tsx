@@ -22,6 +22,7 @@ import { Star } from 'lucide-react'
 import { CardBack } from '@/components/CardBack'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS } from '@/config/cardBacks'
 import { checkoutReady } from '@/config/membership'
+import { roomsConfigured } from '@/lib/multiplayer/client'
 import { useMembership } from '@/store/entitlement'
 import { sound } from '@/lib/sound'
 
@@ -72,8 +73,9 @@ export function MembershipCard({ delay = 0 }: { delay?: number }) {
             Pip Membership
           </span>
           <p className="mt-1 text-sm leading-relaxed">
-            The side tables, the other games, the drills that price a hand and the lessons past
-            Level 1. The ladder stays free either way.
+            {roomsConfigured()
+              ? 'Multiplayer with your friends, camera and all. Plus the side tables, the other games, the drills that price a hand and the lessons past Level 1. The ladder stays free either way.'
+              : 'The side tables, the other games, the drills that price a hand and the lessons past Level 1. The ladder stays free either way.'}
           </p>
           <span className="mt-2 inline-block text-sm font-medium underline-offset-2 group-hover:underline">
             What it adds

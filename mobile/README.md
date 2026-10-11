@@ -40,6 +40,25 @@ before relying on one and falls back to the website flow when it's missing.
 A new message type goes in `SUPPORTS` in `src/bridge.ts` in the same change
 that handles it.
 
+## Camera and microphone
+
+Private tables can turn on a camera and mic (WebRTC `getUserMedia`, only after
+the player taps to turn one on). The shell supports it with:
+
+- iOS: `NSCameraUsageDescription` and `NSMicrophoneUsageDescription` in
+  `app.json` → `ios.infoPlist`, and `mediaCapturePermissionGrantType=
+  "grantIfSameHostElseDeny"` on the web view (`App.tsx`), so the player sees
+  iOS's prompt once and no extra WebKit prompt each session.
+- Android: `CAMERA`, `RECORD_AUDIO` and `MODIFY_AUDIO_SETTINGS` in
+  `app.json` → `android.permissions`. react-native-webview asks for the runtime
+  permission itself when the page calls `getUserMedia`, so there's no message
+  for it.
+- `media` in `SUPPORTS`. The web hides the camera and mic controls without it.
+
+These are native settings, so they need a new store build (EAS build and
+submit), not an over-the-air update. Until people update, their app doesn't
+list `media` and the web keeps the controls hidden.
+
 ## Icons and splash
 
 - iOS uses `assets/pip.icon`, a copy of the Icon Composer source in
@@ -95,3 +114,8 @@ the app leaves it out of `supports` and the website hides it.
 npx eas-cli@latest build --platform ios --profile production --auto-submit   # TestFlight
 npx eas-cli@latest build --platform ios --profile development               # dev build for your phone
 ```
+
+**Version 1.1.0.** The app's `runtimeVersion` follows its version (`policy: appVersion`), so it was
+bumped from 1.0.0 with this change. An over-the-air update published from now on reaches only
+1.1.0 builds, which have the native permissions. Without the bump, an OTA update would have told
+old 1.0.0 installs to show camera buttons they cannot use.

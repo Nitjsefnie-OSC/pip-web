@@ -1,0 +1,239 @@
+'use client'
+
+// A multiplayer room, as the browser holds it: one socket to the room server
+// and the last view it sent.
+//
+// **Nothing here decides anything.** The server deals, checks every move and
+// runs the clock; this store sends what you pressed and draws what comes back.
+// The one thing it does on its own is the Roll (lib/multiplayer/ledger), which
+// is this device's to keep.
+
+import { create } from 'zustand'
+import { sessionToken, socketUrl } from '@/lib/multiplayer/client'
+import { settle, type Ledger } from '@/lib/multiplayer/ledger'
+import type {
+  ClientMessage,
+  MediaState,
+  RTCIceServerLike,
+  ServerError,
+  ServerMessage,
+} from '@/lib/multiplayer/protocol'
+import type { RoomView } from '@/lib/multiplayer/view'
+import type { Action } from '@/lib/poker/engine'
+import { sound } from '@/lib/sound'
+import { useProfile } from './profile'
+
+export type RoomConnection = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'gone'
+
+interface RoomStore {
+  code: string | null
+  connection: RoomConnection
+  view: RoomView | null
+  /** The server's clock minus this device's, so the turn timer reads true. */
+  clockOffset: number
+  error: ServerError | null
+  /** Whose camera and mic are on, by seat. Private rooms only. */
+  media: Record<string, MediaState>
+  iceServers: RTCIceServerLike[]
+  /** Set when this game has paid you, for the end card. */
+  won: boolean
+  /** Bumped each time a socket is seated, so anything per-connection can be sent again. */
+  session: number
+  enter: (code: string) => void
+  /** Stand up: the seat is freed before the deal, folded for after it. */
+  leave: () => void
+  act: (action: Action) => void
+  start: () => void
+  addBots: (count: number) => void
+  removeBot: (id: string) => void
+  kick: (id: string) => void
+  setMedia: (media: MediaState) => void
+  signal: (to: string, data: unknown) => void
+  clearError: () => void
+}
+
+const LEDGER_KEY = 'pip.roomLedger'
+
+function readLedger(): Ledger {
+  try {
+    return JSON.parse(localStorage.getItem(LEDGER_KEY) ?? '{}') as Ledger
+  } catch {
+    return {}
+  }
+}
+
+function writeLedger(ledger: Ledger): void {
+  try {
+    localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger))
+  } catch {
+    // Private mode: the books last as long as the tab, which is the game.
+  }
+}
+
+type SignalListener = (from: string, data: unknown) => void
+const signalListeners = new Set<SignalListener>()
+
+/** WebRTC's way in: offers, answers and candidates from the other seats. */
+export function onSignal(listener: SignalListener): () => void {
+  signalListeners.add(listener)
+  return () => signalListeners.delete(listener)
+}
+
+let socket: WebSocket | null = null
+let pingTimer: ReturnType<typeof setInterval> | null = null
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+let attempts = 0
+/** The server said no for a reason a retry will not change. */
+const FINAL_CLOSE = new Set([4000, 4001, 4004, 1000])
+
+export const useRoom = create<RoomStore>((set, get) => {
+  function send(msg: ClientMessage) {
+    if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(msg))
+  }
+
+  function teardown() {
+    if (pingTimer) clearInterval(pingTimer)
+    if (retryTimer) clearTimeout(retryTimer)
+    pingTimer = null
+    retryTimer = null
+    if (socket) {
+      socket.onclose = null
+      socket.onmessage = null
+      socket.close()
+    }
+    socket = null
+  }
+
+  function onView(view: RoomView, now: number) {
+    const prev = get().view
+    // The Roll's books: the buy-in on the deal, the prize at the end.
+    const result = settle(readLedger(), view, Date.now())
+    writeLedger(result.ledger)
+    if (result.delta !== 0) {
+      const profile = useProfile.getState()
+      profile.adjustRoll(result.delta)
+      if (view.phase === 'finished') profile.recordRollPoint()
+    }
+    const me = view.hand?.players.find((p) => p.id === view.you)
+    const prevTurn = prev?.hand?.players[prev.hand.toActIndex]?.id
+    const turn = view.hand?.players[view.hand.toActIndex]?.id
+    if (view.hand && turn === view.you && prevTurn !== view.you && me) sound.play('turn')
+    if (prev?.handIndex !== view.handIndex && view.hand) sound.play('deal')
+    set({
+      view,
+      clockOffset: now - Date.now(),
+      won: get().won || result.won,
+    })
+  }
+
+  async function open(code: string) {
+    const token = await sessionToken()
+    if (get().code !== code) return
+    if (!token) {
+      set({ connection: 'gone', error: 'auth' })
+      return
+    }
+    const ws = new WebSocket(socketUrl(`/rooms/${code}/ws`))
+    socket = ws
+    // The first view on a socket is the server saying you are seated on it.
+    let seated = false
+    ws.onopen = () => {
+      attempts = 0
+      const { name, avatar, avatarRing } = useProfile.getState()
+      ws.send(
+        JSON.stringify({
+          t: 'hello',
+          token,
+          name,
+          avatar: avatar ?? { seed: name || 'pip', backgroundColor: 'b6e3f4' },
+          ring: avatarRing,
+        } satisfies ClientMessage),
+      )
+      set({ connection: 'open' })
+      pingTimer = setInterval(() => send({ t: 'ping' }), 25_000)
+    }
+    ws.onmessage = (e) => {
+      let msg: ServerMessage
+      try {
+        msg = JSON.parse(String(e.data)) as ServerMessage
+      } catch {
+        return
+      }
+      switch (msg.t) {
+        case 'room':
+          if (!seated) {
+            seated = true
+            set({ session: get().session + 1 })
+          }
+          return onView(msg.view, msg.now)
+        case 'error':
+          return set({ error: msg.error })
+        case 'media':
+          return set({ media: msg.media })
+        case 'ice':
+          return set({ iceServers: msg.iceServers })
+        case 'signal':
+          for (const l of signalListeners) l(msg.from, msg.data)
+          return
+      }
+    }
+    ws.onclose = (e) => {
+      if (pingTimer) clearInterval(pingTimer)
+      pingTimer = null
+      socket = null
+      if (get().code !== code) return
+      if (FINAL_CLOSE.has(e.code)) {
+        set({ connection: 'gone' })
+        return
+      }
+      // A dropped connection (a phone locking, a train going into a tunnel)
+      // comes back by itself, sooner at first and then less often.
+      set({ connection: 'reconnecting' })
+      const wait = Math.min(15_000, 500 * 2 ** attempts++)
+      retryTimer = setTimeout(() => void open(code), wait)
+    }
+  }
+
+  return {
+    code: null,
+    connection: 'idle',
+    view: null,
+    clockOffset: 0,
+    error: null,
+    media: {},
+    iceServers: [],
+    won: false,
+    session: 0,
+
+    enter: (code) => {
+      if (get().code === code && get().connection !== 'gone') return
+      teardown()
+      attempts = 0
+      set({
+        code,
+        connection: 'connecting',
+        view: null,
+        error: null,
+        media: {},
+        iceServers: [],
+        won: false,
+      })
+      void open(code)
+    },
+
+    leave: () => {
+      send({ t: 'leave' })
+      teardown()
+      set({ code: null, connection: 'idle', view: null, media: {}, error: null })
+    },
+
+    act: (action) => send({ t: 'act', action }),
+    start: () => send({ t: 'start' }),
+    addBots: (count) => send({ t: 'bots', count }),
+    removeBot: (id) => send({ t: 'unbot', id }),
+    kick: (id) => send({ t: 'kick', id }),
+    setMedia: (media) => send({ t: 'media', media }),
+    signal: (to, data) => send({ t: 'signal', to, data }),
+    clearError: () => set({ error: null }),
+  }
+})

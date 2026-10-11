@@ -2,6 +2,7 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  workerd: true # the local Workers runtime behind `wrangler dev` for the rooms server
 
 # Security overrides, forcing patched versions of transitively-pulled packages
 # flagged by `pnpm audit --audit-level=high`. Revisit when the parent deps

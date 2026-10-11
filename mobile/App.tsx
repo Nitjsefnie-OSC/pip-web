@@ -83,7 +83,17 @@ export default function App() {
           setBuiltInZoomControls={false}
           // Web Audio cues play on a tap, not on load.
           mediaPlaybackRequiresUserAction={false}
+          // Also lets the table's camera and mic video play in place, not full screen.
           allowsInlineMediaPlayback
+          // Camera and mic at a table with friends (iOS 15+). 'grantIfSameHostElseDeny'
+          // grants getUserMedia to the page the web view is showing, so the player
+          // sees one prompt, iOS's own (the usage strings in app.json), and not a
+          // second WebKit "playpip.io wants to use your camera" prompt every
+          // session. The web view only ever shows Pip (off-site links go to the
+          // browser), and a frame from any other host, such as an embed, is denied
+          // outright rather than prompted, so nothing else can ask. Android
+          // needs no prop: the web view asks for the runtime permission itself.
+          mediaCapturePermissionGrantType="grantIfSameHostElseDeny"
           // Off-site links (Stripe, socials) go to the system browser, whether
           // they navigate the page or open a new window.
           onShouldStartLoadWithRequest={(req) => {

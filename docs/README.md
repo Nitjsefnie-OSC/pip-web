@@ -24,6 +24,7 @@ cosmetics, multiplayer); see [brand.md](./brand.md).
 | [shop.md](./shop.md) | The Chip Shop & earned unlocks — style, never edge |
 | [review.md](./review.md) | Session review and the report — the coaching that reads more than one hand |
 | [membership.md](./membership.md) | What is paid and what is free, the gate, and the rules tests enforce |
+| [multiplayer.md](./multiplayer.md) | Private rooms and quick match: the room server, the authority model, camera and mic, and the runbook to switch it on |
 | [stripe.md](./stripe.md) | How payment is wired (Edge Functions, webhook, portal) and the runbook to switch it on |
 | [smoke-test-membership.md](./smoke-test-membership.md) | The by-hand checklist for the membership build — the part CI cannot see |
 | [design.md](./design.md) | Design system: theme tokens, colour, typography, motion, sound, components |
@@ -51,8 +52,9 @@ If you change how it *looks*, you stay in components + theme tokens.
 - **In scope / built:** onboarding, avatar creator, the Roll + venue ladder,
   full Hold'em vs AI, sit-and-go tournaments with a bankroll/rank economy + selectable currency, live equity, sound, motion, theming,
   card-back customization, an installable offline PWA, profile backup/transfer with no
-  account (file / copyable code / scan-to-phone QR), and an optional account for
-  cross-device sync ([sync.md](./sync.md)).
-- **Explicitly out of scope (for now):** online multiplayer, accounts as identity, real money,
+  account (file / copyable code / scan-to-phone QR), an optional account for
+  cross-device sync ([sync.md](./sync.md)), and multiplayer: private rooms with a code
+  (camera and mic) and quick match, on a separate room server ([multiplayer.md](./multiplayer.md)).
+- **Explicitly out of scope (for now):** public lobbies and chat, accounts as identity, real money,
   cash games, non-Hold'em variants.
 - See the repo root [`PLAN.md`](../PLAN.md) for the original plan and rationale.

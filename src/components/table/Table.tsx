@@ -2,17 +2,17 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AnimatePresence, MotionConfig, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
 import { HelpCircle, History } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { AwardChip } from '@/components/AwardChip'
-import { CountUp } from '@/components/CountUp'
 import { ActionBar } from './ActionBar'
 import { nextUp } from '@/lib/nextUp'
 import { deviceId } from '@/lib/sync/client'
 import { HeroCards, HeroPanel, TableStyleContext } from './parts'
 import { FeltSeat } from './seat'
-import { BoardCard, BoardSlot, ChipStack, TableFelt, TableRoom } from './surface'
+import { TableFelt, TableRoom } from './surface'
+import { FeltStage } from './stage'
 import { useSeatActions } from './useSeatActions'
 import { HandHistoryDialog } from './HandHistoryDialog'
 import { HandsHelpDialog } from './HandsHelpDialog'
@@ -21,7 +21,6 @@ import { PlayerDialog } from './PlayerDialog'
 import { RunRecap } from './RunRecap'
 import { useGame } from '@/store/game'
 import { useProfile } from '@/store/profile'
-import { potSize } from '@/lib/poker/engine'
 import { sound } from '@/lib/sound'
 import { cn } from '@/lib/utils'
 import { useMoney } from '@/lib/useMoney'
@@ -100,7 +99,6 @@ export function Table() {
   // The table finish in play is the cloth. Absent, the plain table: graphite
   // lit in the venue's colour (see `TableFelt`).
   const finish = tableFinishById(useProfile((s) => s.tableFinish))
-  const calm = useReducedMotion() === true
   const seatActions = useSeatActions(hand, handIndex)
 
   // The spectator's peek at an open seat, memoised on the hand rather than
@@ -163,7 +161,6 @@ export function Table() {
       ? cashOutValue(venue, hero.stack) - (venue.cash ? cashInvested : venue.buyIn)
       : null
   const opponents = hand.players.filter((p) => p.id !== 'hero')
-  const pot = potSize(hand)
   const heroMeta = hero ? metaById.get(hero.id) : undefined
   // Offered only when there is something left to watch: at a heads-up table
   // busting and the table being down to one are the same moment, and a button
@@ -261,135 +258,7 @@ export function Table() {
     const plate = { left: seat.left, top: `${Number.parseFloat(seat.top) + g.plateDrop}%` }
     return towards(plate, g.focus, g.betReach)
   }
-  // Chips are counted in small blinds, so a stack reads the same at any stake.
-  const unit = hand.smallBlind
-  const inFront = hand.players.reduce((sum, p) => sum + p.committedThisStreet, 0)
-  // What has already gone into the middle. The rest is still in front of seats.
-  const collected = pot - inFront
   const settled = hand.result !== null
-  const spring = calm ? { duration: 0 } : ({ type: 'spring', stiffness: 260, damping: 28 } as const)
-
-  // **Five-Card Draw has no board, so it gets no board places.** At a draw
-  // table nothing is ever coming, and drawing places for it promised a flop
-  // that never arrives. Every other game gets five outlined places on the
-  // cloth, which fill as the cards are dealt.
-  const communityCards =
-    hand.variant === 'draw' ? null : (
-      <div
-        className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-[1.25vw] sm:gap-2 lg:gap-2.5"
-        style={g.board}
-      >
-        {Array.from({ length: 5 }).map((_, i) => {
-          const card = hand.community[i]
-          return card ? (
-            <BoardCard key={`${card.rank}${card.suit}`} index={i} card={card} back={cardBack} />
-          ) : (
-            <BoardSlot key={`slot-${i}`} />
-          )
-        })}
-      </div>
-    )
-
-  // Bets in front of each seat. Keyed by the street, so when the street moves
-  // on each stack leaves for the middle rather than lingering.
-  const bets = (
-    <AnimatePresence>
-      {!settled &&
-        hand.players
-          .filter((p) => p.committedThisStreet > 0)
-          .map((p) => {
-            const from = seatPoint(p.id)
-            const at = betPoint(p.id)
-            return (
-              <motion.div
-                key={`${handIndex}-${hand.street}-${p.id}`}
-                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-1/2"
-                initial={{ left: from.left, top: from.top, opacity: 0 }}
-                animate={{ left: at.left, top: at.top, opacity: 1 }}
-                exit={{
-                  left: g.pot.left,
-                  top: g.pot.top,
-                  opacity: 0,
-                  transition: calm
-                    ? { duration: 0 }
-                    : {
-                        duration: 0.42,
-                        ease: [0.4, 0, 0.2, 1],
-                        opacity: { duration: 0.12, delay: 0.32 },
-                      },
-                }}
-                transition={spring}
-              >
-                <ChipStack
-                  amount={p.committedThisStreet}
-                  unit={unit}
-                  label={money(p.committedThisStreet)}
-                />
-              </motion.div>
-            )
-          })}
-    </AnimatePresence>
-  )
-
-  // The pot: the chips already in the middle, and the number. At the end of a
-  // hand the stack goes to whoever took it (below), so it leaves the middle.
-  const potArea = (
-    <div
-      className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2"
-      style={g.pot}
-    >
-      <div className="flex w-[22px] justify-center">
-        <AnimatePresence>
-          {collected > 0 && !settled && (
-            <motion.div
-              key={`pot-${handIndex}`}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, transition: { duration: 0.2, delay: calm ? 0 : 0.4 } }}
-            >
-              <ChipStack amount={collected} unit={unit} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-      <div className="flex items-baseline gap-2 rounded-full bg-table-shade/45 px-3 py-0.5">
-        <span className="text-2xs uppercase tracking-[0.2em] text-muted-foreground">Pot</span>
-        <CountUp
-          value={pot}
-          format={money}
-          className={cn('font-semibold tabular-nums', isMobile ? 'text-lg' : 'text-2xl')}
-        />
-      </div>
-      {/* Balances the stack on the left, so the number sits on the centre line. */}
-      <div className="w-[22px]" aria-hidden />
-    </div>
-  )
-
-  // Showdown: the pot slides to the winner (or splits between them).
-  const winnings = settled
-    ? potWinners.map((id) => {
-        const to = seatPoint(id)
-        return (
-          <motion.div
-            key={`win-${handIndex}-${id}`}
-            className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2"
-            initial={{ left: g.pot.left, top: g.pot.top, opacity: 0 }}
-            animate={{ left: to.left, top: to.top, opacity: [0, 1, 1, 0] }}
-            transition={
-              calm
-                ? { duration: 0 }
-                : {
-                    left: { duration: 0.75, delay: 0.5, ease: [0.3, 0, 0.2, 1] },
-                    top: { duration: 0.75, delay: 0.5, ease: [0.3, 0, 0.2, 1] },
-                    opacity: { duration: 1.4, delay: 0.35, times: [0, 0.1, 0.8, 1] },
-                  }
-            }
-          >
-            <ChipStack amount={hand.result?.payouts[id] ?? pot} unit={unit} />
-          </motion.div>
-        )
-      })
-    : null
 
   const seatsOnRail = opponents.map((p, i) => {
     const meta = metaById.get(p.id)
@@ -558,11 +427,17 @@ export function Table() {
               compact={isMobile}
             />
 
-            {communityCards}
-            {potArea}
-            {bets}
+            <FeltStage
+              hand={hand}
+              handIndex={handIndex}
+              geometry={g}
+              seatPoint={seatPoint}
+              betPoint={betPoint}
+              back={cardBack}
+              compact={isMobile}
+              potWinners={potWinners}
+            />
             {seatsOnRail}
-            {winnings}
 
             {/* Table talk, quietly, under the pot. */}
             <div

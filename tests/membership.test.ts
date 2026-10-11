@@ -31,17 +31,20 @@ test('a feature nobody can use yet is never advertised', (t) => {
     sellableFeatures().some((f) => unshipped.includes(f)),
     'an unshipped feature reached the sellable list',
   )
+  // Multiplayer is built, and sold only by a build with a room server to sit at.
+  t.is(
+    sellableFeatures().some((f) => f.id === 'multiplayer'),
+    Boolean(process.env.NEXT_PUBLIC_ROOMS_URL),
+  )
 })
 
-// The point of the list is that it carries both, so the page can say "here is
-// what you get today" without the roadmap half quietly disappearing from the
-// file and reappearing as marketing. If everything is shipped, this test is the
-// one that should be deleted, deliberately, by somebody who has read it.
-test('the list still carries the things that are not built', (t) => {
-  t.true(
-    MEMBERSHIP_FEATURES.some((f) => !f.shipped),
-    'every feature is shipped — if that is true, say so on the page on purpose',
-  )
+// The list used to be required to carry something unbuilt, so the roadmap half
+// could not quietly vanish from the file and reappear as marketing. Multiplayer
+// was the last thing in it, and it shipped on 2026-10-11, so that half of this
+// test was deleted on purpose, as it asked to be. In a build with no room
+// server multiplayer is unbuilt again (`shipped` follows NEXT_PUBLIC_ROOMS_URL),
+// and the page's "What isn't built yet" answer comes back by itself.
+test('every feature on the list has something to say', (t) => {
   t.true(
     MEMBERSHIP_FEATURES.every((f) => f.title && f.blurb),
     'a feature with nothing to say',

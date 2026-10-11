@@ -161,6 +161,11 @@ jobs:
           # `on` shows the opt-in email switches (docs/email.md). Unset → no
           # switches. Set it once send-emails is deployed and scheduled, never before.
           NEXT_PUBLIC_EMAILS: ${{ vars.NEXT_PUBLIC_EMAILS }}
+          # The multiplayer room server (docs/multiplayer.md), e.g.
+          # https://rooms.playpip.io. Unset → the Multiplayer tile, the hub and
+          # the membership's multiplayer entry all hide themselves. Set it once
+          # the rooms Worker is deployed and answering, never before.
+          NEXT_PUBLIC_ROOMS_URL: ${{ vars.NEXT_PUBLIC_ROOMS_URL }}
         run: pnpm build
 
       # The only place the truth about sync config exists is the emitted bundle. `pnpm build`

@@ -36,9 +36,11 @@ export type NativeRequest =
 /**
  * What an install can do, as the shell lists it in `PipApp.supports`. Sign-in
  * is per provider, because a build only offers Google once its client is set
- * up, and purchases only once the store is.
+ * up, and purchases only once the store is. `media` means the camera and mic
+ * work in the web view (getUserMedia prompts as in a browser); older installs
+ * lack the permissions, so hide the camera and mic controls without it.
  */
-export type AppCapability = 'haptic' | 'signIn:apple' | 'signIn:google' | 'purchase'
+export type AppCapability = 'haptic' | 'signIn:apple' | 'signIn:google' | 'purchase' | 'media'
 
 interface PipAppFlag {
   platform: 'ios' | 'android'
