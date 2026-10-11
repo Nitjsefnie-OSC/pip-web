@@ -343,6 +343,13 @@ body:has([data-felt], [data-safe-top]) {
 [data-safe-top] {
   padding-top: env(safe-area-inset-top);
 }
+/* A one-screen page (`data-screen`, the onboarding) is the height between the
+   notch and the home bar, not the full screen: inside the padded body a
+   min-h-dvh page is always one notch and one home bar too tall, so it scrolls
+   with nothing to scroll to. Content taller than a small phone still can. */
+[data-screen] {
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
 /* Dialogs centre in, and cap their height to, the area between the notch and
    the home bar. Every dialog is ui/dialog.tsx's popup. */
 [data-slot="dialog-content"] {
@@ -358,8 +365,8 @@ body:has([data-felt], [data-safe-top]) {
    (`data-felt`). Both are fixed to the screen height. PageShell's <main>
    becomes the scroller and keeps iOS's bounce inside it. A page with neither
    (the website pages) scrolls and bounces as a whole, like a document. */
-html[data-pip-app]:has([data-felt], [data-shell]),
-html[data-pip-app]:has([data-felt], [data-shell]) body {
+html[data-pip-app]:has([data-felt], [data-shell], [data-screen]),
+html[data-pip-app]:has([data-felt], [data-shell], [data-screen]) body {
   overscroll-behavior: none;
 }
 html[data-pip-app] body:has([data-shell]) {

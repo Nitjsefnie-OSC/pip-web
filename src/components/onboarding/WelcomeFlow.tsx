@@ -68,7 +68,9 @@ export function WelcomeFlow() {
   const go = (next: Step) => router.replace(`/welcome?step=${next}`)
 
   return (
-    <div className="flex min-h-dvh flex-col px-6 py-8">
+    // `data-screen`: exactly the space between the notch and the home bar, so
+    // it fits without scrolling in the app and the installed PWA (globals.css).
+    <div data-screen className="flex min-h-dvh flex-col px-6 py-8">
       <Progress step={step} />
       <div className="flex flex-1 items-center justify-center py-8">
         <motion.div

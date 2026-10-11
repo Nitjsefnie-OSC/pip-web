@@ -51,7 +51,6 @@ import {
   type CurrencyCode,
   DAILY_FREE_GAME,
   HOW_TO_CANCEL,
-  type LocalPrice,
   MEMBERSHIP_FEATURES,
   MEMBERSHIP_PRICE_IDS,
   MEMBERSHIP_PRICES,
@@ -83,6 +82,7 @@ import {
   restoreFromStore,
   type StoreResult,
   useMembershipSource,
+  type ShownPrice,
   useStorePrices,
 } from '@/lib/membership/store'
 import { SHOP_ITEMS } from '@/config/shop'
@@ -181,6 +181,9 @@ function useCurrency() {
   return [picked ?? detected, setPicked] as const
 }
 
+/** In the store app, before the store's prices arrive. */
+const STORE_LOADING: ShownPrice = { monthly: '…', annual: '…', monthlyMinor: 0, annualMinor: 0 }
+
 // --- the screen -----------------------------------------------------------------
 
 export function MembershipScreen() {
@@ -194,7 +197,16 @@ export function MembershipScreen() {
   const tools = sellable.filter((f) => !PLAY[f.id] && f.id !== SHELF_ID)
   const coming = MEMBERSHIP_FEATURES.filter((f) => !f.shipped)
   const [currency, setCurrency] = useCurrency()
-  const price = MEMBERSHIP_PRICES[currency]
+  // In the store app with purchases on, every price on the page is the store's,
+  // in the player's own App Store currency, and there is no currency picker:
+  // the store decides. Everywhere else it is the website's price in the picked
+  // currency, exactly as before.
+  const app = useInApp()
+  const storeSells = app && appSupports('purchase')
+  const store = useStorePrices(storeSells)
+  const price: ShownPrice = storeSells
+    ? (store ?? STORE_LOADING)
+    : { ...MEMBERSHIP_PRICES[currency], format: (minor) => formatPrice(minor, currency) }
 
   // First step of the funnel. The page view is counted anyway; this one is
   // once per tab, so it lines up with the three steps after it.
@@ -243,7 +255,11 @@ export function MembershipScreen() {
             title="One membership, two ways to pay"
             lede="The same membership either way. Pick how often you would rather be billed. One member game a day is free, so you can try a table or a lesson first."
           >
-            <Plans price={price} currency={currency} onCurrency={setCurrency} />
+            <Plans
+              price={price}
+              currency={currency}
+              onCurrency={storeSells ? undefined : setCurrency}
+            />
           </Section>
 
           <Section id="free" eyebrow="Free, forever" title="What you already have">
@@ -274,7 +290,7 @@ const FAN = [
   MEMBER_BACKS[3],
 ]
 
-function Hero({ price }: { price: LocalPrice }) {
+function Hero({ price }: { price: ShownPrice }) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -632,16 +648,22 @@ const PLAN_ORDER: readonly Plan[] = ['annual', 'monthly']
 
 /** The two plans in one currency. The sums come from minor units, never the display strings. */
 function plansIn(
-  price: LocalPrice,
+  price: ShownPrice,
 ): Record<Plan, { name: string; price: string; per: string; note: string }> {
   const saving = price.monthlyMinor * 12 - price.annualMinor
   const perMonth = Math.round(price.annualMinor / 12)
+  const { format } = price
   return {
     annual: {
       name: 'Yearly',
       price: price.annual,
       per: 'a year',
-      note: `${formatPrice(perMonth, price.currency)} a month, near enough — ${formatPrice(saving, price.currency)} less than paying monthly for twelve months.`,
+      // Left out when the numbers aren't known (an older app build sends only
+      // the store's price labels), rather than worked out from a string.
+      note:
+        format && saving > 0
+          ? `${format(perMonth)} a month, near enough — ${format(saving)} less than paying monthly for twelve months.`
+          : 'One payment a year.',
     },
     monthly: {
       name: 'Monthly',
@@ -702,9 +724,10 @@ function Plans({
   currency,
   onCurrency,
 }: {
-  price: LocalPrice
+  price: ShownPrice
   currency: CurrencyCode
-  onCurrency: (next: CurrencyCode) => void
+  /** Absent in the store app, where the store picks the currency. */
+  onCurrency?: (next: CurrencyCode) => void
 }) {
   const [plan, setPlan] = useState<Plan>('annual')
   const ready = checkoutReady()
@@ -722,10 +745,12 @@ function Plans({
   return (
     <Reveal>
       <div>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">Prices in</p>
-          <CurrencyPicker currency={currency} onCurrency={onCurrency} />
-        </div>
+        {onCurrency && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">Prices in</p>
+            <CurrencyPicker currency={currency} onCurrency={onCurrency} />
+          </div>
+        )}
         <div role="radiogroup" aria-label="Billing" className="grid gap-3 sm:grid-cols-2">
           {PLAN_ORDER.map((id) => {
             const p = PLANS[id]
@@ -1134,7 +1159,7 @@ function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const store = appPlatform() === 'android' ? 'Google Play' : 'the App Store'
-  const price = prices?.[plan]
+  const price = prices ? (plan === 'annual' ? prices.annual : prices.monthly) : null
 
   const act = async (action: () => Promise<StoreResult>, pending: string) => {
     sound.play('tap')
@@ -1192,7 +1217,7 @@ function StoreJoin({ plan, planName }: { plan: Plan; planName: string }) {
 
 // --- free versus member ---------------------------------------------------------
 
-function FreeVersusMember({ price }: { price: LocalPrice }) {
+function FreeVersusMember({ price }: { price: ShownPrice }) {
   const member = sellableFeatures().map((f) => f.title)
   return (
     <div className="grid gap-3 md:grid-cols-2 md:gap-4">
@@ -1320,26 +1345,31 @@ function Questions({ coming }: { coming: MembershipFeature[] }) {
             .
           </p>
         </Question>
-        <Question q="What does it cost where I live?">
-          <p>
-            One membership, priced in four currencies. Each is the pound’s price converted and
-            rounded, then fixed: you pay the number on this page, not a rate worked out at checkout.
-            Tax is inside every one of them.
-          </p>
-          <ul className="grid gap-2 sm:grid-cols-2">
-            {CURRENCIES.map((code) => (
-              <li key={code} className="rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 tabular-nums">
-                <strong className="font-medium text-foreground">{code}</strong>{' '}
-                {MEMBERSHIP_PRICES[code].monthly} a month, or {MEMBERSHIP_PRICES[code].annual} a
-                year
-              </li>
-            ))}
-          </ul>
-          <p>
-            Anywhere else, the page shows dollars. The picker beside the prices changes the currency
-            whenever you like.
-          </p>
-        </Question>
+        {!app && (
+          <Question q="What does it cost where I live?">
+            <p>
+              One membership, priced in four currencies. Each is the pound’s price converted and
+              rounded, then fixed: you pay the number on this page, not a rate worked out at
+              checkout. Tax is inside every one of them.
+            </p>
+            <ul className="grid gap-2 sm:grid-cols-2">
+              {CURRENCIES.map((code) => (
+                <li
+                  key={code}
+                  className="rounded-xl bg-foreground/[0.04] px-3.5 py-2.5 tabular-nums"
+                >
+                  <strong className="font-medium text-foreground">{code}</strong>{' '}
+                  {MEMBERSHIP_PRICES[code].monthly} a month, or {MEMBERSHIP_PRICES[code].annual} a
+                  year
+                </li>
+              ))}
+            </ul>
+            <p>
+              Anywhere else, the page shows dollars. The picker beside the prices changes the
+              currency whenever you like.
+            </p>
+          </Question>
+        )}
         <Question q="Do I need an account?">
           <p>
             To join, yes — a free Pip account, because a membership has to belong to someone. To

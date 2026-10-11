@@ -50,6 +50,11 @@ export async function products() {
     ok: true,
     monthly: monthly?.product.priceString ?? null,
     annual: annual?.product.priceString ?? null,
+    // The raw numbers too, so the page can work out "about £4.08 a month" in
+    // the player's own currency. Older builds send only the strings.
+    monthlyAmount: monthly?.product.price ?? null,
+    annualAmount: annual?.product.price ?? null,
+    currency: monthly?.product.currencyCode ?? annual?.product.currencyCode ?? null,
   }
 }
 

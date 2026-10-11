@@ -33,7 +33,8 @@
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
-import { type LocalPrice, tappedFeature } from '@/config/membership'
+import { tappedFeature } from '@/config/membership'
+import type { ShownPrice } from '@/lib/membership/store'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
@@ -54,7 +55,7 @@ const TappedLesson = dynamic(() => import('./TappedLesson').then((m) => m.Tapped
   ssr: false,
 })
 
-export function TappedFor({ price }: { price: LocalPrice }) {
+export function TappedFor({ price }: { price: ShownPrice }) {
   const hydrated = useHydrated()
   const search = hydrated ? window.location.search : ''
   const feature = tappedFeature(search)

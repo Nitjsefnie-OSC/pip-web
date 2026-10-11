@@ -86,17 +86,54 @@ export async function restoreFromStore(): Promise<StoreResult> {
   return { ok: false, error: 'The store found your membership. It can take a minute to show here.' }
 }
 
+/**
+ * A price as the membership page shows it: the website's own (config, one of
+ * four currencies) or, in the store app, the store's, in whatever currency the
+ * player's App Store account uses. `format` turns minor units into a price in
+ * that currency, for the derived lines ("about £4.08 a month"); it is absent
+ * when the numbers aren't known, and those lines are left out.
+ */
+export interface ShownPrice {
+  monthly: string
+  annual: string
+  monthlyMinor: number
+  annualMinor: number
+  format?: (minor: number) => string
+}
+
+interface ProductsAnswer {
+  ok: boolean
+  monthly?: string | null
+  annual?: string | null
+  monthlyAmount?: number | null
+  annualAmount?: number | null
+  currency?: string | null
+}
+
+function fromStore(answer: ProductsAnswer): ShownPrice | null {
+  if (!answer.ok || !answer.monthly || !answer.annual) return null
+  const { monthlyAmount, annualAmount, currency } = answer
+  const known = typeof monthlyAmount === 'number' && typeof annualAmount === 'number' && currency
+  if (!known)
+    return { monthly: answer.monthly, annual: answer.annual, monthlyMinor: 0, annualMinor: 0 }
+  const money = new Intl.NumberFormat(undefined, { style: 'currency', currency })
+  return {
+    monthly: answer.monthly,
+    annual: answer.annual,
+    monthlyMinor: Math.round(monthlyAmount * 100),
+    annualMinor: Math.round(annualAmount * 100),
+    format: (minor) => money.format(minor / 100),
+  }
+}
+
 /** The store's prices, in the player's currency. Null until they arrive. */
-export function useStorePrices(enabled: boolean): Record<StorePlan, string | null> | null {
-  const [prices, setPrices] = useState<Record<StorePlan, string | null> | null>(null)
+export function useStorePrices(enabled: boolean): ShownPrice | null {
+  const [prices, setPrices] = useState<ShownPrice | null>(null)
   useEffect(() => {
     if (!enabled) return
     let live = true
-    void askApp<{ ok: boolean; monthly?: string | null; annual?: string | null }>({
-      type: 'products',
-    }).then((answer) => {
-      if (live && answer.ok)
-        setPrices({ monthly: answer.monthly ?? null, annual: answer.annual ?? null })
+    void askApp<ProductsAnswer>({ type: 'products' }).then((answer) => {
+      if (live) setPrices(fromStore(answer))
     })
     return () => {
       live = false
