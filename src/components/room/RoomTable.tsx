@@ -62,6 +62,7 @@ export function RoomTable({
 }) {
   const hand = view.hand!
   const act = useRoom((s) => s.act)
+  const pending = useRoom((s) => s.pending)
   const connection = useRoom((s) => s.connection)
   const clockOffset = useRoom((s) => s.clockOffset)
   const media = useRoom((s) => s.media)
@@ -347,7 +348,10 @@ export function RoomTable({
                 : 'mx-auto max-w-xl px-6 pt-4 pb-7',
             )}
           >
-            {hero ? (
+            {hero && pending ? (
+              // Your move has gone; the row keeps its height until the table answers.
+              <div className="h-[56px]" aria-hidden />
+            ) : hero ? (
               <ActionBar
                 hand={hand}
                 viewerId={view.you ?? undefined}

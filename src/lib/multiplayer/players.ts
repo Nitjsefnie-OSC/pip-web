@@ -119,12 +119,17 @@ export function fillPlayers(
 }
 
 /**
- * How long a bot takes over a decision: about one to three seconds, longer
- * facing a bet and later in the hand, the way a person slows down when it
- * costs something. Derived from the hand rather than drawn, so the reducer
- * stays a function of its inputs.
+ * How long a bot takes over a decision: about two-thirds of a second to two
+ * seconds, longer facing a bet and later in the hand, the way a person slows
+ * down when it costs something. Around the ladder's own pace (about a second),
+ * so a room does not feel slower than the game people already know. Derived
+ * from the hand rather than drawn, so the reducer stays a function of its
+ * inputs.
  */
 export function botThinkMs(seed: number, facingBet: boolean, street: number): number {
   const jitter = ((Math.imul(seed ^ 0x9e3779b9, 2654435761) >>> 0) % 1000) / 1000
-  return Math.round(900 + jitter * 1300 + (facingBet ? 500 : 0) + street * 150)
+  return Math.round(600 + jitter * 700 + (facingBet ? 300 : 0) + street * 100)
 }
+
+/** Once no person is left in the hand, the bots play it out at the ladder's folded pace. */
+export const BOT_ALONE_MS = 450

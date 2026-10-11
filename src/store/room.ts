@@ -21,7 +21,10 @@ import type {
 } from '@/lib/multiplayer/protocol'
 import type { RoomView } from '@/lib/multiplayer/view'
 import type { Action } from '@/lib/poker/engine'
-import { sound } from '@/lib/sound'
+import { cuesFor } from '@/lib/multiplayer/cues'
+import { haptics } from '@/lib/haptics'
+import { legalActions, type HandState } from '@/lib/poker/engine'
+import { type Cue, sound } from '@/lib/sound'
 import { useProfile } from './profile'
 
 export type RoomConnection = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'gone'
@@ -40,6 +43,8 @@ interface RoomStore {
   won: boolean
   /** Bumped each time a socket is seated, so anything per-connection can be sent again. */
   session: number
+  /** Your move is on its way to the server: the buttons stand down until it answers. */
+  pending: boolean
   enter: (code: string) => void
   /** Stand up: the seat is freed before the deal, folded for after it. */
   leave: () => void
@@ -71,6 +76,17 @@ function writeLedger(ledger: Ledger): void {
   } catch {
     // Private mode: the books last as long as the tab, which is the game.
   }
+}
+
+/** Your own move's sound, played as you press it (the ladder's `playActionSound`). */
+function soundForMove(action: Action, hand: HandState): Cue {
+  if (action.type === 'draw') return 'draw'
+  if (action.type === 'bet' || action.type === 'raise') {
+    const legal = legalActions(hand)
+    if (legal && action.amount === legal.maxRaiseTo) return 'allin'
+    return action.type
+  }
+  return action.type
 }
 
 type SignalListener = (from: string, data: unknown) => void
@@ -117,15 +133,20 @@ export const useRoom = create<RoomStore>((set, get) => {
       profile.adjustRoll(result.delta)
       if (view.phase === 'finished') profile.recordRollPoint()
     }
-    const me = view.hand?.players.find((p) => p.id === view.you)
-    const prevTurn = prev?.hand?.players[prev.hand.toActIndex]?.id
-    const turn = view.hand?.players[view.hand.toActIndex]?.id
-    if (view.hand && turn === view.you && prevTurn !== view.you && me) sound.play('turn')
-    if (prev?.handIndex !== view.handIndex && view.hand) sound.play('deal')
+    // The table's sounds and buzzes, as the ladder has them (lib/multiplayer/cues).
+    const buzzing = useProfile.getState().haptics
+    for (const cue of cuesFor(prev, view)) {
+      if (cue === 'bust' || cue === 'finish') {
+        if (buzzing) haptics.fire(cue)
+      } else {
+        sound.play(cue as Cue)
+      }
+    }
     set({
       view,
       clockOffset: now - Date.now(),
       won: get().won || result.won,
+      pending: false,
     })
   }
 
@@ -170,7 +191,8 @@ export const useRoom = create<RoomStore>((set, get) => {
           }
           return onView(msg.view, msg.now)
         case 'error':
-          return set({ error: msg.error })
+          // A refused move gives the buttons back.
+          return set({ error: msg.error, pending: false })
         case 'media':
           return set({ media: msg.media })
         case 'ice':
@@ -210,6 +232,7 @@ export const useRoom = create<RoomStore>((set, get) => {
     iceServers: [],
     won: false,
     session: 0,
+    pending: false,
 
     enter: (code) => {
       if (get().code === code && get().connection !== 'gone') return
@@ -233,7 +256,15 @@ export const useRoom = create<RoomStore>((set, get) => {
       set({ code: null, connection: 'idle', view: null, media: {}, error: null })
     },
 
-    act: (action) => send({ t: 'act', action }),
+    act: (action) => {
+      // Sounded and cleared from the screen the moment it is pressed, as on the
+      // ladder: the server's answer is a round trip away, and a tap that does
+      // nothing until it lands feels like lag even when it is quick.
+      const hand = get().view?.hand
+      if (hand) sound.play(soundForMove(action, hand))
+      set({ pending: true })
+      send({ t: 'act', action })
+    },
     start: () => send({ t: 'start' }),
     addBots: (count) => send({ t: 'bots', count }),
     removeBot: (id) => send({ t: 'unbot', id }),

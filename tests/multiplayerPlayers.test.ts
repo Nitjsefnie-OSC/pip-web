@@ -32,11 +32,11 @@ test('the same seed seats the same strangers', (t) => {
   t.deepEqual(fillPlayers(3, base, [], mulberry32(7)), fillPlayers(3, base, [], mulberry32(7)))
 })
 
-test('a bot thinks for one to four seconds, longer facing a bet', (t) => {
+test('a bot thinks for under a second to two, longer facing a bet', (t) => {
   for (let seed = 0; seed < 500; seed++) {
     const calm = botThinkMs(seed, false, 0)
-    t.true(calm >= 900 && calm <= 2_200)
+    t.true(calm >= 600 && calm <= 1_300)
     t.true(botThinkMs(seed, true, 3) > calm)
-    t.true(botThinkMs(seed, true, 3) <= 3_200)
+    t.true(botThinkMs(seed, true, 3) <= 1_900)
   }
 })

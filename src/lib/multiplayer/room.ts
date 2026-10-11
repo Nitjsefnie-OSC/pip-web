@@ -31,7 +31,7 @@ import {
 } from '@/lib/poker/engine'
 import { type AiProfile, decideAction } from '@/lib/poker/ai/policy'
 import { createTableMemory, observeAction, type TableMemory } from '@/lib/poker/ai/memory'
-import { botThinkMs, fillPlayers } from './players'
+import { BOT_ALONE_MS, botThinkMs, fillPlayers } from './players'
 
 /** The most seats a private room has. Quick match uses the venue's own count. */
 export const MAX_ROOM_SEATS = 6
@@ -624,6 +624,12 @@ function reschedule(state: RoomState, now: number): RoomState {
   const player = toAct && state.players.find((p) => p.id === toAct.id)
   if (!player) return bump(state)
   if (player.bot) {
+    // Nobody is waiting on it: every person has folded or is all-in.
+    const peopleIn = hand.players.some((p) => {
+      const seat = state.players.find((s) => s.id === p.id)
+      return seat && !seat.bot && p.status === 'active'
+    })
+    if (!peopleIn) return schedule(state, now + BOT_ALONE_MS, 'bot')
     const facingBet = hand.currentBet > toAct.committedThisStreet
     const street = ['preflop', 'flop', 'turn', 'river'].indexOf(hand.street)
     const seed = state.handIndex * 131 + hand.actions.length * 17 + hand.toActIndex

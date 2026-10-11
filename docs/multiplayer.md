@@ -115,7 +115,7 @@ Timings live in `room.ts`:
 |---|---|
 | Your turn | 30 s |
 | Away (disconnected, or timed out twice in a row) | 8 s |
-| A bot thinks | 0.9–3.2 s, longer facing a bet and on later streets |
+| A bot thinks | 0.6–1.9 s, longer facing a bet and on later streets; 0.45 s once no person is in the hand |
 | Pause between hands | 2.8 s (5 s after a showdown) |
 | A quick table waits for its players | 15 s |
 | A finished room is cleared | 30 min |
