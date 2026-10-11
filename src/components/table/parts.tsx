@@ -316,16 +316,21 @@ export function HeroCards({
         })}
         <span className="sr-only">{hand.street}</span>
       </div>
-      {nickname && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="text-2xs text-muted-foreground/70"
-        >
-          {nickname}
-        </motion.span>
-      )}
+      {/* The nickname's line is always there, empty for a hand without one.
+          Only some hands have a name, and a line that came and went moved the
+          cards and changed the felt's height from one hand to the next. */}
+      <span className="h-4 text-2xs leading-4 text-muted-foreground/70">
+        {nickname && (
+          <motion.span
+            key={nickname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            {nickname}
+          </motion.span>
+        )}
+      </span>
     </div>
   )
 }
