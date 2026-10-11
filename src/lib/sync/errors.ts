@@ -61,6 +61,12 @@ export function friendly(message: string): string {
     return 'Too many tries. Give it a minute.'
   // A provider switched off in the dashboard while the build still offers it.
   if (m.includes('provider')) return 'That sign-in option isn’t working right now. Use your email.'
+  // Supabase refusing a native Google or Apple ID token: the nonce check (on
+  // for Google, which can't pass one on iOS) or a client ID missing from the
+  // provider's list ("Unacceptable audience"). A setup problem, not the
+  // player's, so it says what still works rather than "something went wrong".
+  if (m.includes('nonce') || m.includes('audience') || m.includes('id_token'))
+    return 'That sign-in option isn’t set up for the app yet. Use another, or your email.'
   if (m.includes('password')) return 'Passwords need to be at least 8 characters.'
   if (m.includes('email')) return 'That doesn’t look like a valid email address.'
   return 'Something went wrong. Your progress is safe on this device.'

@@ -9,6 +9,13 @@ test('a wrong sign-in is about the pair, not the password', (t) => {
   t.is(friendly('Invalid login credentials'), 'That email and password don’t match.')
 })
 
+test('a refused native ID token says it is a setup problem', (t) => {
+  // Supabase's own wording for the two ways it turns down an app sign-in.
+  const setup = 'That sign-in option isn’t set up for the app yet. Use another, or your email.'
+  t.is(friendly('Passed nonce and nonce in id_token should either both exist or not.'), setup)
+  t.is(friendly('Unacceptable audience in id_token: [abc.apps.googleusercontent.com]'), setup)
+})
+
 test('a taken email says so', (t) => {
   t.is(friendly('User already registered'), 'There’s already an account on that email.')
 })
