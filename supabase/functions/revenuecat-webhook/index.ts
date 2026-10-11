@@ -128,8 +128,13 @@ async function sync(userId: string): Promise<void> {
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('method', { status: 405 })
-  if (req.headers.get('Authorization') !== AUTH)
+  // RevenueCat sends whatever was typed into its "Authorization header value"
+  // box, with or without a `Bearer ` in front, so both forms of the secret are
+  // accepted. Nothing else is.
+  const sent = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (!sent || sent !== AUTH.replace(/^Bearer\s+/i, '')) {
     return new Response('unauthorised', { status: 401 })
+  }
 
   let event: {
     type?: string
