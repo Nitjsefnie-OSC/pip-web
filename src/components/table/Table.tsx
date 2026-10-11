@@ -28,7 +28,14 @@ import { useMoney } from '@/lib/useMoney'
 import { useIsMobile } from '@/lib/useMediaQuery'
 import { useFreerollOnOffer } from '@/lib/useSpendableRoll'
 import { ordinal } from '@/lib/recap'
-import { KITCHEN_TABLE, cashOutValue, houseStack, prizeFor, reviewableVenue } from '@/config/venues'
+import {
+  KITCHEN_TABLE,
+  cashOutValue,
+  houseStack,
+  prizeFor,
+  reviewableVenue,
+  WELCOME_TABLE,
+} from '@/config/venues'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { cardBackById } from '@/config/cardBacks'
 import { tableFinishById } from '@/config/shop'
@@ -521,6 +528,9 @@ export function Table() {
             leading="back"
             backLabel="Venues"
             showWordmark={false}
+            // The first game: onboarding offers the account right after it,
+            // so the bar doesn't as well.
+            account={venue.id !== WELCOME_TABLE.id}
             onBack={() => setLeaveOpen(true)}
             title={
               <>

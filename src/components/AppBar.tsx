@@ -30,6 +30,8 @@ type Leading = 'profile' | 'back' | 'none'
  *   pip · Style · Settings cluster.
  * - `chrome={false}` — no account, Style or Settings buttons: for a screen a
  *   stranger lands on from a link, where only the page's own actions belong.
+ * - `account={false}` — Style and Settings, but no account button: for the
+ *   first game, where onboarding asks about an account straight afterwards.
  * - `leading='none'` — nothing on the left, and the title sits there in the
  *   flow instead of floating centred, so it can never run under the actions.
  */
@@ -41,6 +43,7 @@ export function AppBar({
   actions,
   showWordmark = true,
   chrome = true,
+  account = true,
   className,
 }: {
   leading?: Leading
@@ -52,6 +55,8 @@ export function AppBar({
   showWordmark?: boolean
   /** The account · Style · Settings buttons. Off on a shared hand. */
   chrome?: boolean
+  /** The signed-out account button. Off on the welcome table. */
+  account?: boolean
   className?: string
 }) {
   const router = useRouter()
@@ -121,7 +126,7 @@ export function AppBar({
               account. One tap from anywhere beats three taps from two screens. */}
           {chrome && (
             <>
-              <AccountBarButton />
+              {account && <AccountBarButton />}
               <button
                 onClick={() => {
                   sound.play('tap')

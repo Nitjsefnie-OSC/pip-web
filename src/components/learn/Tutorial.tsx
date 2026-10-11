@@ -80,7 +80,10 @@ export function Tutorial() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col overflow-x-clip">
+      {/* `data-screen`: one screen between the notch and the home bar in the
+          app and the installed PWA (globals.css), which already clears the
+          home bar, so the dots below don't add it again. */}
+      <div data-screen className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col overflow-x-clip">
         {/* top bar — wordmark and a quiet Skip on every page */}
         <div className="flex items-center justify-between px-6 py-5">
           <Link
@@ -174,7 +177,7 @@ export function Tutorial() {
         </AnimatePresence>
 
         {/* dots (always) + arrows (desktop); swipe carries mobile */}
-        <div className="flex items-center justify-center gap-6 pt-6 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+        <div className="flex items-center justify-center gap-6 pt-6 pb-8">
           <ArrowButton dir="left" disabled={page === 0} onClick={() => goTo(page - 1)} />
           <div className="flex items-center gap-2">
             {LESSONS.map((l, i) => (

@@ -70,9 +70,9 @@ export function WelcomeFlow() {
   return (
     // `data-screen`: exactly the space between the notch and the home bar, so
     // it fits without scrolling in the app and the installed PWA (globals.css).
-    <div data-screen className="flex min-h-dvh flex-col px-6 py-8">
+    <div data-screen className="flex min-h-dvh flex-col px-6 py-6">
       <Progress step={step} />
-      <div className="flex flex-1 items-center justify-center py-8">
+      <div className="flex flex-1 items-center justify-center py-6">
         <motion.div
           key={step}
           initial={{ opacity: 0, y: 12 }}
