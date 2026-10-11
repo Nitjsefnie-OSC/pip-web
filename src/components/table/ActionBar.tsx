@@ -38,11 +38,16 @@ export function ActionBar({
   const hero = hand.players[hand.toActIndex]
   const isHeroTurn = hero?.id === viewerId && !!legal
 
-  // Match the real button row's height exactly (py-4 + text-base = 56px) so the
-  // bar appearing/clearing on the hero's turn never resizes the layout — that
-  // resize is what nudges the community cards.
+  // Off your turn, hold the button row's space so the bar appearing or clearing
+  // never resizes the layout: that resize is what nudges the community cards.
   if (!isHeroTurn || !legal) {
-    return <div className="h-[56px]" aria-hidden />
+    // An invisible button, not a fixed height: it is the same height as the
+    // real row at any text size, so the table never moves between turns.
+    return (
+      <div aria-hidden className="invisible flex gap-2">
+        <Pill onClick={() => {}}>Call</Pill>
+      </div>
+    )
   }
 
   const pot = potSize(hand)

@@ -1,9 +1,10 @@
 # Multiplayer
 
-> **Status: built, not yet deployed.** The room server is `rooms/`, a Cloudflare Worker beside
-> the Pages site. The web app hides every multiplayer surface until `NEXT_PUBLIC_ROOMS_URL`
-> is set in the build, so the order is fixed: deploy the Worker (the runbook below), then set
-> the variable. The plan and the rulings are `cto/drafts/build-multiplayer.md`.
+> **Status: live on playpip.io since 2026-10-11** (v1.27.0). The room server is `rooms/`, a
+> Cloudflare Worker beside the Pages site at rooms.playpip.io, deployed by hand with
+> `pnpm rooms:deploy` until `ROOMS_ENABLED` and `CLOUDFLARE_WORKERS_TOKEN` are set. The web app
+> hides every multiplayer surface in a build without `NEXT_PUBLIC_ROOMS_URL`. The plan and the
+> rulings are `cto/drafts/build-multiplayer.md`.
 
 There are two ways to a table with people at it:
 
