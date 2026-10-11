@@ -197,6 +197,10 @@ export function RoomTable({
   })
 
   const myTurn = !settled && activeId === view.you && hero !== undefined
+  const clock =
+    myTurn && view.dueAt !== null && view.dueKind === 'turn' ? (
+      <TurnClock dueAt={view.dueAt - clockOffset} totalMs={view.settings.turnSeconds * 1000} />
+    ) : undefined
   const helpButton = (
     <AppBarAction
       label="Hand rankings"
@@ -325,9 +329,10 @@ export function RoomTable({
                   equity={null}
                   isButton={hero.id === buttonId}
                   isActive={activeId === hero.id}
-                  corners={
-                    isMobile && live ? { left: <CameraToggle />, right: <MicToggle /> } : undefined
-                  }
+                  corners={{
+                    ...(isMobile && live ? { left: <CameraToggle />, right: <MicToggle /> } : {}),
+                    bottomLeft: clock,
+                  }}
                   face={face(hero.id, 36, hero.status === 'folded', () => setBig(hero.id))}
                 />
               </div>
@@ -342,16 +347,6 @@ export function RoomTable({
                 : 'mx-auto max-w-xl px-6 pt-4 pb-7',
             )}
           >
-            {/* The clock's row is always there, empty when it is not your
-                turn, so the clock arriving never moves the table up. */}
-            <div className="mb-2 h-4">
-              {myTurn && view.dueAt !== null && view.dueKind === 'turn' && (
-                <TurnClock
-                  dueAt={view.dueAt - clockOffset}
-                  totalMs={view.settings.turnSeconds * 1000}
-                />
-              )}
-            </div>
             {hero ? (
               <ActionBar
                 hand={hand}

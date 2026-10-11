@@ -316,21 +316,16 @@ export function HeroCards({
         })}
         <span className="sr-only">{hand.street}</span>
       </div>
-      {/* The nickname's line is always there, empty for a hand without one:
-          only some hands have a name, and a line that came and went made the
-          cards jump and the felt above them change height between hands. */}
-      <span className="h-4 text-2xs leading-4 text-muted-foreground/70">
-        {nickname && (
-          <motion.span
-            key={nickname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-          >
-            {nickname}
-          </motion.span>
-        )}
-      </span>
+      {nickname && (
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-2xs text-muted-foreground/70"
+        >
+          {nickname}
+        </motion.span>
+      )}
     </div>
   )
 }
@@ -387,7 +382,7 @@ export function HeroPanel({
    * layout puts help and last hand here, because the bar has no room for them
    * and anywhere else on the felt they look dropped (Will, 2026-10-07).
    */
-  corners?: { left?: React.ReactNode; right?: React.ReactNode }
+  corners?: { left?: React.ReactNode; right?: React.ReactNode; bottomLeft?: React.ReactNode }
   /** Drawn in place of your avatar: your own camera, at a multiplayer table. */
   face?: React.ReactNode
 }) {
@@ -495,6 +490,8 @@ export function HeroPanel({
         <>
           <div className="absolute left-0.5 top-0.5 text-muted-foreground">{corners.left}</div>
           <div className="absolute right-0.5 top-0.5 text-muted-foreground">{corners.right}</div>
+          {/* A multiplayer table's turn clock (components/room/TurnClock). */}
+          <div className="absolute bottom-1.5 left-2">{corners.bottomLeft}</div>
         </>
       )}
 
