@@ -25,6 +25,7 @@ import { cardBackById } from '@/config/cardBacks'
 import { avatarRingById, dealerButtonById } from '@/config/cosmetics'
 import { tableFinishById } from '@/config/shop'
 import { venueById } from '@/config/venues'
+import { heroEquity } from '@/lib/poker/heroEquity'
 import type { RoomView } from '@/lib/multiplayer/view'
 import { ordinal } from '@/lib/recap'
 import { sound } from '@/lib/sound'
@@ -198,6 +199,14 @@ export function RoomTable({
   })
 
   const myTurn = !settled && activeId === view.you && hero !== undefined
+  // Your chance to win, worked out here from your own cards, the board and the
+  // chips in, so it needs nobody else’s cards, which the view never holds. Only on
+  // your turn, as at the ladder, so it is the number for the decision in front
+  // of you.
+  const equity = useMemo(
+    () => (myTurn ? heroEquity(hand, view.you!) : null),
+    [myTurn, hand, view.you],
+  )
   const clock =
     myTurn && view.dueAt !== null && view.dueKind === 'turn' ? (
       <TurnClock dueAt={view.dueAt - clockOffset} totalMs={view.settings.turnSeconds * 1000} />
@@ -327,7 +336,7 @@ export function RoomTable({
                   hero={hero}
                   avatar={me.avatar}
                   hand={hand}
-                  equity={null}
+                  equity={equity}
                   isButton={hero.id === buttonId}
                   isActive={activeId === hero.id}
                   corners={{
