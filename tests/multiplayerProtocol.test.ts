@@ -125,3 +125,14 @@ test('joining twice keeps your place, and leaving takes you out', (t) => {
     ['u1'],
   )
 })
+
+test('reports carry one of the reasons, and blocks a seat', (t) => {
+  t.deepEqual(send({ t: 'report', id: 'p2', reason: 'abuse' }), {
+    t: 'report',
+    id: 'p2',
+    reason: 'abuse',
+  })
+  t.is(send({ t: 'report', id: 'p2', reason: 'rude' }), null)
+  t.is(send({ t: 'report', id: 'p2' }), null)
+  t.deepEqual(send({ t: 'block', id: 'p2' }), { t: 'block', id: 'p2' })
+})

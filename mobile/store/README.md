@@ -86,6 +86,14 @@ No App Tracking Transparency prompt is needed.
 | Purchases › Purchase History | Yes, members only | Yes | No | App Functionality | The `memberships` row (status, renewal date). In-app purchases themselves are processed by Apple. |
 | Usage Data › Product Interaction | Yes | **No** | No | Analytics | Umami, cookieless: page views and named events only, no identifiers |
 
+**Multiplayer (2026-10-11).** Nothing new to declare beyond what is above: at a table the room
+server holds the account's user id, its chosen name and avatar, and the game, and deletes a
+room within half an hour of it finishing (already covered by User ID and Gameplay Content).
+Camera and microphone are **not collected**: video and audio go directly between the players'
+devices, encrypted, and when a network forces a relay it passes through Cloudflare's TURN
+service still encrypted. Nothing is recorded or stored, so Apple's Audio Data and Photos or
+Videos categories do not apply. The Info.plist usage strings explain the prompts.
+
 Not collected: location, contacts, health, financial info (Apple handles payment; Stripe is
 web only), browsing history, search history, diagnostics, sensitive info. Cloudflare's
 standard access logs (IP addresses) are hosting logs, not something the app collects, and
@@ -105,7 +113,8 @@ thorough, declare it under User Content › Photos or Videos.
 | Alcohol, Tobacco or Drug Use or References | **Infrequent/Mild** | Table talk and shop copy mention pints and a beermat (`config/cast.ts`, `config/shop.ts`). It doesn't change the rating, but answering None would be wrong. |
 | Contests | None | No prizes. The ladder and the Daily are single-player. |
 | Unrestricted Web Access | No | The web view only loads playpip.io. Every other link opens in Safari (`onShouldStartLoadWithRequest` in `App.tsx`). |
-| User-Generated Content, Messaging and Chat | No | No chat, and no player content is shown to anyone else. |
+| Messaging and Chat | **Yes** | Multiplayer private rooms carry voice (and camera) between the players at one table. Invitation only, no text chat, nothing with strangers. |
+| User-Generated Content | **Yes** | The same: a player's camera is shown to the friends at their table. Answered yes to be safe; it is live and never stored. |
 | Advertising | No | No ads. |
 | Loot boxes | No | The Chip Shop sells fixed cosmetics for play chips, with no random rewards. |
 | Everything else (violence, sexual content, horror, medical, profanity, mature themes, weapons) | None | — |
@@ -142,6 +151,13 @@ landed. In order of how likely they are:
 6. **Account deletion is three taps** (Settings › Manage account › Delete my account and
    synced data). That meets 5.1.1(v). Members who bought in the app are told to cancel with
    Apple first, which Apple asks for.
+
+7. **Multiplayer and guideline 1.2 (user-generated content).** Built for it (2026-10-11):
+   rooms are invitation only, there is no public lobby or text chat, and quick match has no
+   camera or voice. Tapping any player opens a sheet with **Mute** and **Hide their camera**
+   (yours only), **Report** (four reasons, stored on our side with both accounts and the room),
+   and **Block** (no camera or voice between you from then on, and they cannot join rooms you
+   open). The host can also remove anyone. The review notes describe all of it.
 
 Fixed since the first draft: the offline screen, the support page (`supportUrl` now points at
 `/support`), the sign-in copy (it names only the providers this build offers), and

@@ -134,6 +134,12 @@ export interface RoomState {
   reserved: string[]
   /** Accounts the host removed. They cannot come back to this room. */
   banned: string[]
+  /**
+   * Who has blocked whom, by account: blocker → blocked. The host's standing
+   * blocks are loaded when the room opens, so somebody the host blocked cannot
+   * join; anybody's block at the table stops camera and voice between the two.
+   */
+  blocks: Record<string, string[]>
   settings: RoomSettings
   phase: RoomPhase
   players: RoomPlayer[]
@@ -191,6 +197,8 @@ export function createRoom(opts: {
   venue: Venue
   host?: Joiner
   reserved?: string[]
+  /** Accounts the host has blocked before, from their account. */
+  hostBlocks?: string[]
   now: number
 }): RoomState {
   const { venue, now } = opts
@@ -207,6 +215,7 @@ export function createRoom(opts: {
     maxSeats: opts.kind === 'quick' ? venue.seats : MAX_ROOM_SEATS,
     reserved: opts.reserved ?? [],
     banned: [],
+    blocks: opts.host && opts.hostBlocks?.length ? { [opts.host.userId]: opts.hostBlocks } : {},
     settings: {
       ...DEFAULT_SETTINGS,
       seats: opts.kind === 'quick' ? venue.seats : MAX_ROOM_SEATS,
@@ -268,6 +277,10 @@ export function playerFor(state: RoomState, userId: string): RoomPlayer | undefi
 export function join(state: RoomState, j: Joiner, now: number): Result {
   if (state.phase === 'closed') return fail('closed')
   if (state.banned.includes(j.userId)) return fail('kicked')
+  // Somebody the host has blocked is told the same as somebody removed: no more.
+  if (state.hostUserId && state.blocks[state.hostUserId]?.includes(j.userId)) {
+    return fail('kicked')
+  }
   const existing = playerFor(state, j.userId)
   if (existing) {
     const players = state.players.map((p) =>
@@ -360,6 +373,27 @@ export function kick(state: RoomState, userId: string, playerId: string, now: nu
   )
   const next = { ...state, banned, players }
   return ok(state.phase === 'playing' ? reschedule(next, now) : bump(next))
+}
+
+/**
+ * Block another person at the table. From now on no camera or voice passes
+ * between the two of you, whoever turns theirs on. It is private: they are
+ * not told, and nothing else about the game changes.
+ */
+export function block(state: RoomState, userId: string, playerId: string): Result {
+  const me = playerFor(state, userId)
+  const target = state.players.find((p) => p.id === playerId)
+  if (!me || !target || target.bot || !target.userId || target.userId === userId) {
+    return fail('illegal')
+  }
+  const mine = state.blocks[userId] ?? []
+  if (mine.includes(target.userId)) return ok(state)
+  return ok(bump({ ...state, blocks: { ...state.blocks, [userId]: [...mine, target.userId] } }))
+}
+
+/** Whether either of two accounts has blocked the other. */
+export function blockedBetween(state: RoomState, a: string, b: string): boolean {
+  return Boolean(state.blocks[a]?.includes(b) || state.blocks[b]?.includes(a))
 }
 
 /** The host changes the table before the deal. Anything out of range is refused whole. */

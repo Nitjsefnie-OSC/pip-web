@@ -10,7 +10,6 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, Copy, Plus, Share2, SlidersHorizontal, X } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { TableStyleContext } from '@/components/table/parts'
 import { TableFelt, TableRoom } from '@/components/table/surface'
@@ -28,6 +27,7 @@ import { cn } from '@/lib/utils'
 import { useMedia } from '@/store/media'
 import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
+import { PlayerSheet } from './PlayerSheet'
 import { RoomRulesDialog } from './RoomSettings'
 import { FaceViewer, MediaControls, MediaProblem, SeatFace, TableAudio } from './live'
 
@@ -45,9 +45,10 @@ export function RoomLobby({
   const start = useRoom((s) => s.start)
   const addBots = useRoom((s) => s.addBots)
   const removeBot = useRoom((s) => s.removeBot)
-  const kick = useRoom((s) => s.kick)
   const [rulesOpen, setRulesOpen] = useState(false)
-  const [removing, setRemoving] = useState<SeatView | null>(null)
+  const [sheet, setSheet] = useState<SeatView | null>(null)
+  const muted = useMedia((s) => s.muted)
+  const hidden = useMedia((s) => s.hidden)
   const media = useRoom((s) => s.media)
   const remote = useMedia((s) => s.remote)
   const local = useMedia((s) => s.local)
@@ -72,10 +73,11 @@ export function RoomLobby({
   const full = view.players.length >= view.maxSeats
   const size = isMobile ? 46 : 64
 
+  // What you have muted or hidden is left out here, for you only.
   const videoOf = (id: string) =>
-    media[id]?.camera ? (id === view.you ? local : remote[id]) : null
+    media[id]?.camera && !hidden[id] ? (id === view.you ? local : remote[id]) : null
   const voiceOf = (id: string) =>
-    media[id]?.mic ? (id === view.you ? localVoice : remote[id]) : null
+    media[id]?.mic && !muted[id] ? (id === view.you ? localVoice : remote[id]) : null
   const faceFor = (seat: SeatView, px: number) => (
     <SeatFace
       video={videoOf(seat.id)}
@@ -85,7 +87,9 @@ export function RoomLobby({
       size={px}
       mirrored={seat.id === view.you}
       dimmed={!seat.bot && !seat.connected}
-      onExpand={() => setBig(seat.id)}
+      // Your own camera opens large. Anybody else's face opens their sheet
+      // (the wrapper below), which has the camera in it too.
+      onExpand={seat.id === view.you ? () => setBig(seat.id) : undefined}
     />
   )
   const bigVideo = big ? videoOf(big) : null
@@ -146,10 +150,14 @@ export function RoomLobby({
               </AppBarAction>
             </>
           }
+          account={false}
+          // On a phone the bar is full of buttons, and the code is on the felt.
           title={
-            <span className="text-sm font-medium text-muted-foreground">
-              {host ? `${host.id === view.you ? 'Your' : `${host.name}’s`} room` : 'A room'}
-            </span>
+            isMobile ? undefined : (
+              <span className="text-sm font-medium text-muted-foreground">
+                {host ? `${host.id === view.you ? 'Your' : `${host.name}’s`} room` : 'A room'}
+              </span>
+            )
           }
         />
 
@@ -215,17 +223,29 @@ export function RoomLobby({
                     style={{ width: size, height: size }}
                   >
                     <div className="rounded-full shadow-lg shadow-table-shade/70 ring-2 ring-table-shade">
-                      {faceFor(seat, size)}
+                      {seat.bot ? (
+                        faceFor(seat, size)
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            sound.play('tap')
+                            setSheet(seat)
+                          }}
+                          aria-label={`About ${seat.name}`}
+                          className="block rounded-full"
+                        >
+                          {faceFor(seat, size)}
+                        </button>
+                      )}
                     </div>
-                    {view.isHost && (
+                    {view.isHost && seat.bot && (
                       <button
                         onClick={() => {
                           sound.play('tap')
-                          // A regular goes at once; a person is asked about first.
-                          if (seat.bot) removeBot(seat.id)
-                          else setRemoving(seat)
+                          removeBot(seat.id)
                         }}
-                        aria-label={seat.bot ? `Send ${seat.name} home` : `Remove ${seat.name}`}
+                        aria-label={`Send ${seat.name} home`}
                         className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-table-shade text-muted-foreground ring-1 ring-foreground/15 transition hover:text-foreground"
                       >
                         <X className="size-3" />
@@ -332,31 +352,16 @@ export function RoomLobby({
           settings={view.settings}
           buyIn={view.buyIn}
         />
-        <Dialog open={removing !== null} onOpenChange={(o) => !o && setRemoving(null)}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Remove {removing?.name}?</DialogTitle>
-            </DialogHeader>
-            <p className="text-sm text-muted-foreground">They won’t be able to rejoin this room.</p>
-            <div className="mt-2 flex gap-2">
-              <button
-                onClick={() => setRemoving(null)}
-                className="flex-1 rounded-2xl bg-foreground/[0.08] py-3 font-semibold transition hover:bg-foreground/[0.14]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (removing) kick(removing.id)
-                  setRemoving(null)
-                }}
-                className="flex-1 rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition hover:bg-primary/90"
-              >
-                Remove
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <PlayerSheet
+          seat={sheet}
+          onClose={() => setSheet(null)}
+          isHost={view.isHost}
+          blocked={sheet ? view.blocked.includes(sheet.id) : false}
+          cameraOn={sheet ? Boolean(media[sheet.id]?.camera) : false}
+          micOn={sheet ? Boolean(media[sheet.id]?.mic) : false}
+          onShowCamera={() => sheet && setBig(sheet.id)}
+          removeNote="They lose their seat and can’t rejoin this room."
+        />
         <AnimatePresence>
           {big && bigVideo && (
             <FaceViewer

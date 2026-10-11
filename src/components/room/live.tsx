@@ -221,10 +221,11 @@ export function PeerAudio({ stream }: { stream: MediaStream }) {
 /** Every other seat's voice, for the seats whose mic is on. */
 export function TableAudio({ media }: { media: Record<string, MediaState> }) {
   const remote = useMedia((s) => s.remote)
+  const muted = useMedia((s) => s.muted)
   return (
     <>
       {Object.entries(remote)
-        .filter(([id]) => media[id]?.mic)
+        .filter(([id]) => media[id]?.mic && !muted[id])
         .map(([id, stream]) => (
           <PeerAudio key={id} stream={stream} />
         ))}

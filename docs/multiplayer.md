@@ -141,8 +141,25 @@ them**. That tap is also what lets iOS and Android play the other seats' audio.
   - `PeerAudio` plays the voices.
 - **In the store apps:** `mobile/` declares the camera and microphone permissions, and the
   WebView grants capture to playpip.io (`mediaCapturePermissionGrantType`). The app reports
-  the `media` capability; an app without it hides the buttons. This needs a **new store build**
-  (app version 1.1.0); see `mobile/README.md`.
+  the `media` capability; an app without it hides the buttons. It ships in the first store build (1.0.0);
+  see `mobile/README.md`.
+
+## Reporting, blocking and muting (2026-10-11)
+
+For App Store guideline 1.2, and because people deserve them. Tap any person at a private
+table, or their face in the lobby, for `PlayerSheet`:
+
+- **Mute** and **Hide their camera**: for you only, in `store/media.ts`; nothing is sent.
+- **Report**: four reasons. The room server stores the reporter, the reported account, the room
+  code and the reason in `player_reports` (`rooms/src/safety.ts`), once per pair per room, and
+  logs it as well, so a failed insert is never a lost report.
+- **Block**: stored in `player_blocks`. At the table the server stops relaying camera and voice
+  between the two (`blockedBetween`), and leaves each out of the other's media list. When the
+  blocker opens a room their blocks are loaded, and a blocked account is refused at the door.
+  The blocked person is never told.
+
+Both tables are RLS-on with no policies (`supabase/migrations/20261011090000_player_safety.sql`):
+only the service role reads or writes them. Read reports in the Supabase table editor.
 
 ## The client
 
@@ -204,7 +221,7 @@ token.
    - the hub;
    - the membership page's spotlight;
    - the privacy section.
-6. **The apps:** `eas build`, then `eas submit` for 1.1.0, so camera and mic work there too.
+6. **The apps:** the first store build (1.0.0) already carries the camera and mic permissions.
 
 ## Costs
 
@@ -234,7 +251,7 @@ Two browsers, or a phone and a laptop. One should be a member and the other a fr
 - [ ] Camera on, then mic on, on both. Each face takes its seat at its usual size, your own
       mirrored. Voices play and talking rings the seat. Turning the camera off brings the
       avatar back and the camera light goes out.
-- [ ] Repeat on iOS Safari, and in the iOS app once 1.1.0 is installed (one system prompt per
+- [ ] Repeat on iOS Safari, and in the iOS app (TestFlight) (one system prompt per
       permission, no second web prompt).
 - [ ] Play to the end. The winner's Roll gains the prize once; a refresh on the end card does
       not pay twice.

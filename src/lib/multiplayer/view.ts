@@ -47,6 +47,8 @@ export interface RoomView {
   prize: number
   /** The host's table rules. */
   settings: RoomSettings
+  /** The seats this viewer has blocked. Never who has blocked them. */
+  blocked: string[]
   /** When the first hand was dealt. With the code, names this game for the Roll's ledger. */
   startedAt: number | null
   players: SeatView[]
@@ -103,6 +105,11 @@ export function viewFor(state: RoomState, userId: string | null): RoomView {
     prize: state.prize,
     startedAt: state.startedAt,
     settings: state.settings,
+    blocked: userId
+      ? state.players
+          .filter((p) => p.userId && state.blocks[userId]?.includes(p.userId))
+          .map((p) => p.id)
+      : [],
     // The account id stays on the server. Nobody at the table needs it, and a
     // list of them is the first thing anybody harvesting a room would want.
     players: state.players.map((p) => ({

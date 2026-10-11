@@ -20,6 +20,9 @@ export interface Hello {
   ring: string | null
 }
 
+export const REPORT_REASONS = ['abuse', 'camera', 'cheating', 'other'] as const
+export type ReportReason = (typeof REPORT_REASONS)[number]
+
 /** Whether your camera and microphone are on, as the table should draw you. */
 export interface MediaState {
   camera: boolean
@@ -36,6 +39,10 @@ export type ClientMessage =
   | { t: 'configure'; settings: Partial<RoomSettings> }
   /** The host removes a person from the room. */
   | { t: 'kick'; id: string }
+  /** Report a person at the table. */
+  | { t: 'report'; id: string; reason: ReportReason }
+  /** Block a person: no camera or voice between you, now or in your rooms. */
+  | { t: 'block'; id: string }
   | { t: 'leave' }
   | { t: 'media'; media: MediaState }
   /** A WebRTC offer, answer or candidate for one other seat. Passed on untouched. */
@@ -67,6 +74,8 @@ export type ServerMessage =
   | { t: 'media'; media: Record<string, MediaState> }
   | { t: 'signal'; from: string; data: unknown }
   | { t: 'ice'; iceServers: RTCIceServerLike[] }
+  /** A report was received. */
+  | { t: 'reported' }
   | { t: 'pong' }
 
 /** The shape `RTCPeerConnection` takes, without needing the DOM's types on the server. */
@@ -212,6 +221,12 @@ export function parseClientMessage(raw: unknown): ClientMessage | null {
       return isStr(m.id, 12) ? { t: 'unbot', id: m.id } : null
     case 'kick':
       return isStr(m.id, 12) ? { t: 'kick', id: m.id } : null
+    case 'block':
+      return isStr(m.id, 12) ? { t: 'block', id: m.id } : null
+    case 'report':
+      return isStr(m.id, 12) && REPORT_REASONS.includes(m.reason as ReportReason)
+        ? { t: 'report', id: m.id, reason: m.reason as ReportReason }
+        : null
     case 'configure': {
       const settings = parseSettings(m.settings)
       return settings ? { t: 'configure', settings } : null

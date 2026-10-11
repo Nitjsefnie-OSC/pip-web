@@ -5,6 +5,8 @@ import { legalActions } from '@/lib/poker/engine'
 import {
   act,
   addBots,
+  block,
+  blockedBetween,
   configure,
   createRoom,
   disconnect,
@@ -21,6 +23,7 @@ import {
   type Result,
   type RoomState,
 } from '@/lib/multiplayer/room'
+import { viewFor } from '@/lib/multiplayer/view'
 
 const garage = VENUES[0]
 const pub = VENUES[1]
@@ -362,4 +365,32 @@ test('under "they’re out", leaving ends your game; under "keep their seat", it
       t.false(s.players.find((p) => p.userId === 'user-1')!.standing ?? false)
     }
   }
+})
+
+// --- blocking ----------------------------------------------------------------
+
+test('a block is private, one way to set and both ways to apply', (t) => {
+  let s = must(join(room(), person(1), 0))
+  const p1 = s.players.find((p) => p.userId === 'user-1')!.id
+  s = must(block(s, 'user-0', p1))
+  t.true(blockedBetween(s, 'user-0', 'user-1'))
+  t.true(blockedBetween(s, 'user-1', 'user-0'))
+  t.deepEqual(viewFor(s, 'user-0').blocked, [p1])
+  // The person blocked is never told.
+  t.deepEqual(viewFor(s, 'user-1').blocked, [])
+  t.is((block(s, 'user-0', 'p0') as { error?: string }).error, 'illegal')
+})
+
+test('somebody the host has blocked before cannot join their room', (t) => {
+  const s = createRoom({
+    code: 'ABCDEF',
+    kind: 'private',
+    venue: pub,
+    host: person(0),
+    hostBlocks: ['user-1'],
+    now: 0,
+  })
+  const r = join(s, person(1), 0)
+  t.is(!r.ok && r.error, 'kicked')
+  t.true(join(s, person(2), 0).ok)
 })

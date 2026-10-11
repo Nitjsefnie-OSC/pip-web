@@ -37,6 +37,7 @@ import { useMedia } from '@/store/media'
 import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
 import { FaceViewer, MediaControls, MediaProblem, SeatFace, TableAudio } from './live'
+import { PlayerSheet } from './PlayerSheet'
 import { TurnClock } from './TurnClock'
 
 type Point = { left: string; top: string }
@@ -76,7 +77,8 @@ export function RoomTable({
   const [big, setBig] = useState<string | null>(null)
   /** The seat the host has tapped, for its menu. */
   const [menu, setMenu] = useState<string | null>(null)
-  const kick = useRoom((s) => s.kick)
+  const muted = useMedia((s) => s.muted)
+  const hidden = useMedia((s) => s.hidden)
 
   const venue = venueById(view.venueId)
   const accent = venue?.accent ?? '#7C8CF0'
@@ -117,10 +119,11 @@ export function RoomTable({
   // neither keeps the table's own avatar (FeltSeat draws it when `face` is
   // undefined), so the room looks like the ladder until somebody turns
   // something on.
+  // What you have muted or hidden is left out here, for you only.
   const videoOf = (id: string) =>
-    media[id]?.camera ? (id === view.you ? local : remote[id]) : null
+    media[id]?.camera && !hidden[id] ? (id === view.you ? local : remote[id]) : null
   const voiceOf = (id: string) =>
-    media[id]?.mic ? (id === view.you ? localVoice : remote[id]) : null
+    media[id]?.mic && !muted[id] ? (id === view.you ? localVoice : remote[id]) : null
   const face = (id: string, size: number, dimmed: boolean, expand?: () => void) => {
     const video = videoOf(id)
     const voice = voiceOf(id)
@@ -166,9 +169,9 @@ export function RoomTable({
           side={x < 42 ? 'left' : x > 58 ? 'right' : 'top'}
           onSelect={() => {
             sound.play('tap')
-            // The host gets a choice for a person; everyone else gets the camera.
-            if (view.isHost && !seat.bot && !seat.standing) setMenu(p.id)
-            else if (videoOf(p.id)) setBig(p.id)
+            // A person opens their sheet (camera, mute, report, block, and
+            // remove for the host). The cast and AI seats have nothing to open.
+            if (!seat.bot) setMenu(p.id)
           }}
           held={view.held[p.id]}
           // A stranger filling a quick-match seat is a computer, and says so.
@@ -210,6 +213,8 @@ export function RoomTable({
             leading="back"
             backLabel="Leave"
             showWordmark={false}
+            // Everybody at a table is signed in, and a phone's bar needs the room.
+            account={false}
             onBack={() => (finished || out ? onLeave() : setLeaveOpen(true))}
             title={
               <>
@@ -227,7 +232,7 @@ export function RoomTable({
                     aria-label={`Copy room code ${view.code}`}
                     className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
                   >
-                    {codeCopied ? 'Code copied' : `Room ${view.code}`}
+                    {codeCopied ? 'Copied' : isMobile ? view.code : `Room ${view.code}`}
                   </button>
                 ) : (
                   <span className="text-sm font-medium text-muted-foreground">
@@ -303,7 +308,7 @@ export function RoomTable({
                   }
                 />
               </div>
-              <div className={cn('flex', !isMobile && 'w-44')}>
+              <div className={cn('flex', isMobile ? 'flex-1 basis-0' : 'w-44')}>
                 <HeroPanel
                   hero={hero}
                   avatar={me.avatar}
@@ -394,38 +399,16 @@ export function RoomTable({
               />
             )}
           </AnimatePresence>
-          <Dialog open={menu !== null} onOpenChange={(o) => !o && setMenu(null)}>
-            <DialogContent className="sm:max-w-sm">
-              <DialogHeader>
-                <DialogTitle>{menu ? meta.get(menu)?.name : ''}</DialogTitle>
-              </DialogHeader>
-              <div className="flex flex-col gap-2">
-                {menu && videoOf(menu) && (
-                  <button
-                    onClick={() => {
-                      setBig(menu)
-                      setMenu(null)
-                    }}
-                    className="rounded-2xl bg-foreground/[0.08] py-3 font-semibold transition hover:bg-foreground/[0.14]"
-                  >
-                    Show camera
-                  </button>
-                )}
-                <button
-                  onClick={() => {
-                    if (menu) kick(menu)
-                    setMenu(null)
-                  }}
-                  className="rounded-2xl bg-foreground/[0.08] py-3 font-semibold text-suit-red transition hover:bg-foreground/[0.14]"
-                >
-                  Remove from the table
-                </button>
-                <p className="text-center text-2xs text-muted-foreground">
-                  They’re folded out after this hand and can’t rejoin.
-                </p>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <PlayerSheet
+            seat={menu ? (meta.get(menu) ?? null) : null}
+            onClose={() => setMenu(null)}
+            isHost={view.isHost && !meta.get(menu ?? '')?.standing}
+            blocked={menu ? view.blocked.includes(menu) : false}
+            cameraOn={menu ? Boolean(media[menu]?.camera) : false}
+            micOn={menu ? Boolean(media[menu]?.mic) : false}
+            onShowCamera={() => menu && setBig(menu)}
+            removeNote="They’re folded out after this hand and can’t rejoin."
+          />
           <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
           <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
             <DialogContent className="sm:max-w-sm">

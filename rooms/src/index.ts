@@ -13,6 +13,7 @@ import { normaliseRoomCode, newRoomCode } from '@/lib/multiplayer/code'
 import { parseClientMessage } from '@/lib/multiplayer/protocol'
 import { type RoomSettings, roomVenue } from '@/lib/multiplayer/room'
 import { identify, isMember } from './auth'
+import { blocksOf } from './safety'
 import { corsHeaders, cryptoInt, json, originAllowed, type Env } from './env'
 import type { InitBody } from './room'
 
@@ -96,6 +97,7 @@ async function createRoom(
   const userId = await identify(token, env)
   if (!userId) return json({ error: 'auth' }, 401, cors)
   if (!(await isMember(userId, token, env))) return json({ error: 'members-only' }, 403, cors)
+  const hostBlocks = await blocksOf(env, userId)
 
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = newRoomCode(cryptoInt)
@@ -106,6 +108,7 @@ async function createRoom(
       venueId: venue.id,
       host: { userId, name: hello.name, avatar: hello.avatar, ring: hello.ring },
       settings,
+      hostBlocks,
     }
     const res = await stub.fetch('https://room/init', {
       method: 'POST',

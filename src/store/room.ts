@@ -14,6 +14,7 @@ import { settle, type Ledger } from '@/lib/multiplayer/ledger'
 import type {
   ClientMessage,
   MediaState,
+  ReportReason,
   RTCIceServerLike,
   ServerError,
   ServerMessage,
@@ -47,6 +48,8 @@ interface RoomStore {
   addBots: (count: number) => void
   removeBot: (id: string) => void
   kick: (id: string) => void
+  report: (id: string, reason: ReportReason) => void
+  block: (id: string) => void
   setMedia: (media: MediaState) => void
   signal: (to: string, data: unknown) => void
   clearError: () => void
@@ -172,6 +175,9 @@ export const useRoom = create<RoomStore>((set, get) => {
           return set({ media: msg.media })
         case 'ice':
           return set({ iceServers: msg.iceServers })
+        case 'reported':
+          // The sheet has already thanked them; this is the server agreeing.
+          return
         case 'signal':
           for (const l of signalListeners) l(msg.from, msg.data)
           return
@@ -232,6 +238,8 @@ export const useRoom = create<RoomStore>((set, get) => {
     addBots: (count) => send({ t: 'bots', count }),
     removeBot: (id) => send({ t: 'unbot', id }),
     kick: (id) => send({ t: 'kick', id }),
+    report: (id, reason) => send({ t: 'report', id, reason }),
+    block: (id) => send({ t: 'block', id }),
     setMedia: (media) => send({ t: 'media', media }),
     signal: (to, data) => send({ t: 'signal', to, data }),
     clearError: () => set({ error: null }),

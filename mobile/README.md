@@ -115,7 +115,7 @@ npx eas-cli@latest build --platform ios --profile production --auto-submit   # T
 npx eas-cli@latest build --platform ios --profile development               # dev build for your phone
 ```
 
-**Version 1.1.0.** The app's `runtimeVersion` follows its version (`policy: appVersion`), so it was
-bumped from 1.0.0 with this change. An over-the-air update published from now on reaches only
-1.1.0 builds, which have the native permissions. Without the bump, an OTA update would have told
-old 1.0.0 installs to show camera buttons they cannot use.
+**Ships in 1.0.0.** The camera and microphone permissions are in the app's first store build,
+so no installed version ever lacks them. Once the app is out, any later change to native
+permissions needs a version bump: `runtimeVersion` follows the app version, and an
+over-the-air update must never reach a build without the permissions it relies on.

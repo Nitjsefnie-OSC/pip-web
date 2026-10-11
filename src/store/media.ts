@@ -41,6 +41,12 @@ interface MediaStore {
   /** Everybody else's, by seat id. */
   remote: Record<string, MediaStream>
   problem: MediaProblem | null
+  /** Seats you have muted, for you only. Nothing is sent: their voice stops playing here. */
+  muted: Record<string, boolean>
+  /** Seats whose camera you have hidden, for you only: their avatar shows instead. */
+  hidden: Record<string, boolean>
+  toggleMute: (id: string) => void
+  toggleHidden: (id: string) => void
   toggleCamera: () => Promise<void>
   toggleMic: () => Promise<void>
   /** Keep a connection open to exactly these seats. */
@@ -209,6 +215,11 @@ export const useMedia = create<MediaStore>((set, get) => {
     localVoice: null,
     remote: {},
     problem: null,
+    muted: {},
+    hidden: {},
+
+    toggleMute: (id) => set({ muted: { ...get().muted, [id]: !get().muted[id] } }),
+    toggleHidden: (id) => set({ hidden: { ...get().hidden, [id]: !get().hidden[id] } }),
 
     toggleCamera: async () => {
       if (get().camera) {
@@ -256,7 +267,16 @@ export const useMedia = create<MediaStore>((set, get) => {
       audioTrack = null
       unsubscribe?.()
       unsubscribe = null
-      set({ camera: false, mic: false, local: null, localVoice: null, remote: {}, problem: null })
+      set({
+        camera: false,
+        mic: false,
+        local: null,
+        localVoice: null,
+        remote: {},
+        problem: null,
+        muted: {},
+        hidden: {},
+      })
     },
   }
 })

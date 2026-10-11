@@ -14,6 +14,8 @@ import { DurableObject } from 'cloudflare:workers'
 import {
   act,
   addBots,
+  block,
+  blockedBetween,
   configure,
   DEFAULT_SETTINGS,
   createRoom,
@@ -40,6 +42,7 @@ import {
 } from '@/lib/multiplayer/protocol'
 import { viewFor } from '@/lib/multiplayer/view'
 import { identify } from './auth'
+import { saveBlock, saveReport } from './safety'
 import { cryptoRng, json, type Env } from './env'
 
 interface Attachment {
@@ -56,6 +59,8 @@ export interface InitBody {
   reserved?: string[]
   /** A private room's rules, as the host chose them while opening it. */
   settings?: Partial<RoomSettings>
+  /** The host's standing blocks, so nobody they blocked can join. */
+  hostBlocks?: string[]
 }
 
 /** Messages a socket may send in a burst before it is told to slow down. */
@@ -68,6 +73,8 @@ export class PokerRoom extends DurableObject<Env> {
   private room: RoomState | null | undefined
   private buckets = new WeakMap<WebSocket, { tokens: number; at: number }>()
   private ice: { servers: RTCIceServerLike[]; until: number } | null = null
+  /** Reports already taken in this room, so a tap twice files once. */
+  private reported = new Set<string>()
 
   private async load(): Promise<RoomState | null> {
     if (this.room === undefined) {
@@ -76,6 +83,7 @@ export class PokerRoom extends DurableObject<Env> {
       this.room = stored && {
         ...stored,
         banned: stored.banned ?? [],
+        blocks: stored.blocks ?? {},
         settings: stored.settings ?? { ...DEFAULT_SETTINGS, seats: stored.maxSeats },
       }
     }
@@ -107,6 +115,7 @@ export class PokerRoom extends DurableObject<Env> {
         venue,
         host: body.host,
         reserved: body.reserved,
+        hostBlocks: body.hostBlocks,
         now: Date.now(),
       })
       if (body.settings && body.host) {
@@ -163,15 +172,32 @@ export class PokerRoom extends DurableObject<Env> {
     }
   }
 
-  /** Whose camera and mic are on, by seat. Private rooms only. */
+  /**
+   * Whose camera and mic are on, by seat. Private rooms only. Each socket is
+   * told about everybody except the people it is blocked with, so neither side
+   * even tries to connect.
+   */
   private broadcastMedia(): void {
-    const media: Record<string, MediaState> = {}
     const sockets = this.ctx.getWebSockets()
+    const all = sockets.map((ws) => ws.deserializeAttachment() as Attachment)
+    const room = this.room
     for (const ws of sockets) {
-      const a = ws.deserializeAttachment() as Attachment
-      if (a.playerId) media[a.playerId] = a.media
+      const me = ws.deserializeAttachment() as Attachment
+      const media: Record<string, MediaState> = {}
+      for (const a of all) {
+        if (!a.playerId || !a.userId) continue
+        if (
+          room &&
+          me.userId &&
+          a.userId !== me.userId &&
+          blockedBetween(room, me.userId, a.userId)
+        ) {
+          continue
+        }
+        media[a.playerId] = a.media
+      }
+      this.send(ws, { t: 'media', media })
     }
-    for (const ws of sockets) this.send(ws, { t: 'media', media })
   }
 
   private allow(ws: WebSocket): boolean {
@@ -287,10 +313,35 @@ export class PokerRoom extends DurableObject<Env> {
         ws.serializeAttachment({ ...a, media: msg.media } satisfies Attachment)
         return this.broadcastMedia()
       }
+      case 'block': {
+        const target = room.players.find((p) => p.id === msg.id)?.userId
+        const result = block(room, userId, msg.id)
+        await this.apply(ws, result)
+        if (!result.ok || !target) return
+        this.broadcastMedia()
+        await saveBlock(this.env, userId, target)
+        return
+      }
+      case 'report': {
+        const target = room.players.find((p) => p.id === msg.id)
+        if (!target?.userId || target.userId === userId) return this.fail(ws, 'illegal')
+        // One report per person per room is plenty; more is noise.
+        const key = `${userId}>${target.userId}`
+        if (this.reported.has(key)) return this.send(ws, { t: 'reported' })
+        this.reported.add(key)
+        await saveReport(this.env, {
+          reporter: userId,
+          reported: target.userId,
+          roomCode: room.code,
+          reason: msg.reason,
+        })
+        return this.send(ws, { t: 'reported' })
+      }
       case 'signal': {
         if (room.kind !== 'private' || !a.playerId) return this.fail(ws, 'illegal')
         for (const other of this.ctx.getWebSockets()) {
           const o = other.deserializeAttachment() as Attachment
+          if (o.userId && blockedBetween(room, userId, o.userId)) continue
           if (o.playerId === msg.to) {
             this.send(other, { t: 'signal', from: a.playerId, data: msg.data })
           }
