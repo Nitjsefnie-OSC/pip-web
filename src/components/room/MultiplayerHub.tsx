@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Loader2, Lock, Users, Video, Zap } from 'lucide-react'
+import { Loader2, Lock, Star, Users, Video, Zap } from 'lucide-react'
 import { AccountDialog } from '@/components/settings/AccountDialog'
 import { PageShell } from '@/components/PageShell'
 import { Splash } from '@/components/Splash'
@@ -61,6 +61,7 @@ export function MultiplayerHub() {
   const signedIn = useSync((s) => s.status === 'signed-in') || devSignedIn()
   const queue = useQueue()
   const [accountOpen, setAccountOpen] = useState(false)
+  const [accountMode, setAccountMode] = useState<'signin' | 'signup'>('signup')
   const [mode, setMode] = useState<Mode>('friends')
   const affordable = VENUES.filter((v) => v.buyIn <= spendable)
   const [stakeId, setStakeId] = useState<string>(() => affordable[0]?.id ?? VENUES[0].id)
@@ -193,18 +194,6 @@ export function MultiplayerHub() {
     </motion.button>
   )
 
-  const membersLine = signedIn && !member && (
-    <p className="-mt-2 text-center text-sm text-muted-foreground">
-      Comes with the membership.{' '}
-      <Link
-        href={membershipFor('multiplayer')}
-        className="font-medium text-foreground underline underline-offset-4"
-      >
-        See what’s included
-      </Link>
-    </p>
-  )
-
   return (
     <PageShell leading="back">
       <div className="mx-auto flex w-full max-w-xl flex-col gap-5 pb-10 pt-2 md:pt-6">
@@ -255,92 +244,109 @@ export function MultiplayerHub() {
           </div>
         </div>
 
-        <Segmented
-          value={mode}
-          onChange={(m) => {
-            sound.play('tap')
-            setMode(m)
-            setProblem(null)
-          }}
-          disabled={queuing}
-        />
-
-        {mode === 'friends' ? (
+        {/* Three different pages in one: a member gets the whole form; somebody
+            signed in without the membership can join a friend's room and is
+            shown what hosting would take; somebody signed out is asked to sign
+            in and shown nothing they could not use. */}
+        {!signedIn ? (
+          <GuestPanel
+            onSignUp={() => {
+              sound.play('tap')
+              setAccountMode('signup')
+              setAccountOpen(true)
+            }}
+            onSignIn={() => {
+              sound.play('tap')
+              setAccountMode('signin')
+              setAccountOpen(true)
+            }}
+          />
+        ) : !member ? (
           <>
-            {/* Joining first: it is what most people come here to do. */}
-            <div className="flex flex-col items-center gap-3 py-2">
-              <p className="text-sm font-medium">Join a friend’s room</p>
-              <CodeBoxes
-                disabled={!signedIn}
-                onComplete={(code) => {
-                  sound.play('call')
-                  router.push(`/game/room?code=${code}`)
-                }}
-              />
-              {!signedIn && (
-                <button
-                  onClick={() => setAccountOpen(true)}
-                  className="text-sm text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
-                >
-                  Sign in to join
-                </button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3 text-2xs uppercase tracking-[0.2em] text-muted-foreground">
-              <span className="h-px flex-1 bg-foreground/10" />
-              or
-              <span className="h-px flex-1 bg-foreground/10" />
-            </div>
-
-            {creating ? (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, ease: 'easeOut' }}
-                className="flex flex-col gap-5"
-              >
-                <SettingsList
-                  settings={settings}
-                  buyIn={stake.buyIn}
-                  onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
-                  stakes={stakePicker}
-                />
-                {primary}
-                {membersLine}
-                <button
-                  onClick={() => {
-                    sound.play('tap')
-                    setCreating(false)
-                  }}
-                  className="-mt-2 text-sm text-muted-foreground transition hover:text-foreground"
-                >
-                  Cancel
-                </button>
-              </motion.div>
-            ) : (
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  sound.play('tap')
-                  setCreating(true)
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground/[0.08] py-4 text-base font-semibold transition hover:bg-foreground/[0.14]"
-              >
-                {signedIn && !member && <Lock className="size-4" />}
-                Create a room
-              </motion.button>
-            )}
+            <JoinBox
+              onComplete={(code) => {
+                sound.play('call')
+                router.push(`/game/room?code=${code}`)
+              }}
+            />
+            <HostPanel />
           </>
         ) : (
           <>
-            {stakePicker}
-            <div className="flex items-center justify-center gap-5 text-sm text-muted-foreground">
-              <Mark icon={<Users className="size-4" />}>{stake.seats} seats</Mark>
-              <Mark icon={<Zap className="size-4" />}>Dealt in fast</Mark>
-            </div>
-            {primary}
-            {membersLine}
+            <Segmented
+              value={mode}
+              onChange={(m) => {
+                sound.play('tap')
+                setMode(m)
+                setProblem(null)
+              }}
+              disabled={queuing}
+            />
+
+            {mode === 'friends' ? (
+              <>
+                {/* Joining first: it is what most people come here to do. */}
+                <JoinBox
+                  onComplete={(code) => {
+                    sound.play('call')
+                    router.push(`/game/room?code=${code}`)
+                  }}
+                />
+
+                <div className="flex items-center gap-3 text-2xs uppercase tracking-[0.2em] text-muted-foreground">
+                  <span className="h-px flex-1 bg-foreground/10" />
+                  or
+                  <span className="h-px flex-1 bg-foreground/10" />
+                </div>
+
+                {creating ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="flex flex-col gap-5"
+                  >
+                    <SettingsList
+                      settings={settings}
+                      buyIn={stake.buyIn}
+                      onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+                      stakes={stakePicker}
+                    />
+                    {primary}
+                    <button
+                      onClick={() => {
+                        sound.play('tap')
+                        setCreating(false)
+                      }}
+                      className="-mt-2 text-sm text-muted-foreground transition hover:text-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      sound.play('tap')
+                      setCreating(true)
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-foreground/[0.08] py-4 text-base font-semibold transition hover:bg-foreground/[0.14]"
+                  >
+                    {signedIn && !member && <Lock className="size-4" />}
+                    Create a room
+                  </motion.button>
+                )}
+              </>
+            ) : (
+              <>
+                {stakePicker}
+                <div className="flex items-center justify-center gap-5 text-sm text-muted-foreground">
+                  <Mark icon={<Users className="size-4" />}>{stake.seats} seats</Mark>
+                  <Mark icon={<Zap className="size-4" />}>Dealt in fast</Mark>
+                </div>
+                {primary}
+              </>
+            )}
           </>
         )}
 
@@ -350,8 +356,105 @@ export function MultiplayerHub() {
           </p>
         )}
       </div>
-      <AccountDialog open={accountOpen} mode="signin" onOpenChange={setAccountOpen} />
+      <AccountDialog open={accountOpen} mode={accountMode} onOpenChange={setAccountOpen} />
     </PageShell>
+  )
+}
+
+function JoinBox({ onComplete }: { onComplete: (code: string) => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-2">
+      <p className="text-sm font-medium">Join a friend’s room</p>
+      <CodeBoxes disabled={false} onComplete={onComplete} />
+    </div>
+  )
+}
+
+/** Signed out: one card, one thing to do. */
+function GuestPanel({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
+      className="relative isolate overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03] px-6 py-8 text-center"
+    >
+      <Glow />
+      <span className="mx-auto grid size-12 place-items-center rounded-full bg-primary/15 text-primary">
+        <Users className="size-5" />
+      </span>
+      <h2 className="mt-4 text-2xl font-semibold tracking-tight">Sign in to play multiplayer</h2>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+        Play with your friends, cameras and voices on. A free account is all you need to join a
+        friend’s room.
+      </p>
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={onSignUp}
+        className="mt-6 w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-black/20 transition hover:bg-primary/90"
+      >
+        Create a free account
+      </motion.button>
+      <button
+        onClick={onSignIn}
+        className="mt-3 text-sm text-muted-foreground transition hover:text-foreground"
+      >
+        I already have an account
+      </button>
+    </motion.div>
+  )
+}
+
+const HOSTING = [
+  { icon: Users, text: 'Open a room with your own rules' },
+  { icon: Video, text: 'Camera and voice at the table' },
+  { icon: Zap, text: 'Quick match at any stake' },
+] as const
+
+/** Signed in, not a member: joining is free, hosting is the membership. */
+function HostPanel() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: 'easeOut', delay: 0.05 }}
+      className="relative isolate mt-2 overflow-hidden rounded-3xl border border-foreground/10 bg-foreground/[0.03] p-6"
+    >
+      <Glow />
+      <span className="inline-flex items-center gap-1.5 text-2xs font-medium uppercase tracking-wider text-muted-foreground">
+        <Star className="size-3 fill-pip text-pip" />
+        Pip Membership
+      </span>
+      <h2 className="mt-2 text-xl font-semibold tracking-tight">Host your own table</h2>
+      <ul className="mt-4 flex flex-col gap-3">
+        {HOSTING.map(({ icon: Icon, text }) => (
+          <li key={text} className="flex items-center gap-3 text-sm">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
+              <Icon className="size-4" />
+            </span>
+            {text}
+          </li>
+        ))}
+      </ul>
+      <Link
+        href={membershipFor('multiplayer')}
+        onClick={() => sound.play('tap')}
+        className="mt-6 flex w-full items-center justify-center rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-black/20 transition hover:bg-primary/90 active:scale-[0.98]"
+      >
+        See the membership
+      </Link>
+      <p className="mt-3 text-center text-2xs text-muted-foreground">Your friends join free.</p>
+    </motion.div>
+  )
+}
+
+/** The membership's soft brand glow, behind a card. */
+function Glow() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute -top-24 left-1/2 -z-10 size-72 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_22%,transparent),transparent_65%)] blur-2xl"
+    />
   )
 }
 
