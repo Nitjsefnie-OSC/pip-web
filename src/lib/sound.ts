@@ -80,6 +80,7 @@ class SoundEngine {
   private pack: SoundShape = HOUSE
   private lastPlayed: Partial<Record<Cue, number>> = {}
   private listener: ((cue: Cue) => void) | null = null
+  private watching = false
 
   setMuted(muted: boolean) {
     this.muted = muted
@@ -107,9 +108,44 @@ class SoundEngine {
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
       if (!Ctor) return null
       this.ctx = new Ctor()
+      this.watch()
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume()
+    // Not only 'suspended': iOS also leaves a context 'interrupted' after the
+    // app has been in the background or the mic has been on, and one left
+    // there plays every later cue into silence.
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => {})
     return this.ctx
+  }
+
+  /**
+   * Get the sound back after the app has been away. iOS only lets a context
+   * start again inside a tap, and one that has been interrupted sometimes will
+   * not resume at all, so the first tap after it stops replaces it with a new
+   * one, which always starts. Cues build their own nodes each time, so nothing
+   * is lost with the old context.
+   */
+  private watch() {
+    if (this.watching) return
+    this.watching = true
+    const revive = () => {
+      const ctx = this.ctx
+      if (!ctx || ctx.state === 'running') return
+      void ctx.close().catch(() => {})
+      this.ctx = null
+      this.lastPlayed = {}
+      // Created inside the tap, so iOS lets it run.
+      void this.context()
+        ?.resume()
+        .catch(() => {})
+    }
+    for (const type of ['pointerdown', 'touchend', 'keydown'] as const) {
+      window.addEventListener(type, revive, { capture: true, passive: true })
+    }
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && this.ctx?.state !== 'running') {
+        void this.ctx?.resume().catch(() => {})
+      }
+    })
   }
 
   /**

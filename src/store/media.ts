@@ -73,6 +73,26 @@ let videoTrack: MediaStreamTrack | null = null
 let audioTrack: MediaStreamTrack | null = null
 let unsubscribe: (() => void) | null = null
 
+/** Whether the mic has been on since the table opened, so its leftovers get cleared up. */
+let micUsed = false
+
+/**
+ * iOS sends a page's sound to the earpiece, as on a phone call, once its mic
+ * is on, and WebKit leaves it there after the mic goes off: every cue after
+ * that plays quietly by your ear. WebKit's audio session (Safari 16.4+, and
+ * the app's web view) says what the page is doing instead, which moves the
+ * sound back. Absent elsewhere, where there is nothing to fix.
+ */
+function audioSession(type: 'auto' | 'ambient' | 'playback'): void {
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+  if (!session) return
+  try {
+    session.type = type
+  } catch {
+    // An older WebKit that knows the object but not the type.
+  }
+}
+
 export function mediaSupported(): boolean {
   return typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
 }
@@ -242,9 +262,14 @@ export const useMedia = create<MediaStore>((set, get) => {
         audioTrack?.stop()
         audioTrack = null
         attachTracks()
+        // Out loud again: the speaker, and the other seats' voices with it.
+        audioSession('playback')
         set({ mic: false, localVoice: null })
         return publish()
       }
+      // Recording needs WebKit to choose the session itself.
+      micUsed = true
+      audioSession('auto')
       const track = await capture('audio')
       if (!track) return
       audioTrack = track
@@ -265,6 +290,10 @@ export const useMedia = create<MediaStore>((set, get) => {
       audioTrack?.stop()
       videoTrack = null
       audioTrack = null
+      // Away from the table, Pip's cues are background sound again: they mix
+      // with your music and follow the silent switch.
+      if (micUsed) audioSession('ambient')
+      micUsed = false
       unsubscribe?.()
       unsubscribe = null
       set({
