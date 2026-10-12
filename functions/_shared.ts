@@ -66,8 +66,12 @@ export async function serveContentPage(ctx: PageContext): Promise<Response> {
     const headers = new Headers(asset.headers)
     if (asset.ok) {
       headers.set('Content-Type', 'text/markdown; charset=utf-8')
+      // gen-llms.mjs writes the canonical into _headers, which Pages applies
+      // to the asset this function copies; add it only if that is missing.
+      if (!(headers.get('Link') ?? '').includes('rel="canonical"')) {
+        headers.append('Link', canonicalLink(url.pathname))
+      }
       headers.append('Link', '</llms.txt>; rel="llms-txt"')
-      headers.append('Link', canonicalLink(url.pathname))
     }
     return new Response(asset.body, { status: asset.status, headers })
   }

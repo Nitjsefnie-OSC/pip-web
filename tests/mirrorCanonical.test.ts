@@ -46,3 +46,12 @@ test('the page itself still advertises its mirror and claims no canonical by hea
   t.true(link.includes('</blog/pip-is-live.md>; rel="alternate"'))
   t.false(link.includes('rel="canonical"'))
 })
+
+test('a canonical already set by _headers is not added twice', async (t) => {
+  const page = '<https://playpip.io/blog/pip-is-live>; rel="canonical"'
+  const res = await serveContentPage({
+    request: new Request('https://playpip.io/blog/pip-is-live.md'),
+    env: { ASSETS: { fetch: async () => new Response('md', { headers: { link: page } }) } },
+  })
+  t.is((res.headers.get('link') ?? '').split('rel="canonical"').length - 1, 1)
+})

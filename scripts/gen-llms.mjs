@@ -293,8 +293,8 @@ writeFileSync(join(OUT, 'llms.txt'), `${sections.join('\n\n')}\n`)
 
 // Each mirror is a full-text duplicate of an indexable page, and llms.txt
 // links every one, so each says which page it copies. The static ones get the
-// header here; Pages ignores _headers for responses a Function builds, so
-// functions/_shared.ts sets the same header on the /blog and /learn mirrors.
+// header here; functions/_shared.ts serves the /blog and /learn mirrors and
+// adds it only if this one did not reach the asset it copies.
 const canonicals = [...pageEntries, ...learnEntries, ...blogEntries]
   .map((e) => {
     const page = e.route === '/index.md' ? SITE : `${SITE}${e.route.replace(/\.md$/, '')}`
