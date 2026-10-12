@@ -26,6 +26,7 @@ import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { AccountDialog } from '@/components/settings/AccountDialog'
 import { signupFact } from '@/components/settings/AccountOffer'
 import { playedWelcome } from '@/components/onboarding/firstSeat'
+import { memberLines } from '@/components/onboarding/memberLines'
 import { WELCOME_TABLE } from '@/config/venues'
 import { MEMBERSHIP_PRICES } from '@/config/membership'
 import { detectCurrency } from '@/lib/membership/currency'
@@ -377,18 +378,12 @@ function MembershipStep({ status }: { status: SyncStatus }) {
   const price = useMembershipPrice()
   const [choice, setChoice] = useState<Choice>('free')
   const [account, setAccount] = useState(false)
-  const member = [
-    'Omaha, Short Deck, Hi-Lo and Five-Card Draw',
-    'Every side table',
-    'All of Webb’s lessons and drills',
-    'Replay any session hand by hand',
-    'A report on your own play',
-  ]
+  const member = memberLines()
   const choices: { id: Choice; name: string; detail: string; price: string }[] = [
     {
       id: 'free',
       name: 'Free',
-      detail: 'The ladder, the Daily, the Rail and Level 1 of the lessons',
+      detail: 'The ladder, the Daily, the Rail, Level 1 of the lessons, and one member table a day',
       price: '£0',
     },
     {
