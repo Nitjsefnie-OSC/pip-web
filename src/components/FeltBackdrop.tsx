@@ -39,7 +39,9 @@ export function FeltBackdrop() {
         data-felt-backdrop
         className="pointer-events-none fixed inset-0 -z-10"
         style={{ background }}
-      />
+      >
+        <div data-felt-fade className="absolute inset-0" />
+      </div>
     </>
   )
 }

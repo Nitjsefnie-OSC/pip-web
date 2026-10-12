@@ -289,6 +289,26 @@
   html:has([data-plain]) [data-felt-backdrop] {
     display: none;
   }
+  /* A bar is one flat colour and the felt glows brighter in the middle, so
+     the bar showed as a band (Will, 2026-10-12). In a browser tab the glow
+     fades to the bar's colour at the top and bottom edges, so they meet
+     without a seam. The PWA and the store app have no bars, and keep the
+     glow to the edge. */
+  [data-felt-fade] {
+    display: none;
+    background: linear-gradient(
+      to bottom,
+      var(--felt-edge) env(safe-area-inset-top),
+      transparent calc(env(safe-area-inset-top) + 6rem),
+      transparent calc(100% - env(safe-area-inset-bottom) - 6rem),
+      var(--felt-edge) calc(100% - env(safe-area-inset-bottom))
+    );
+  }
+  @media (display-mode: browser) {
+    html:not([data-pip-app]) [data-felt-fade] {
+      display: block;
+    }
+  }
   /* Text entry must stay selectable/editable. */
   input,
   textarea,
