@@ -1001,6 +1001,13 @@ function Join({
   }
 
   const pay = () => {
+    // The button stays live without the box so a tap says why, rather than
+    // a greyed button doing nothing.
+    if (!startNow) {
+      sound.play('tap')
+      setError('consent')
+      return
+    }
     const priceId = MEMBERSHIP_PRICE_IDS[plan]
     if (priceId) void run(() => startCheckout(priceId, currency, startNow, tapped?.id))
   }
@@ -1137,7 +1144,7 @@ function Join({
             .
           </span>
         </label>
-        <button disabled={busy || !startNow} onClick={pay} className={joinButton}>
+        <button disabled={busy} onClick={pay} className={cn(joinButton, !startNow && 'opacity-60')}>
           {busy ? 'Opening checkout…' : `Join ${planName.toLowerCase()}`}
           {!busy && <ChevronRight className="size-4" />}
         </button>

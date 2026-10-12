@@ -75,6 +75,14 @@ test('checkout refuses without the start-now consent', (t) => {
   t.regex(checkout, /terms_version: termsVersion/)
 })
 
+// A Join greyed out until the box is ticked did nothing when tapped, and the
+// 'consent' message below it could never show. The tap now says why.
+test('an unticked Join says why instead of doing nothing', (t) => {
+  const screen = code('src/components/membership/MembershipScreen.tsx')
+  t.regex(screen, /if \(!startNow\) \{[^}]*setError\('consent'\)/)
+  t.notRegex(screen, /disabled=\{[^}]*!startNow/)
+})
+
 // Two tabs, or Back and Join again, each got a session; paying both made two
 // subscriptions and the first kept billing out of sight. Found in the pre-launch
 // review (2026-09-27) and closed in two layers.
