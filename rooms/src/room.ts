@@ -68,6 +68,8 @@ const BURST = 30
 /** And how many come back each second. */
 const REFILL_PER_SEC = 10
 const OFF: MediaState = { camera: false, mic: false }
+/** A ping finding the table this far past due does the alarm's job itself. */
+const OVERDUE_MS = 2_000
 
 export class PokerRoom extends DurableObject<Env> {
   private room: RoomState | null | undefined
@@ -236,7 +238,11 @@ export class PokerRoom extends DurableObject<Env> {
     if (!room || room.phase === 'closed') return this.fail(ws, 'no-room', true)
     const now = Date.now()
 
-    if (msg.t === 'ping') return this.send(ws, { t: 'pong' })
+    if (msg.t === 'ping') {
+      this.send(ws, { t: 'pong' })
+      if (room.dueAt !== null && now - room.dueAt > OVERDUE_MS) await this.due('ping')
+      return
+    }
 
     if (!a.userId) {
       // Anything sent before the hello has been answered is dropped, not
@@ -378,6 +384,22 @@ export class PokerRoom extends DurableObject<Env> {
   }
 
   async alarm(): Promise<void> {
+    try {
+      await this.due('alarm')
+    } catch (e) {
+      // Past the tick (storing or sending the new state). Logged, so a table
+      // that stops is never a mystery; a ping retries it.
+      console.error('alarm failed', { error: String(e) })
+    }
+  }
+
+  /**
+   * Whatever is due, done: the alarm's job. Also run when a ping finds the
+   * table overdue, so an alarm that is late or lost (both seen live: a
+   * heads-up table sat on a finished hand for twenty seconds) costs at most
+   * one ping interval rather than the table.
+   */
+  private async due(by: 'alarm' | 'ping'): Promise<void> {
     const room = await this.load()
     if (!room) return
     const now = Date.now()
@@ -385,7 +407,12 @@ export class PokerRoom extends DurableObject<Env> {
     // after it was due is time every player spent looking at a still table.
     // Logged so the Workers dashboard shows how often, and by how much.
     if (room.dueAt !== null && now - room.dueAt > 1000) {
-      console.warn('alarm late', { code: room.code, kind: room.dueKind, lateMs: now - room.dueAt })
+      console.warn('alarm late', {
+        code: room.code,
+        kind: room.dueKind,
+        lateMs: now - room.dueAt,
+        by,
+      })
     }
     let next: RoomState
     try {
