@@ -66,7 +66,7 @@ export function LegalPage({
  */
 export function MarketingFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div data-plain className="flex min-h-dvh flex-col bg-background">
       <header
         data-safe-top
         className="sticky top-0 z-40 border-b border-foreground/5 bg-background/70 backdrop-blur-xl"
