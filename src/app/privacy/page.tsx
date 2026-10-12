@@ -62,9 +62,10 @@ export default function PrivacyPage() {
           working the way it did before.
         </p>
         <p>
-          If you ever take out a <A href="/membership">membership</A>, the payment is handled by{' '}
-          <A href="https://stripe.com">Stripe</A>, who become a third recipient alongside Supabase
-          and Resend.{' '}
+          If you ever take out a <A href="/membership">membership</A> on the website, the payment is
+          handled by <A href="https://stripe.com">Stripe</A>. In the iPhone or Android app, Apple or
+          Google handles it, and <A href="https://www.revenuecat.com">RevenueCat</A> tells us it
+          exists, which means RevenueCat holds your account’s id.{' '}
           <strong className="font-medium text-foreground">
             We never see or store your card number
           </strong>{' '}
@@ -73,10 +74,11 @@ export default function PrivacyPage() {
           unlock what you paid for. Nothing about a membership is linked to how you play.
         </p>
         <p>
-          Deleting your account cancels a membership on the spot, so you are never billed for an
-          account that no longer exists. The one thing that outlives it is Stripe’s record of what
-          you paid — the invoices and the email address they went to — because tax law requires a
-          business to keep them. None of it is linked to a Pip profile any more.
+          Deleting your account cancels a membership bought on the website on the spot. One bought
+          in the app can only be cancelled in your App Store or Google Play settings, so cancel
+          there first. The one thing that outlives it is Stripe’s record of what you paid — the
+          invoices and the email address they went to — because tax law requires a business to keep
+          them. None of it is linked to a Pip profile any more.
         </p>
         <p>
           You can also just ask. Email <A href="mailto:hello@playpip.io">hello@playpip.io</A> from
