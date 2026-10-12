@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'your-cards-stay-on-the-server',
+    title: 'Your cards stay on the server',
+    description:
+      'In single-player Pip the whole deck is in your browser. At a multiplayer table that would let anyone read your cards, so our server deals and sends each player only what they may see. The test that checks every step, the one that keeps the AI players honest, and what it does not do.',
+    date: '2026-10-12',
+  },
+  {
     slug: 'a-beginner-beat-the-main-event',
     title: 'A beginner beat our hardest table by betting',
     description:
