@@ -215,6 +215,14 @@ export function MembershipScreen() {
   // once per tab, so it lines up with the three steps after it.
   useEffect(() => trackOnce('membership-viewed'), [])
 
+  // A link to a section (`/membership#plans` from the welcome flow) opens on
+  // it, at once: the page scrolls smoothly, and a smooth scroll on arrival can
+  // be cut short as the page settles.
+  useEffect(() => {
+    const id = window.location.hash.slice(1)
+    if (id) document.getElementById(id)?.scrollIntoView({ block: 'start', behavior: 'instant' })
+  }, [])
+
   return (
     <MotionConfig reducedMotion="user">
       <main className="flex-1 overflow-x-clip">

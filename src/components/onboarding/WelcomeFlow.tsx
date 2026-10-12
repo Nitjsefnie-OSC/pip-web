@@ -4,10 +4,11 @@
 //
 //   1. player     — make your player: a face and a name
 //   2. ready      — "Do you know how to play?": Webb's tour, or straight to the
-//                   Welcome Table (a short heads-up first game)
-//   3. save       — after that game: save your player with a free account
-//   4. membership — what is free and what the membership adds, then the account
-//                   (if still not made) or the lobby
+//                   Welcome Table (a short heads-up first game). "Skip to lobby"
+//                   skips the game and goes on to step 3.
+//   3. save       — save your player with a free account
+//   4. membership — free or the membership, picked like a plan (Lottie tapped
+//                   "Free" on the old side-by-side lists), then the lobby
 //
 // The step lives in the URL (`?step=`) so the Welcome Table can hand back to
 // step 3 and an account's Google or Apple trip comes back to the same screen.
@@ -19,14 +20,18 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Check, GraduationCap, Spade } from 'lucide-react'
+import { Check, GraduationCap, Sparkles, Spade } from 'lucide-react'
 import { AvatarEditor } from '@/components/profile/AvatarEditor'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { AccountDialog } from '@/components/settings/AccountDialog'
 import { signupFact } from '@/components/settings/AccountOffer'
 import { playedWelcome } from '@/components/onboarding/firstSeat'
 import { WELCOME_TABLE } from '@/config/venues'
-import { membershipFor } from '@/config/membership'
+import { MEMBERSHIP_PRICES } from '@/config/membership'
+import { detectCurrency } from '@/lib/membership/currency'
+import { type ShownPrice, useStorePrices } from '@/lib/membership/store'
+import { appSupports } from '@/lib/nativeApp'
+import { useInApp } from '@/lib/useInApp'
 import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { cn } from '@/lib/utils'
 import { sound } from '@/lib/sound'
@@ -87,7 +92,7 @@ export function WelcomeFlow() {
               onSignedIn={() => router.replace('/game')}
             />
           )}
-          {step === 'ready' && <ReadyStep />}
+          {step === 'ready' && <ReadyStep onSkip={() => go('save')} />}
           {step === 'save' && <SaveStep status={status} onNext={() => go('membership')} />}
           {step === 'membership' && <MembershipStep status={status} />}
         </motion.div>
@@ -191,7 +196,7 @@ function PlayerStep({
   )
 }
 
-function ReadyStep() {
+function ReadyStep({ onSkip }: { onSkip: () => void }) {
   const router = useRouter()
   const name = useProfile((s) => s.name)
   const avatar = useProfile((s) => s.avatar)
@@ -239,6 +244,16 @@ function ReadyStep() {
           </span>
         </Link>
       </div>
+      <button
+        type="button"
+        onClick={() => {
+          sound.play('tap')
+          onSkip()
+        }}
+        className={cn(quiet, 'mt-4')}
+      >
+        Skip to lobby
+      </button>
     </>
   )
 }
@@ -256,6 +271,7 @@ function SaveStep({ status, onNext }: { status: SyncStatus; onNext: () => void }
   const avatar = useProfile((s) => s.avatar)
   const roll = useProfile((s) => s.roll)
   const won = useProfile((s) => (s.venueRecords[WELCOME_TABLE.id]?.won ?? 0) > 0)
+  const played = useProfile((s) => playedWelcome(s.venueRecords))
   const signedIn = status === 'signed-in'
 
   return (
@@ -263,7 +279,13 @@ function SaveStep({ status, onNext }: { status: SyncStatus; onNext: () => void }
       <div className="flex flex-col items-center text-center">
         {avatar && <PlayerAvatar spec={avatar} size={88} />}
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">
-          {signedIn ? 'Your player is saved' : won ? 'You won your first game' : 'Good game'}
+          {signedIn
+            ? 'Your player is saved'
+            : won
+              ? 'You won your first game'
+              : played
+                ? 'Good game'
+                : 'Save your player'}
         </h1>
         <p className="mt-2 text-muted-foreground">
           {name} · {money(roll)} chips
@@ -336,66 +358,137 @@ function AccountCard({ status }: { status: SyncStatus }) {
   )
 }
 
+type Choice = 'free' | 'member'
+
+/** The membership's price as the membership page shows it: the store's in the app, else the website's. */
+function useMembershipPrice(): ShownPrice | null {
+  const storeSells = useInApp() && appSupports('purchase')
+  const store = useStorePrices(storeSells)
+  if (storeSells) return store
+  const currency = detectCurrency(
+    navigator.languages?.length ? navigator.languages : [navigator.language],
+    Intl.DateTimeFormat().resolvedOptions().timeZone ?? '',
+  )
+  return MEMBERSHIP_PRICES[currency]
+}
+
 function MembershipStep({ status }: { status: SyncStatus }) {
-  const free = [
-    'The ten-table ladder',
-    'The Daily, every day',
-    'Cash games on the Rail',
-    'Level 1 of Webb’s lessons',
-  ]
+  const router = useRouter()
+  const price = useMembershipPrice()
+  const [choice, setChoice] = useState<Choice>('free')
+  const [account, setAccount] = useState(false)
   const member = [
     'Omaha, Short Deck, Hi-Lo and Five-Card Draw',
     'Every side table',
     'All of Webb’s lessons and drills',
-    'Session review: replay any session hand by hand',
+    'Replay any session hand by hand',
     'A report on your own play',
   ]
+  const choices: { id: Choice; name: string; detail: string; price: string }[] = [
+    {
+      id: 'free',
+      name: 'Free',
+      detail: 'The ladder, the Daily, the Rail and Level 1 of the lessons',
+      price: '£0',
+    },
+    {
+      id: 'member',
+      name: 'Pip membership',
+      detail: 'Everything free, plus all of the above',
+      price: price ? `${price.monthly} a month` : '',
+    },
+  ]
   const signedOut = status === 'signed-out'
+
+  const pick = (next: Choice) => {
+    if (next === choice) return
+    sound.play('tap')
+    setChoice(next)
+  }
+  const go = () => {
+    sound.play('call')
+    router.push(choice === 'member' ? '/membership#plans' : '/game')
+  }
+
   return (
     <>
       <h1 className="text-center text-3xl font-semibold tracking-tight">
         Free to play. More if you want it.
       </h1>
-      <div className="mt-8 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-3xl border border-foreground/10 bg-foreground/[0.02] p-5">
-          <p className="text-sm font-semibold">Free, for good</p>
-          <ul className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
-            {free.map((line) => (
-              <li key={line} className="flex items-start gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                {line}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="rounded-3xl border border-pip/40 bg-pip/[0.08] p-5">
-          <p className="text-sm font-semibold">Pip membership</p>
-          <ul className="mt-3 flex flex-col gap-2 text-sm text-muted-foreground">
-            {member.map((line) => (
-              <li key={line} className="flex items-start gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-pip" />
-                {line}
-              </li>
-            ))}
-          </ul>
-          <Link
-            href={membershipFor('lessons')}
-            onClick={() => sound.play('tap')}
-            className="mt-4 inline-block text-sm font-medium text-pip underline-offset-2 hover:underline"
-          >
-            See the membership
-          </Link>
-        </div>
+      <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-pip">
+        <Sparkles className="size-4" />
+        With the membership
+      </p>
+      <ul className="mt-2.5 flex flex-col gap-2 text-sm">
+        {member.map((line) => (
+          <li key={line} className="flex items-start gap-2.5">
+            <Check className="mt-0.5 size-4 shrink-0 text-pip" strokeWidth={3} />
+            {line}
+          </li>
+        ))}
+      </ul>
+      <div role="radiogroup" aria-label="Plan" className="mt-5 flex flex-col gap-2.5">
+        {choices.map((c) => {
+          const on = choice === c.id
+          return (
+            <motion.button
+              key={c.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => pick(c.id)}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              className={cn(
+                'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                on
+                  ? c.id === 'member'
+                    ? 'border-pip bg-pip/[0.1] ring-1 ring-pip'
+                    : 'border-foreground/60 bg-foreground/[0.06] ring-1 ring-foreground/60'
+                  : 'border-foreground/10 bg-foreground/[0.03] hover:border-foreground/25',
+              )}
+            >
+              <span
+                className={cn(
+                  'grid size-6 shrink-0 place-items-center rounded-full border transition-colors',
+                  on
+                    ? c.id === 'member'
+                      ? 'border-transparent bg-pip text-background'
+                      : 'border-transparent bg-primary text-primary-foreground'
+                    : 'border-foreground/20',
+                )}
+              >
+                {on && <Check className="size-3.5" strokeWidth={3} />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">{c.name}</span>
+                <span className="block text-sm text-muted-foreground">{c.detail}</span>
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums">{c.price}</span>
+            </motion.button>
+          )
+        })}
       </div>
-      {/* Still no account: the last screen asks once more, above the lobby. */}
-      {signedOut && <AccountCard status={status} />}
-      <Link
-        href="/game"
-        onClick={() => sound.play('call')}
-        className={cn(signedOut ? quiet : primary, 'mt-6')}
-      >
-        Go to the lobby
-      </Link>
+      {/* Pinned, so the button is on screen however short the phone. */}
+      <div className="sticky bottom-0 -mx-6 mt-5 bg-background px-6 pt-1 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+        <button type="button" onClick={go} className={primary}>
+          {choice === 'member' ? 'See membership plans' : 'Continue for free'}
+        </button>
+        {/* Still no account: one quiet way back to it under the button. */}
+        {signedOut && (
+          <button
+            type="button"
+            onClick={() => {
+              sound.play('tap')
+              setAccount(true)
+            }}
+            className={cn(quiet, 'mt-1')}
+          >
+            Create a free account
+          </button>
+        )}
+      </div>
+      <AccountDialog open={account} mode="signup" onOpenChange={setAccount} />
     </>
   )
 }
