@@ -16,7 +16,7 @@
  * they get no mirror. The Learn hub and the guides under it are prose, and do.
  */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import TurndownService from 'turndown'
 
@@ -290,4 +290,19 @@ sections.push(FOOTER)
 
 const written = pageEntries.length + learnEntries.length + blogEntries.length
 writeFileSync(join(OUT, 'llms.txt'), `${sections.join('\n\n')}\n`)
+
+// Each mirror is a full-text duplicate of an indexable page, and llms.txt
+// links every one, so each says which page it copies. The static ones get the
+// header here; Pages ignores _headers for responses a Function builds, so
+// functions/_shared.ts sets the same header on the /blog and /learn mirrors.
+const canonicals = [...pageEntries, ...learnEntries, ...blogEntries]
+  .map((e) => {
+    const page = e.route === '/index.md' ? SITE : `${SITE}${e.route.replace(/\.md$/, '')}`
+    return `${e.route}\n  Link: <${page}>; rel="canonical"`
+  })
+  .join('\n')
+appendFileSync(
+  join(OUT, '_headers'),
+  `\n# Markdown mirrors point back at their pages (scripts/gen-llms.mjs).\n${canonicals}\n`,
+)
 console.log(`gen-llms: wrote llms.txt + ${written} markdown mirror(s).`)
