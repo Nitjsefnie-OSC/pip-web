@@ -28,12 +28,17 @@
 // says which one it was, with one spot from it where the shared felt can draw
 // one (`TappedDrillSpot`, `SAMPLED_DRILLS`).
 //
+// A tap on a twist (Fast, Heads-Up, Bounty, Deep) lands on "Every side table",
+// whose blurb names all four, so it names its family too (`&table=`,
+// `tappedFamily`): the family's own note from the shelf, and its tables.
+//
 // A tap on a locked lesson names the lesson the same way (`&lesson=`,
 // `TappedLesson`), loaded only then, so nobody else's page carries the course.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
 import { tappedFeature } from '@/config/membership'
+import { familyTableNames, tappedFamily } from '@/config/venues'
 import type { ShownPrice } from '@/lib/membership/store'
 import { waitingSessionLine } from '@/lib/review/highlights'
 import { loadReview } from '@/lib/review/session'
@@ -64,6 +69,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
   if (!feature || new URLSearchParams(search).has('joined')) return null
   const waiting = feature.id === 'review' ? waitingSessionLine(loadReview()) : null
   const drill = tappedDrill(search)
+  const family = tappedFamily(search)
   const lesson = feature.id === 'lessons' && new URLSearchParams(search).has('lesson')
 
   return (
@@ -87,6 +93,13 @@ export function TappedFor({ price }: { price: ShownPrice }) {
           </p>
         )}
         {drill && SAMPLED_DRILLS.includes(drill.id) && <TappedDrillSpot kind={drill} />}
+        {family && (
+          <p className="mt-3 leading-relaxed text-muted-foreground">
+            You tapped <span className="font-medium text-foreground">{family.name}</span>.{' '}
+            {family.note} The tables:{' '}
+            {new Intl.ListFormat('en-GB').format(familyTableNames(family))}.
+          </p>
+        )}
         {lesson && <TappedLesson search={search} />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
