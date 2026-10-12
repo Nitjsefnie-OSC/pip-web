@@ -84,7 +84,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
       style={{ colorScheme: 'dark' }}
     >
-      <body className="bg-background text-foreground min-h-full">
+      <body className="text-foreground min-h-full">
         {/* Same trick for the text size setting: root font size before first
             paint, or every rem in the app reflows after hydration. */}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, self-authored boot script */}

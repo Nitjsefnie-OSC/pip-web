@@ -15,6 +15,7 @@ export function Splash() {
   return (
     <div
       data-safe-top
+      data-plain
       className="relative grid min-h-dvh place-items-center overflow-hidden bg-background"
     >
       {/* soft pip glow — the single accent, low alpha (matches the landing) */}

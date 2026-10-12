@@ -276,12 +276,18 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground overscroll-none;
+    @apply text-foreground overscroll-none;
     /* Native-app feel: no long-press text selection, and no iOS callout
        ("Copy / Look Up") menu. Selection is re-enabled on real inputs below. */
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
+  }
+  html:has([data-plain]) {
+    --felt-edge: var(--background);
+  }
+  html:has([data-plain]) [data-felt-backdrop] {
+    display: none;
   }
   /* Text entry must stay selectable/editable. */
   input,
@@ -291,6 +297,12 @@
     user-select: text;
   }
   html {
+    /* The page colour. Under the felt it is the felt's colour where it meets
+       the screen's edges (about the glow's strength there; FeltBackdrop),
+       because iOS Safari paints its bars behind the clock and the address bar
+       in it. A page that paints itself plain (`data-plain`) keeps it plain. */
+    --felt-edge: color-mix(in srgb, var(--felt, var(--background)) 28%, var(--background));
+    background-color: var(--felt-edge);
     /* overscroll-none kills the PWA rubber-band bounce at the page ends. */
     @apply font-sans scroll-smooth overscroll-none;
     /* Native-app feel: kill double-tap-to-zoom (the viewport meta blocks

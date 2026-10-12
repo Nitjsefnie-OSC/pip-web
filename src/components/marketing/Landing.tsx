@@ -54,7 +54,7 @@ import { cn } from '@/lib/utils'
 
 export function Landing() {
   return (
-    <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-background">
+    <div data-plain className="relative flex min-h-dvh flex-col overflow-x-clip bg-background">
       <Header />
       <main className="flex-1">
         <Hero />
