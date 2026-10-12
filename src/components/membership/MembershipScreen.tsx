@@ -349,7 +349,14 @@ function Hero({ price, multiplayer }: { price: ShownPrice; multiplayer: boolean 
             happened in. Every session back on the table, hand by hand. Plus the side tables, the
             games that are not Hold’em and the members’ shelf. The core game stays free, for good.
           </p>
-          <p className="mt-5 text-sm tabular-nums text-muted-foreground">
+          {/* In the app the store's prices replace "…" after the first paint.
+              iOS WebKit repainted only the old, narrower line, so the new one
+              came out clipped at both ends: the line spans the column, and a
+              new price is a new element, painted whole. */}
+          <p
+            key={`${price.monthly}|${price.annual}`}
+            className="mt-5 self-stretch text-sm tabular-nums text-muted-foreground"
+          >
             <span className="font-semibold text-foreground">{price.monthly}</span> a month{' '}
             <span className="px-1 text-foreground/25">·</span>{' '}
             <span className="font-semibold text-foreground">{price.annual}</span> a year
