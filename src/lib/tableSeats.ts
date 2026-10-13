@@ -59,6 +59,13 @@ export interface FeltGeometry {
   /** Widest arc the opponents may take, in degrees, and per opponent. */
   maxSpan: number
   spanPerSeat: number
+  /**
+   * The stage's usual width over its height. Given, the seats are spaced
+   * evenly along the rail as it is drawn rather than by equal angles, which
+   * on a tall phone bunch them across the top and on a wide desktop bunch
+   * them down the sides. Only the full-ring felts set it.
+   */
+  railAspect?: number
   /** Where each seat's bet sits: this far from the seat toward `focus`. */
   betReach: number
   /**
@@ -114,18 +121,112 @@ export const FELT_COMPACT: FeltGeometry = {
   hero: { left: '50%', top: '108%' },
 }
 
+/**
+ * A phone table with six or seven opponents. `FELT_COMPACT`'s arc puts them
+ * shoulder to shoulder across the top: on a 375px screen the four highest
+ * plates touched. So the arc opens wider and runs further down the rail, the
+ * seats draw smaller (`FeltSeat` `crowded`), and the board and pot drop to
+ * leave the lowest two room above the cards. Everything else is the compact
+ * felt unchanged, and five opponents or fewer never see this.
+ *
+ * This is the short phone's (a screen wider than half its height, 375×667):
+ * there the stage is nearly square and every bit of the arc is spoken for.
+ */
+export const FELT_COMPACT_FULL_SHORT: FeltGeometry = {
+  ...FELT_COMPACT,
+  seatRx: 41,
+  seatRy: 46,
+  maxSpan: 155,
+  spanPerSeat: 26,
+  // Further in than the compact felt's 0.38: the seats are closer together,
+  // and a bet that stopped short landed on the next seat down's action pill.
+  betReach: 0.45,
+  focus: { left: '50%', top: '70%' },
+  board: { left: '50%', top: '72%' },
+  pot: { left: '50%', top: '86.5%' },
+  // Beside the pot rather than under it: under it is the table talk line, and
+  // on a short phone there is no room below that before your cards.
+  heroBet: { left: '22%', top: '86.5%' },
+}
+
+/**
+ * The full ring on a tall phone, which is most of them. By equal angles the
+ * short felt's arc bunched four seats across the top and left a band of empty
+ * cloth over the board; spaced evenly along the rail, and the arc a little
+ * lower, the seven sit round the table instead of over it.
+ */
+export const FELT_COMPACT_FULL: FeltGeometry = {
+  ...FELT_COMPACT_FULL_SHORT,
+  seatRy: 44,
+  maxSpan: 165,
+  railAspect: 0.71,
+}
+
+/**
+ * A desktop table with six or seven opponents: the wide felt, spaced evenly
+ * along the rail. By equal angles the lowest four sat stacked down the sides,
+ * an action pill on the seat above's nameplate, with the top of the rail empty.
+ */
+export const FELT_WIDE_FULL: FeltGeometry = {
+  ...FELT_WIDE,
+  railAspect: 2.5,
+}
+
+/** The screen a phone's full ring spreads out on: at least twice as tall as wide. */
+export const TALL_PHONE = '(max-aspect-ratio: 1/2)'
+
+/** The live table's felt for this many opponents. Up to five, exactly as before. */
+export function feltFor(compact: boolean, opponents: number, tall = false): FeltGeometry {
+  if (opponents < 6) return compact ? FELT_COMPACT : FELT_WIDE
+  if (!compact) return FELT_WIDE_FULL
+  return tall ? FELT_COMPACT_FULL : FELT_COMPACT_FULL_SHORT
+}
+
 const pct = (n: number) => `${Math.round(n * 100) / 100}%`
 
 /** Opponents on the far rail, spread evenly across an arc centred on the top. */
 export function feltSeatPositions(n: number, g: FeltGeometry): SeatPoint[] {
   const span = n <= 1 ? 0 : Math.min(g.maxSpan, g.spanPerSeat * n)
-  return Array.from({ length: n }, (_, k) => {
-    const deg = n <= 1 ? 270 : 270 - span / 2 + (span * k) / (n - 1)
+  const angles = Array.from({ length: n }, (_, k) =>
+    n <= 1 ? 270 : 270 - span / 2 + (span * k) / (n - 1),
+  )
+  const degs = g.railAspect && n > 2 ? alongRail(angles, g, g.railAspect) : angles
+  return degs.map((deg) => {
     const rad = (deg * Math.PI) / 180
     return {
       left: pct(g.cx + g.seatRx * Math.cos(rad)),
       top: pct(g.cy + g.seatRy * Math.sin(rad)),
     }
+  })
+}
+
+/**
+ * The same arc's ends, the seats between them moved so each is the same
+ * distance along the rail from the next, measured as drawn: a stage `aspect`
+ * times as wide as it is tall.
+ */
+function alongRail(angles: number[], g: FeltGeometry, aspect: number): number[] {
+  const from = angles[0]
+  const to = angles[angles.length - 1]
+  const steps = 720
+  const at = (deg: number) => {
+    const rad = (deg * Math.PI) / 180
+    return [g.seatRx * Math.cos(rad) * aspect, g.seatRy * Math.sin(rad)]
+  }
+  const run = [0]
+  let last = at(from)
+  for (let i = 1; i <= steps; i++) {
+    const next = at(from + ((to - from) * i) / steps)
+    run.push(run[i - 1] + Math.hypot(next[0] - last[0], next[1] - last[1]))
+    last = next
+  }
+  const total = run[steps]
+  return angles.map((_, k) => {
+    const goal = (total * k) / (angles.length - 1)
+    let i = 1
+    while (i < steps && run[i] < goal) i++
+    const part = (goal - run[i - 1]) / (run[i] - run[i - 1] || 1)
+    return from + ((to - from) * (i - 1 + part)) / steps
   })
 }
 
