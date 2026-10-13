@@ -154,6 +154,11 @@ export interface RoomState {
   memory: TableMemory
   dueAt: number | null
   dueKind: DueKind | null
+  /**
+   * When the current person's turn began, so a turn clock decided again
+   * mid-turn counts from there. Absent on a room stored before it existed.
+   */
+  turnFrom?: number
   /** Bumped on every change, so a client can tell a stale message. */
   version: number
   /** Next seat id to hand out. */
@@ -298,7 +303,7 @@ export function join(state: RoomState, j: Joiner, now: number): Result {
         : p,
     )
     const next = { ...state, players }
-    return ok(state.phase === 'playing' ? reschedule(next, now) : bump(next))
+    return ok(state.phase === 'playing' ? retime(next, now) : bump(next))
   }
   if (state.phase !== 'lobby') return fail('started')
   if (state.kind === 'quick' && !state.reserved.includes(j.userId)) return fail('not-invited')
@@ -323,7 +328,7 @@ export function disconnect(state: RoomState, userId: string, now: number): RoomS
   if (!playerFor(state, userId)) return state
   const players = state.players.map((p) => (p.userId === userId ? { ...p, connected: false } : p))
   const next = { ...state, players }
-  return state.phase === 'playing' ? reschedule(next, now) : bump(next)
+  return state.phase === 'playing' ? retime(next, now) : bump(next)
 }
 
 /**
@@ -352,7 +357,7 @@ export function leave(state: RoomState, userId: string, now: number): RoomState 
     p.userId === userId ? { ...p, left: true, connected: false, standing: p.standing || out } : p,
   )
   const next = { ...state, players }
-  return state.phase === 'playing' ? reschedule(next, now) : bump(next)
+  return state.phase === 'playing' ? retime(next, now) : bump(next)
 }
 
 /**
@@ -372,7 +377,7 @@ export function kick(state: RoomState, userId: string, playerId: string, now: nu
     p.id === playerId ? { ...p, left: true, connected: false, standing: true } : p,
   )
   const next = { ...state, banned, players }
-  return ok(state.phase === 'playing' ? reschedule(next, now) : bump(next))
+  return ok(state.phase === 'playing' ? retime(next, now) : bump(next))
 }
 
 /**
@@ -615,6 +620,24 @@ function deal(before: RoomState, now: number, rng: Rng, buttonId?: string): Room
   return isHandComplete(hand) ? settle(next, now) : reschedule(next, now)
 }
 
+/**
+ * The clock after somebody arrives, drops, leaves or is removed. Nothing about
+ * the hand has moved, so a turn already running counts from when it began: a
+ * drop can shorten it to the away clock, and coming back restores the turn's
+ * own deadline, never a fresh one. Rescheduling from scratch here let a
+ * reconnect every 29 seconds hold a 30-second turn open forever, and gave
+ * whoever was to act a new clock each time anybody else came or went.
+ */
+function retime(state: RoomState, now: number): RoomState {
+  const fresh = reschedule(state, now)
+  if (state.dueAt === null || fresh.dueAt === null || fresh.dueKind !== state.dueKind) return fresh
+  if (fresh.dueKind !== 'turn' || state.turnFrom === undefined) {
+    return { ...fresh, dueAt: Math.min(state.dueAt, fresh.dueAt) }
+  }
+  const whole = state.turnFrom + state.settings.turnSeconds * 1000
+  return { ...fresh, dueAt: Math.min(whole, fresh.dueAt), turnFrom: state.turnFrom }
+}
+
 /** Whose turn it is, and when it runs out. The one place the clock is decided. */
 function reschedule(state: RoomState, now: number): RoomState {
   const hand = state.hand
@@ -635,10 +658,10 @@ function reschedule(state: RoomState, now: number): RoomState {
     const seed = state.handIndex * 131 + hand.actions.length * 17 + hand.toActIndex
     return schedule(state, now + botThinkMs(seed, facingBet, Math.max(0, street)), 'bot')
   }
-  if (player.left) return schedule(state, now + 400, 'turn')
-  const away = !player.connected || player.timeouts >= AWAY_AFTER_TIMEOUTS
   const turn = state.settings.turnSeconds * 1000
-  return schedule(state, now + (away ? Math.min(AWAY_TURN_MS, turn) : turn), 'turn')
+  const away = !player.connected || player.timeouts >= AWAY_AFTER_TIMEOUTS
+  const due = player.left ? 400 : away ? Math.min(AWAY_TURN_MS, turn) : turn
+  return { ...schedule(state, now + due, 'turn'), turnFrom: now }
 }
 
 /**

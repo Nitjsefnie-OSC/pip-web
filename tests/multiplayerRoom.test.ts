@@ -201,7 +201,38 @@ test('a player who drops out gets the short clock, and the long one back on retu
   s = disconnect(s, toAct.userId!, 1_000)
   t.is(s.dueAt, 1_000 + AWAY_TURN_MS)
   s = must(join(s, person(Number(toAct.userId!.split('-')[1])), 2_000))
-  t.is(s.dueAt, 2_000 + TURN_MS)
+  // The turn's own deadline, counted from when it began.
+  t.is(s.dueAt, TURN_MS)
+})
+
+test('dropping and coming back cannot hold a turn open', (t) => {
+  let s = must(join(room(), person(1), 0))
+  s = must(start(s, 'user-0', 0, mulberry32(8)))
+  const toAct = s.players.find((p) => p.id === s.hand!.players[s.hand!.toActIndex].id)!
+  const n = Number(toAct.userId!.split('-')[1])
+  for (const at of [TURN_MS - 1_000, TURN_MS - 500, TURN_MS - 100]) {
+    s = disconnect(s, toAct.userId!, at)
+    s = must(join(s, person(n), at + 1))
+    t.is(s.dueAt, TURN_MS)
+  }
+  const actions = s.hand!.actions.length
+  s = tick(s, TURN_MS, mulberry32(8))
+  t.true(s.hand!.actions.length > actions || s.hand!.street === 'complete')
+})
+
+test('somebody else coming, going or leaving leaves the turn clock where it was', (t) => {
+  let s = must(join(room(), person(1), 0))
+  s = must(join(s, person(2), 0))
+  s = must(start(s, 'user-0', 0, mulberry32(8)))
+  const actor = s.hand!.players[s.hand!.toActIndex].id
+  const other = s.players.find((p) => p.id !== actor)!
+  const n = Number(other.userId!.split('-')[1])
+  s = disconnect(s, other.userId!, 10_000)
+  t.is(s.dueAt, TURN_MS)
+  s = must(join(s, person(n), 20_000))
+  t.is(s.dueAt, TURN_MS)
+  s = leave(s, other.userId!, 25_000)
+  t.is(s.dueAt, TURN_MS)
 })
 
 test('leaving the lobby frees the seat and hands the room on', (t) => {
