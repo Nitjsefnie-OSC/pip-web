@@ -13,11 +13,18 @@ import { inApp } from '@/lib/nativeApp'
  * table. Prefer this tab's own history, since that is where the reader actually
  * came from. With no history to use, send the installed app to /game and a
  * browser tab to the landing page.
+ *
+ * `to` skips the history for a page whose history is somewhere the player
+ * should not go back to: the welcome after checkout, where back is Stripe.
  */
-export function BackButton() {
+export function BackButton({ to }: { to?: string }) {
   const router = useRouter()
 
   const back = () => {
+    if (to) {
+      router.push(to)
+      return
+    }
     if (window.history.length > 1) {
       router.back()
       return

@@ -64,7 +64,13 @@ export function LegalPage({
  * (`/membership`) — it still needs the back control, for the same reason every
  * prose page does.
  */
-export function MarketingFrame({ children }: { children: React.ReactNode }) {
+export function MarketingFrame({
+  children,
+  backTo,
+}: {
+  children: React.ReactNode
+  backTo?: string
+}) {
   return (
     <div data-plain className="flex min-h-dvh flex-col bg-background">
       <header
@@ -75,7 +81,7 @@ export function MarketingFrame({ children }: { children: React.ReactNode }) {
           {/* The back control is the installed app's only way home from here: a
               standalone PWA has no browser chrome to fall back on. */}
           <div className="flex items-center gap-1">
-            <BackButton />
+            <BackButton to={backTo} />
             <Link href="/" aria-label="Pip home" className="transition hover:opacity-80">
               <Wordmark />
             </Link>

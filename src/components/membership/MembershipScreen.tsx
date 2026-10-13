@@ -20,6 +20,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { MotionConfig, motion } from 'framer-motion'
 import {
   Check,
@@ -65,12 +66,7 @@ import {
 } from '@/config/membership'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { trackOnce } from '@/lib/analytics'
-import {
-  type BillingError,
-  awaitMembership,
-  openPortal,
-  startCheckout,
-} from '@/lib/membership/billing'
+import { type BillingError, openPortal, startCheckout } from '@/lib/membership/billing'
 import { detectCurrency } from '@/lib/membership/currency'
 import { useEntitlement, useMembership } from '@/store/entitlement'
 import { useSync } from '@/store/sync'
@@ -189,6 +185,14 @@ const STORE_LOADING: ShownPrice = { monthly: '…', annual: '…', monthlyMinor:
 // --- the screen -----------------------------------------------------------------
 
 export function MembershipScreen() {
+  const router = useRouter()
+  // Stripe's success URL is `?joined=1`. Pass it on to the welcome, replacing
+  // this entry so neither back control leads to Checkout again.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('joined')) {
+      router.replace(`/membership/welcome${window.location.search}`)
+    }
+  }, [router])
   const sellable = sellableFeatures()
   const play = Object.keys(PLAY)
     .map((id) => sellable.find((f) => f.id === id))
@@ -924,13 +928,10 @@ function endsOn(periodEnd: number | null): string {
 }
 
 /**
- * The till. Four states, in the order a player meets them: signed out (an
+ * The till. Three states, in the order a player meets them: signed out (an
  * account first — a membership has to belong to somebody), signed in (off to
- * Stripe), back from Stripe (waiting for the webhook), and a member (the portal).
- *
- * Nothing here grants anything. `?joined=1` only changes what this box *says*
- * while the row is fetched; `member` still comes from the table the client
- * cannot write.
+ * Stripe), and a member (the portal). Back from Stripe is /membership/welcome
+ * (see the redirect in `MembershipScreen`).
  */
 function Join({
   plan,
@@ -953,32 +954,14 @@ function Join({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<BillingError | null>(null)
   const [account, setAccount] = useState<AccountMode | null>(null)
-  const [slow, setSlow] = useState(false)
   const [startNow, setStartNow] = useState(false)
   const app = useInApp()
   const source = useMembershipSource()
 
   // Read after hydration only: the static page has no query string to read.
   const joined = hydrated && new URLSearchParams(window.location.search).has('joined')
-  // What was tapped to get here, if anything: sent to checkout, and handed back
-  // with `?joined=1` so the welcome can point at it.
+  // What was tapped to get here, if anything: sent to checkout.
   const tapped = hydrated ? tappedFeature(window.location.search) : null
-
-  useEffect(() => {
-    if (!joined) return
-    // Stripe only sends a player to `?joined=1` after the payment went
-    // through, so this counts completed checkouts, and the next one counts
-    // the row arriving. Neither grants anything; they are counts.
-    trackOnce('checkout-completed')
-    let live = true
-    void awaitMembership().then((ok) => {
-      if (ok) trackOnce('membership-active')
-      if (live && !ok) setSlow(true)
-    })
-    return () => {
-      live = false
-    }
-  }, [joined])
 
   // A signed-out tab meets the account form before it can reach checkout, so
   // without these "did not want it" and "stopped at the account step" read the
@@ -1065,23 +1048,13 @@ function Join({
       <>
         <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[color-mix(in_oklch,var(--color-pip)_14%,transparent)] text-base font-semibold">
           <Star className="size-4 fill-pip text-pip" />
-          {joined ? 'Welcome in. You’re a member.' : 'You’re a member'}
+          You’re a member
         </div>
         <p className="mt-3 text-center text-sm text-muted-foreground">
           {leaving
             ? `Cancelled — you stay a member until ${endsOn(periodEnd)}, and nothing more is charged.`
             : `Renews on ${endsOn(periodEnd)}. Cancel, change card or get an invoice from the portal.`}
         </p>
-        {joined && tapped?.place && (
-          <Link
-            href={tapped.place.href}
-            onClick={() => sound.play('tap')}
-            className={cn(joinButton, 'mt-3')}
-          >
-            Go to {tapped.place.name}
-            <ChevronRight className="size-4" />
-          </Link>
-        )}
         <button
           disabled={busy}
           onClick={() => void run(openPortal)}
@@ -1101,19 +1074,6 @@ function Join({
         <button disabled={busy} onClick={() => void run(openPortal)} className={joinButton}>
           Update payment details
         </button>
-      </>
-    )
-  } else if (joined && signedIn) {
-    body = (
-      <>
-        <div className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-foreground/[0.07] text-base font-semibold text-muted-foreground">
-          {slow ? 'Still confirming with Stripe' : 'Confirming your payment…'}
-        </div>
-        <p className="mt-3 text-center text-sm text-muted-foreground">
-          {slow
-            ? 'Stripe has your payment and is still telling us. It usually lands within a minute — reload this page, and if it hasn’t after that, write to hello@playpip.io and we will sort it out.'
-            : 'Stripe is telling us it went through. This takes a few seconds.'}
-        </p>
       </>
     )
   } else if (signedIn) {
