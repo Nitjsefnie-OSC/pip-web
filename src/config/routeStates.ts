@@ -63,6 +63,8 @@ export function routeOf(subtree: (typeof NOINDEX_SUBTREES)[number]['dir']): stri
  * write the reason down, and that the list is short enough to read.
  */
 export const NEITHER_LISTED_NOR_NOINDEX: Record<string, string> = {
+  '/membership/welcome':
+    'where Stripe Checkout lands a new member, and only makes sense straight after paying. It sets its own noindex rather than sitting under a noindex subtree, because /membership above it is published.',
   '/tutorial':
     'prose-shaped, and out of the sitemap since #116 because it renders the tour client-side and serves 51 words to a crawler. Still crawlable, which nobody has argued for either way: it is linked from /learn and the landing page and is a tour for people rather than a page we want ranked.',
 }

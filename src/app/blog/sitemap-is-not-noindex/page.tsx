@@ -11,6 +11,9 @@ import {
 
 const post = BLOG_POSTS.find((p) => p.slug === 'sitemap-is-not-noindex')!
 
+/** How many exceptions the list holds, in words while it is short enough to read. */
+const WORDS = ['none', 'one', 'two', 'three', 'four', 'five']
+
 export const metadata: Metadata = postMetadata(post)
 
 /** A block of monospaced lines, for the bits that are lists rather than prose. */
@@ -118,7 +121,10 @@ export default function SitemapIsNotNoindexPost() {
           The third state is the one worth copying. Our failure was never a route in the wrong
           state, it was a route nobody had thought about, and a test that only checks the routes you
           remembered cannot catch that. So the exceptions are enumerated, with an argument each, and
-          the list is short enough to read. Ours currently holds one:
+          the list is short enough to read. Ours currently holds{' '}
+          {WORDS[Object.keys(NEITHER_LISTED_NOR_NOINDEX).length] ??
+            Object.keys(NEITHER_LISTED_NOR_NOINDEX).length}
+          :
         </p>
         {Object.entries(NEITHER_LISTED_NOR_NOINDEX).map(([route, why]) => (
           <Block key={route} head={route}>
@@ -126,8 +132,9 @@ export default function SitemapIsNotNoindexPost() {
           </Block>
         ))}
         <p>
-          That entry is not a fix. It is an admission with a name on it, which is the difference
-          between a gap and an oversight.
+          {Object.keys(NEITHER_LISTED_NOR_NOINDEX).length === 1 ? 'That entry is' : 'Each entry is'}{' '}
+          not a fix. It is an admission with a name on it, which is the difference between a gap and
+          an oversight.
         </p>
       </Section>
 
