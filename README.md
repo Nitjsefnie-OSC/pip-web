@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/hero-fullhouse.gif" width="640" alt="A hand of Pip: flopping a full house, the win-% climbing, betting three streets, and taking the pot at showdown" />
+  <img src="docs/assets/hero-hand.gif" width="640" alt="A hand of Pip at The Pub: flopping a flush, the win-% climbing, and taking the pot at showdown" />
 </p>
 
 Free poker apps tend to look and feel like a scam: neon, leather textures, coin
@@ -78,7 +78,12 @@ play money only, no pop-ups, no fake felt.
 - Dark, quiet tactile sound, desktop and mobile layouts.
 
 <p align="center">
-  <img src="docs/assets/table-dark.png" width="380" alt="Pip's table" />
+  <img src="docs/assets/table-desktop.png" width="560" alt="Pip's table at Downtown Casino, on the flop" />
+  <img src="docs/assets/table-mobile.png" width="196" alt="The same table on a phone" />
+</p>
+
+<p align="center">
+  <img src="docs/assets/lobby.png" width="720" alt="The lobby: your Roll, your streak, the next rung of the ladder and the other ways to play" />
 </p>
 
 Play money only: balances are **chips**, never a currency. Chips cannot be bought
