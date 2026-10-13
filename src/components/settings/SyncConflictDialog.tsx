@@ -38,24 +38,25 @@ export function SyncConflictDialog() {
 
         {conflict && (
           <div className="flex flex-col gap-2 pt-1">
-            <Choice
-              label="Keep this device's"
-              roll={money(conflict.local.roll)}
-              hands={conflict.local.handsPlayed}
-              onPick={() => {
-                sound.play('call')
-                void resolveConflict('local')
-              }}
-            />
-            <Choice
-              label="Use the account's"
-              roll={money(conflict.remote.roll)}
-              hands={conflict.remote.handsPlayed}
-              onPick={() => {
-                sound.play('call')
-                void resolveConflict('remote')
-              }}
-            />
+            {/* The side with more hands behind it goes first. The first button
+                is the one a hurried thumb finds, and a profile reset while
+                signed out used to put "Keep this device's" 0 hands there, over
+                the account's real Roll. */}
+            {(conflict.remote.handsPlayed >= conflict.local.handsPlayed
+              ? (['remote', 'local'] as const)
+              : (['local', 'remote'] as const)
+            ).map((side) => (
+              <Choice
+                key={side}
+                label={side === 'local' ? "Keep this device's" : "Use the account's"}
+                roll={money(conflict[side].roll)}
+                hands={conflict[side].handsPlayed}
+                onPick={() => {
+                  sound.play('call')
+                  void resolveConflict(side)
+                }}
+              />
+            ))}
           </div>
         )}
       </DialogContent>

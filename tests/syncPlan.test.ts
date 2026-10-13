@@ -252,6 +252,72 @@ test('a deliberate reset goes up rather than being restored', (t) => {
   t.is(p.action, 'push')
 })
 
+/** A profile reset while signed out, then dealt in again and drilled a little. */
+function resetThenDrilled(): ProfileData {
+  return profile({
+    ...pristine(),
+    drills: {
+      'pot-odds': {
+        answered: 4,
+        correct: 1,
+        rating: 1007,
+        bestRun: 1,
+        shapes: {},
+        history: [[0, 1000]],
+      },
+    },
+  } as Partial<ProfileData>)
+}
+
+test('signing back in after a signed-out reset keeps the account’s Roll', (t) => {
+  // The account row was last written by another device, the two Rolls differ,
+  // and drills make the reset device not pristine. This used to be a conflict
+  // whose first button wrote 200 chips and no hands over the account.
+  const remote = profile({ roll: 120_000, peakRoll: 206_000, awards: { grinder: 30 } })
+  const p = plan({
+    local: resetThenDrilled(),
+    row: row(remote, { updatedAt: 't2', deviceId: THEIRS }),
+    bookmark: { seen: null, pushed: null },
+  })
+
+  t.is(p.action, 'merge')
+  if (p.action !== 'merge') return
+  t.is(p.profile.roll, 120_000)
+  t.deepEqual(p.profile.stats, remote.stats)
+  t.deepEqual(p.profile.rollHistory, remote.rollHistory)
+  t.deepEqual(p.profile.awards, { grinder: 30 })
+  t.is(p.profile.drills['pot-odds']?.answered, 4)
+})
+
+test('a signed-out reset on the device that last wrote the row is not pushed over it', (t) => {
+  // Our own id on the row reads as "not moved", which sent this straight to
+  // `push` and replaced the whole account with the reset profile.
+  const remote = profile({ roll: 120_000 })
+  const p = plan({
+    local: resetThenDrilled(),
+    row: row(remote, { updatedAt: 't2', deviceId: OURS }),
+    bookmark: { seen: null, pushed: null },
+  })
+
+  t.is(p.action, 'merge')
+  if (p.action !== 'merge') return
+  t.is(p.profile.roll, 120_000)
+})
+
+test('a reset made while signed in still goes up', (t) => {
+  // The bookmark survives a signed-in reset, so it is not `neverSynced` and the
+  // account's Roll does not come back.
+  const remote = profile({ roll: 120_000 })
+  const p = plan({
+    local: resetThenDrilled(),
+    row: row(remote),
+    bookmark: { seen: 't1', pushed: fingerprint(remote) },
+    changedHere: true,
+  })
+
+  t.is(p.action, 'push')
+})
+
 test('our own last write coming back is not a foreign row', (t) => {
   const local = profile()
   const p = plan({

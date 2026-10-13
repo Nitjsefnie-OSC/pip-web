@@ -17,7 +17,13 @@
 // accepted from this device. Local state that does not match it is unpushed,
 // however the app got here.
 
-import { hasDivergence, isPristine, mergeProfiles, type ProfileData } from '@/lib/sync/merge'
+import {
+  hasDivergence,
+  hasNoRoll,
+  isPristine,
+  mergeProfiles,
+  type ProfileData,
+} from '@/lib/sync/merge'
 
 export interface Bookmark {
   /** `updated_at` of the row this device last read or wrote. */
@@ -132,6 +138,21 @@ export function planSync(input: PlanInput): SyncPlan {
   // profile straight out of onboarding has nothing to lose and is still the
   // `restore` above. Only a device that actually played gets a say.
   const neverSynced = bookmark.seen === null && bookmark.pushed === null
+
+  // Signing in on a device that has done things but never moved the Roll: a
+  // guest who only drilled, or a profile reset while signed out (signing out
+  // clears the bookmark, so a reset device always lands here). Its extras are
+  // worth keeping and its Roll is not, so merge with the account's Roll winning
+  // and push. Without this the device fell through to the conflict dialog, or
+  // with its own id on the row straight to `push`, and either way 200 chips and
+  // no hands could be written over the account's Roll, stats and graph.
+  //
+  // `neverSynced` keeps a reset made while signed in out of here: that one
+  // keeps its bookmark, and is meant to go up.
+  if (neverSynced && hasNoRoll(local) && !hasNoRoll(remote)) {
+    return { action: 'merge', profile: mergeProfiles(local, remote, 'remote'), bookmark: pulled }
+  }
+
   const pending = changedHere || isUnpushed(local, bookmark) || (neverSynced && !isPristine(local))
   const movedWithoutUs = row.updatedAt !== bookmark.seen && row.deviceId !== deviceId
 

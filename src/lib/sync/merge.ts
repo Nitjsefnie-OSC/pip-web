@@ -240,6 +240,32 @@ export function isPristine(p: ProfileData): boolean {
   )
 }
 
+/**
+ * Has this device never moved the Roll?
+ *
+ * Looser than `isPristine` on purpose: only the Roll and what follows it. A
+ * device can have answered drills, taken the free game or played the Daily's
+ * first screen and still hold no Roll of its own, and that is exactly the
+ * device a profile reset leaves behind. `isPristine` says no to it, so it used
+ * to reach the conflict dialog offering "Keep this device's" 200 chips and no
+ * hands against the account's real Roll, and one tap wiped the account's Roll,
+ * stats and graph.
+ *
+ * Nothing here can be lost by letting the account's Roll win: the Roll is the
+ * starting one and the graph is the single origin point `createProfile` seeds.
+ */
+export function hasNoRoll(p: ProfileData): boolean {
+  return (
+    p.roll === STARTING_ROLL &&
+    p.peakRoll === STARTING_ROLL &&
+    p.stats.handsPlayed === 0 &&
+    p.stats.tournamentsEntered === 0 &&
+    p.rollHistory.length <= 1 &&
+    (p.escrow ?? null) === null &&
+    (p.blackjack ?? null) === null
+  )
+}
+
 /** What the conflict dialog shows about one side. Display only. */
 export interface SideSummary {
   roll: number

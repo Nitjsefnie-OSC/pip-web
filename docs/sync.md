@@ -226,6 +226,15 @@ write goes up now, keeping the window where a reload would resurrect the old pro
 can be. What separates the two is `dirty`: a reset is waiting to go up, a cleared device isn't.
 Offline, the reset stays dirty and goes up on reconnect like any other change.
 
+**A reset made while signed out stays on the device.** Signing out clears the bookmark, so when that
+device signs back in it has never synced. If it has never moved the Roll either (`hasNoRoll`:
+starting Roll, no hands, no tournaments, at most the origin point), the plan merges with the
+account's side winning and pushes. That keeps the account's Roll, stats and graph, and anything the
+device did since (drills, the free game) survives through the additive merge. This used to fall
+through to the conflict dialog, whose first button wrote 200 chips and no hands over the account,
+or, when the row was last written by that same device, straight to a push of the reset profile. The
+dialog now also puts whichever side has played more hands first.
+
 ## Bundle cost
 
 `@supabase/supabase-js` is **imported dynamically**, not statically. Importing it normally put
