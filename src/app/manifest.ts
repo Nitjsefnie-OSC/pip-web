@@ -21,7 +21,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'narrow',
     label:
-      "A hand in progress: four community cards face up, the player's two hole cards, a pot of 8 chips, and Fold, Check and Bet buttons.",
+      "A hand in progress at The Pub: four community cards face up, the player's two hole cards at 92% to win, and Fold, Check and Bet buttons.",
   },
   {
     src: '/screenshots/phone-2-opponent.png',
@@ -29,7 +29,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'narrow',
     label:
-      "An opponent's profile: Doris, loose and passive, with three read bars and a note that you have played sixteen hands together.",
+      "An opponent's profile: Elaine, loose and aggressive, with her chips, her bankroll, three read bars and a note that you have played fourteen hands together.",
   },
   {
     src: '/screenshots/phone-3-venues.png',
@@ -37,7 +37,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'narrow',
     label:
-      'The venue ladder: rooms as illustrated cards, the first one open and the rest showing the Roll needed to enter.',
+      'The venue ladder: rooms as illustrated cards, each showing its buy-in and what it pays to win.',
   },
   {
     src: '/screenshots/phone-4-home.png',
@@ -45,7 +45,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'narrow',
     label:
-      'The home screen: a Roll of 100 chips, the shop, the learn guides, and tiles for the Daily and the cash tables.',
+      'The home screen: a Roll of 18,420 chips, the next venue on the ladder, a cash table, and progress up the ladder.',
   },
   {
     src: '/screenshots/phone-5-cash.png',
@@ -53,7 +53,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'narrow',
     label:
-      'The cash tables: four stakes from 1/2 to 30/60, each showing table size, stack depth and the Roll needed.',
+      'The Rail: cash tables by stake, from 1/2 up, each showing table size, stack depth and the chips to sit down.',
   },
   {
     src: '/screenshots/desktop-1-table.png',
@@ -61,7 +61,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'wide',
     label:
-      "A hand in progress: four community cards face up, the player's two hole cards, a pot of 8 chips, and Fold, Check and Bet buttons.",
+      'A hand in progress at The Card Room: four community cards face up, a pot of 4,781 chips, an opponent all in, and Fold, Call and Raise buttons.',
   },
   {
     src: '/screenshots/desktop-2-opponent.png',
@@ -69,7 +69,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'wide',
     label:
-      "An opponent's profile: Doris, loose and passive, with three read bars and a note that you have played sixteen hands together.",
+      "An opponent's profile: Rosa, loose and passive, with her chips, her bankroll, three read bars and a note that you have played fourteen hands together.",
   },
   {
     src: '/screenshots/desktop-3-venues.png',
@@ -77,7 +77,7 @@ const SCREENSHOTS: MetadataRoute.Manifest['screenshots'] = [
     type: 'image/png',
     form_factor: 'wide',
     label:
-      "The venue ladder on a wide screen: all ten rooms as illustrated cards, from Friends' Garage to the Main Event.",
+      "The venue ladder on a wide screen: eight of the ten rooms as illustrated cards, from Friends' Garage to Monte Carlo.",
   },
 ]
 
