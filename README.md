@@ -5,7 +5,7 @@
 <h1 align="center">pip</h1>
 
 <p align="center">
-  <b>Real single-player Texas Hold'em against AI. No account needed, no real money,<br/>
+  <b>Texas Hold'em against AI, or with your friends. No real money,<br/>
   open source down to the shuffle.</b>
 </p>
 
@@ -27,8 +27,8 @@
 
 Free poker apps tend to look and feel like a scam: neon, leather textures, coin
 jingles, and more time spent closing offers than playing cards. Pip is the opposite —
-a flat, calm, black-first table where the poker is the whole product. Single-player,
-play money only, no pop-ups, no fake felt.
+a flat, calm, black-first table where the poker is the whole product. Play money
+only, no pop-ups, no fake felt.
 
 ## How it plays
 
@@ -103,9 +103,9 @@ play: every side table and member room, the games that aren't Hold'em, build-you
 the rest of the drills and practice packs, Lessons with Webb from Level 2, a report on
 your own play across every hand, the session review, and spectating after you bust. It's a real fence and we'd
 rather call it one than pretend otherwise. One member game a day is free without joining:
-any one poker table on the side tables shelf. **It is not pay-to-win** — pay-to-win
-means buying an advantage over another player, and Pip is single-player with no
-leaderboard. Nothing you can buy changes a hand: not the cards, the odds, what
+any one poker table on the side tables shelf. **It is not pay-to-win.** Nobody at a
+table sees another player's Roll or rank, there is no leaderboard, and the membership
+changes nothing once the cards are dealt. Nothing you can buy changes a hand: not the cards, the odds, what
 you're shown, or a rebuy. See [ROADMAP → How Pip pays for itself](ROADMAP.md).
 
 Checkout, billing and cancelling run through Stripe — see [docs/stripe.md](docs/stripe.md).
@@ -234,4 +234,4 @@ membership buys access to more of the game and never a chip, a card, or an edge 
 hand.
 
 *Keywords: poker · texas hold'em · sit-and-go · tournament · play money ·
-single player · card game · next.js · react · typescript*
+multiplayer · card game · next.js · react · typescript*
