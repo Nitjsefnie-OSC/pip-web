@@ -33,6 +33,9 @@
 // whose blurb names all four, so it names its family too (`&table=`,
 // `tappedFamily`): the family's own note from the shelf, and its tables.
 //
+// A tap on Five-Card Draw deals one hand through the draw (`TappedDraw`),
+// loaded the same way as the Omaha showdown.
+//
 // A tap on a locked lesson names the lesson the same way (`&lesson=`,
 // `TappedLesson`), loaded only then, so nobody else's page carries the course.
 //
@@ -49,6 +52,10 @@ import { loadReview } from '@/lib/review/session'
 import { useHydrated } from '@/lib/useHydrated'
 
 const TappedSpot = dynamic(() => import('./TappedSpot').then((m) => m.TappedSpot), {
+  ssr: false,
+})
+
+const TappedDraw = dynamic(() => import('./TappedDraw').then((m) => m.TappedDraw), {
   ssr: false,
 })
 
@@ -96,6 +103,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         </h2>
         <p className="mt-2 leading-relaxed text-muted-foreground">{feature.blurb}</p>
         {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
+        {feature.id === 'draw' && <TappedDraw />}
         {feature.id === 'river' && <TappedSpot />}
         {feature.id === 'omaha' && <TappedOmaha />}
         {feature.id === 'shortdeck' && <TappedShortDeck />}
