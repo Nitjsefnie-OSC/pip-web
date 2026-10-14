@@ -13,6 +13,7 @@ import {
   join,
   kick,
   leave,
+  nextButton,
   removeBot,
   start,
   tick,
@@ -50,15 +51,34 @@ const totalChips = (s: RoomState): number =>
         .reduce((a, p) => a + p.stack, 0)
     : s.players.reduce((sum, p) => sum + p.stack, 0)
 
-/** Run the clock forward until the game ends, every human timing out. */
-function playOut(s: RoomState, rng: () => number, limit = 20_000): RoomState {
+type Hand = NonNullable<RoomState['hand']>
+
+/**
+ * Run the clock forward until the game ends, every human timing out.
+ * `onDeal` sees each new hand beside the one before it.
+ */
+function playOut(
+  s: RoomState,
+  rng: () => number,
+  limit = 20_000,
+  onDeal?: (last: Hand, next: Hand) => void,
+): RoomState {
   let now = s.dueAt ?? 0
+  let last = s.hand
+  let index = s.handIndex
   for (let i = 0; i < limit && s.phase === 'playing'; i++) {
     now = Math.max(now, s.dueAt ?? now)
     s = tick(s, now, rng)
+    if (s.hand && last && s.handIndex !== index) onDeal?.(last, s.hand)
+    index = s.handIndex
+    last = s.hand ?? last
   }
   return s
 }
+
+/** Who posts the big blind, by the engine's own rule. */
+const bigBlindOf = (h: Hand): string =>
+  h.players[(h.buttonIndex + (h.players.length === 2 ? 1 : 2)) % h.players.length].id
 
 test('the host is seated on creation and the room waits in the lobby', (t) => {
   const s = room()
@@ -263,14 +283,22 @@ test('leaving the lobby frees the seat and hands the room on', (t) => {
   t.is(s.dueKind, 'expire')
 })
 
-test('a full game with the cast plays to one winner, keeps every chip, and places everybody', (t) => {
+test('a full game with the cast plays to one winner, keeps every chip, moves the big blind one seat, and places everybody', (t) => {
   for (let seed = 1; seed <= 12; seed++) {
     const rng = mulberry32(seed)
     let s = must(addBots(must(join(room(), person(1), 0)), 'user-0', 3, rng))
     s = must(start(s, 'user-0', 0, rng))
     const chips = s.players.length * pub.buyIn
     t.is(totalChips(s), chips)
-    s = playOut(s, rng)
+    // As players bust, the big blind still moves one seat: nobody skips it,
+    // and nobody posts it twice running.
+    const order = s.players.map((p) => p.id)
+    s = playOut(s, rng, 20_000, (last, next) => {
+      const dealt = new Set(next.players.map((p) => p.id))
+      let due = (order.indexOf(bigBlindOf(last)) + 1) % order.length
+      while (!dealt.has(order[due])) due = (due + 1) % order.length
+      t.is(bigBlindOf(next), order[due], `seed ${seed}: big blind`)
+    })
     t.is(s.phase, 'finished', `seed ${seed}`)
     t.is(
       s.players.reduce((sum, p) => sum + p.stack, 0),
@@ -301,6 +329,42 @@ test('the button moves one live seat round the table each hand', (t) => {
   let expected = (first + 1) % order.length
   while (!live.includes(order[expected])) expected = (expected + 1) % order.length
   t.is(s.buttonId, order[expected])
+})
+
+const seats = (stacks: Record<string, number>) =>
+  Object.entries(stacks).map(([id, stack]) => ({ id, stack }))
+const lastHand = (ids: string[], button: string) => ({
+  players: ids.map((id) => ({ id })) as never,
+  buttonIndex: ids.indexOf(button),
+})
+
+test('the big blind moves one seat when the small blind busts', (t) => {
+  // a button, b small blind (busted), c big blind: d is due the big blind.
+  const button = nextButton(
+    seats({ a: 9, b: 0, c: 9, d: 9 }),
+    lastHand(['a', 'b', 'c', 'd'], 'a'),
+    'a',
+  )
+  t.is(button, 'a', 'a keeps the button, c posts the small blind and d the big')
+})
+
+test('the big blind moves one seat when the big blind busts', (t) => {
+  const button = nextButton(
+    seats({ a: 9, b: 9, c: 0, d: 9 }),
+    lastHand(['a', 'b', 'c', 'd'], 'a'),
+    'a',
+  )
+  t.is(button, 'a', 'b posts the small blind again and d the big')
+})
+
+test('three down to two: the last big blind is not asked for it again', (t) => {
+  // a button busts; c was the big blind, so b owes it now and c is the button.
+  t.is(nextButton(seats({ a: 0, b: 9, c: 9 }), lastHand(['a', 'b', 'c'], 'a'), 'a'), 'c')
+})
+
+test('with nobody out the button moves one seat, heads-up included', (t) => {
+  t.is(nextButton(seats({ a: 9, b: 9, c: 9, d: 9 }), lastHand(['a', 'b', 'c', 'd'], 'b'), 'b'), 'c')
+  t.is(nextButton(seats({ a: 9, b: 9 }), lastHand(['a', 'b'], 'a'), 'a'), 'b')
 })
 
 test('quick match only seats the players it matched, then fills with AI strangers', (t) => {

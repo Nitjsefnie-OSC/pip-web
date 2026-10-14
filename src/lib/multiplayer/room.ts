@@ -558,15 +558,40 @@ function beginQuick(state: RoomState, now: number, rng: Rng): RoomState {
   return begin(filled, now, rng)
 }
 
-/** The button moves to the next seat round the table that still has chips. */
-function nextButton(state: RoomState): string {
-  const order = state.players
-  const from = order.findIndex((p) => p.id === state.buttonId)
-  for (let i = 1; i <= order.length; i++) {
-    const p = order[(from + i + order.length) % order.length]
-    if (p.stack > 0) return p.id
+/**
+ * Where the button goes for the next hand: wherever puts the big blind on the
+ * first seat after the last big blind that still has chips.
+ *
+ * Moving the button one live seat instead skips somebody's big blind whenever
+ * a blind busts: lose the small blind at four-handed and the player who was
+ * due the big blind posts the small one, and nobody owes it them. Three down
+ * to two after the button busts, the same rule had the last big blind post it
+ * again. The big blind moving one seat is the rule a dealer keeps, so a busted
+ * seat can give somebody the button twice but never a blind out of turn.
+ * With nobody out, it is the same as the button moving one seat.
+ */
+export function nextButton(
+  seats: readonly { id: string; stack: number }[],
+  last: Pick<HandState, 'players' | 'buttonIndex'> | null,
+  buttonId: string | null,
+): string {
+  const live = seats.filter((p) => p.stack > 0)
+  const after = (id: string | null): string => {
+    const from = seats.findIndex((p) => p.id === id)
+    for (let i = 1; i <= seats.length; i++) {
+      const p = seats[(from + i) % seats.length]
+      if (p.stack > 0) return p.id
+    }
+    return live[0]?.id ?? seats[0].id
   }
-  return order[0].id
+  if (!last || last.players.length < 2 || live.length < 2) return after(buttonId)
+  const dealt = last.players.length
+  const bigBlind = last.players[(last.buttonIndex + (dealt === 2 ? 1 : 2)) % dealt].id
+  const at = live.findIndex((p) => p.id === after(bigBlind))
+  // Heads-up the button posts the small blind, so it sits one before the big
+  // blind; otherwise two before.
+  const back = live.length === 2 ? 1 : 2
+  return live[(at - back + live.length) % live.length].id
 }
 
 /**
@@ -600,7 +625,7 @@ function deal(before: RoomState, now: number, rng: Rng, buttonId?: string): Room
   if (released?.phase === 'finished') return released
   const state = released ?? before
   const live = state.players.filter((p) => p.stack > 0)
-  const button = buttonId ?? nextButton(state)
+  const button = buttonId ?? nextButton(state.players, state.hand, state.buttonId)
   const blinds = blindsAt(
     { smallBlind: state.smallBlind, bigBlind: state.bigBlind, handsPerLevel: state.handsPerLevel },
     state.handIndex,
