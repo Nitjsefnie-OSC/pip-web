@@ -18,6 +18,7 @@
   <img alt="Static export" src="https://img.shields.io/badge/deploy-static-111111" />
   <a href="https://playpip.io"><img alt="Live" src="https://img.shields.io/badge/live-playpip.io-111111" /></a>
   <a href="https://github.com/playpip/pip-web/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/playpip/pip-web?style=flat&color=111111&labelColor=555555" /></a>
+  <a href="https://pwa.directory/directory/pip"><img alt="Listed on pwa.directory" src="https://pwa.directory/badge.svg" width="152" height="20" /></a>
 </p>
 
 <p align="center">
