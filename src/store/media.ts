@@ -185,9 +185,11 @@ export const useMedia = create<MediaStore>((set, get) => {
     if (!peer.polite) {
       pc.addTransceiver('audio', { direction: 'sendrecv' })
       pc.addTransceiver('video', { direction: 'sendrecv' })
-      attachTracks()
     }
+    // In the map before the tracks go in: `attachTracks` only reaches the
+    // connections it can find, and a camera already on would miss this one.
     peers.set(id, peer)
+    if (!peer.polite) attachTracks()
     return peer
   }
 
@@ -218,6 +220,22 @@ export const useMedia = create<MediaStore>((set, get) => {
       }
     } catch {
       // One bad message costs one connection a retry, not the table.
+    }
+  }
+
+  /**
+   * The relay arrives after the seat does: the server sends the table first
+   * and only then asks Cloudflare for TURN credentials, so the first
+   * connections are opened with no ICE servers at all. Without STUN or TURN
+   * they can only reach each other on the same network, and never connect
+   * across the internet. Hand every open connection the servers once they
+   * come, and gather again with them.
+   */
+  function applyIceServers(iceServers: RTCIceServer[]) {
+    for (const { pc } of peers.values()) {
+      if (pc.signalingState === 'closed') continue
+      pc.setConfiguration({ ...pc.getConfiguration(), iceServers })
+      pc.restartIce()
     }
   }
 
@@ -279,7 +297,18 @@ export const useMedia = create<MediaStore>((set, get) => {
     },
 
     connect: (me, ids) => {
-      unsubscribe ??= onSignal((from, data) => void handleSignal(from, data))
+      if (!unsubscribe) {
+        const offSignal = onSignal((from, data) => void handleSignal(from, data))
+        const offIce = useRoom.subscribe((s, prev) => {
+          if (s.iceServers !== prev.iceServers && s.iceServers.length > 0) {
+            applyIceServers(s.iceServers)
+          }
+        })
+        unsubscribe = () => {
+          offSignal()
+          offIce()
+        }
+      }
       for (const id of [...peers.keys()]) if (!ids.includes(id)) closePeer(id)
       for (const id of ids) if (id !== me && !peers.has(id)) openPeer(me, id)
     },
