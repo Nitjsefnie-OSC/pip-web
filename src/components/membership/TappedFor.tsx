@@ -21,7 +21,8 @@
 //
 // A tap on Calling the river also deals one spot from it (`TappedSpot`), loaded
 // only then, so nobody else's page carries the drill generator. A tap on The
-// Big Pot deals one Omaha showdown (`TappedOmaha`) the same way.
+// Big Pot deals one Omaha showdown (`TappedOmaha`) the same way, and a tap on
+// Short Deck one showdown where its flush rule decides the pot (`TappedShortDeck`).
 //
 // A tap on any other paid drill lands on "Every drill", whose blurb lists nine
 // of them, so the tap also names its kind (`&drill=`, `tappedDrill`) and this
@@ -49,6 +50,10 @@ const TappedSpot = dynamic(() => import('./TappedSpot').then((m) => m.TappedSpot
 })
 
 const TappedOmaha = dynamic(() => import('./TappedOmaha').then((m) => m.TappedOmaha), {
+  ssr: false,
+})
+
+const TappedShortDeck = dynamic(() => import('./TappedShortDeck').then((m) => m.TappedShortDeck), {
   ssr: false,
 })
 
@@ -86,6 +91,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         {waiting && <p className="mt-3 font-medium tabular-nums text-foreground">{waiting}</p>}
         {feature.id === 'river' && <TappedSpot />}
         {feature.id === 'omaha' && <TappedOmaha />}
+        {feature.id === 'shortdeck' && <TappedShortDeck />}
         {drill && (
           <p className="mt-3 leading-relaxed text-muted-foreground">
             You tapped <span className="font-medium text-foreground">{drill.title}</span>.{' '}
