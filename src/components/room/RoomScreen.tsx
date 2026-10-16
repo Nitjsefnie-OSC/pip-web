@@ -14,10 +14,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, Users } from 'lucide-react'
+import { Loader2, Spade, Users } from 'lucide-react'
 import { PageShell } from '@/components/PageShell'
-import { AccountDialog } from '@/components/settings/AccountDialog'
+import { AvatarEditor } from '@/components/profile/AvatarEditor'
+import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { venueById } from '@/config/venues'
+import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
 import { normaliseRoomCode } from '@/lib/multiplayer/code'
 import { devSignedIn, peekRoom, roomsConfigured, type RoomPeek } from '@/lib/multiplayer/client'
 import type { ServerError } from '@/lib/multiplayer/protocol'
@@ -26,6 +28,7 @@ import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { mediaSupported, useMedia } from '@/store/media'
+import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
 import { useSync } from '@/store/sync'
 import { RoomLobby } from './RoomLobby'
@@ -124,9 +127,10 @@ function JoinGate({ code }: { code: string }) {
   const spendable = useSpendableRoll()
   const signedIn = useSync((s) => s.status === 'signed-in') || devSignedIn()
   const ready = useSync((s) => s.ready)
+  const hasPlayer = useProfile((s) => s.created && Boolean(s.avatar))
   const enter = useRoom((s) => s.enter)
   const [peek, setPeek] = useState<RoomPeek | null | 'loading'>('loading')
-  const [accountOpen, setAccountOpen] = useState(false)
+  const [account, setAccount] = useState<AccountMode | null>(null)
 
   useEffect(() => {
     let live = true
@@ -140,20 +144,28 @@ function JoinGate({ code }: { code: string }) {
 
   if (peek === 'loading' || !ready) return <Waiting label="Finding the room" />
   if (!peek || peek.phase === 'closed' || peek.phase === 'finished') {
-    return <NoRoom message={ERROR_COPY['no-room']!} />
+    return signedIn ? <NoRoom message={ERROR_COPY['no-room']!} /> : <TableOver />
   }
   const venue = venueById(peek.venueId)
   // Coming back to a game already dealt is never refused for the Roll: the
   // buy-in went in on the deal.
   const short = peek.phase === 'lobby' && peek.forRoll !== false && spendable < peek.buyIn
   const full = peek.phase === 'lobby' && peek.seated >= peek.maxSeats
+  // Signed out, nobody can be one of the players already dealt in.
+  const shut = !signedIn && (full || peek.phase === 'playing')
+  const openAccount = (mode: AccountMode) => {
+    sound.play('tap')
+    setAccount(mode)
+  }
 
   return (
     <PageShell leading="back" backLabel="Multiplayer" onBack={toMultiplayer}>
       <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
-        <div className="grid size-14 place-items-center rounded-full bg-foreground/[0.06]">
-          <Users className="size-6" />
-        </div>
+        {hasPlayer || shut ? (
+          <div className="grid size-14 place-items-center rounded-full bg-foreground/[0.06]">
+            <Users className="size-6" />
+          </div>
+        ) : null}
         <div>
           <p className="text-2xs uppercase tracking-[0.25em] text-muted-foreground">Room {code}</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">
@@ -169,42 +181,152 @@ function JoinGate({ code }: { code: string }) {
           </p>
         </div>
 
-        {!signedIn ? (
+        {shut ? (
           <>
             <p className="text-sm text-muted-foreground">
-              Sign in so the table knows it’s you. An account is free, and joining a friend’s room
-              needs nothing else.
+              {full ? ERROR_COPY.full : ERROR_COPY.started}
             </p>
-            <button
-              onClick={() => setAccountOpen(true)}
-              className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            <Link
+              href="/game?account=new"
+              onClick={() => sound.play('call')}
+              className={primaryButton}
             >
-              Sign in to join
+              Create a free account
+            </Link>
+            <button type="button" onClick={() => openAccount('signin')} className={quietButton}>
+              Already have an account? Sign in
+            </button>
+          </>
+        ) : !hasPlayer ? (
+          <MakePlayer onSignIn={signedIn ? null : () => openAccount('signin')} />
+        ) : !signedIn ? (
+          <>
+            <p className="text-sm text-muted-foreground">
+              A free account is all a friend’s table needs.
+            </p>
+            <button type="button" onClick={() => openAccount('signup')} className={primaryButton}>
+              Create a free account to join
+            </button>
+            <button type="button" onClick={() => openAccount('signin')} className={quietButton}>
+              Already have an account? Sign in
             </button>
           </>
         ) : full ? (
           <p className="text-sm text-muted-foreground">{ERROR_COPY.full}</p>
         ) : short ? (
-          <p className="text-sm text-muted-foreground">
-            The buy-in is {money(peek.buyIn)} and your Roll has {money(spendable)}. Win a few hands
-            on the ladder and come back.
-          </p>
+          <>
+            <p className="text-sm text-muted-foreground">
+              The buy-in is {money(peek.buyIn)} and your Roll has {money(spendable)}. Win a few
+              hands on the ladder and come back.
+            </p>
+            <Link href="/game" className={secondaryButton}>
+              Play the ladder
+            </Link>
+          </>
         ) : (
           <button
+            type="button"
             onClick={() => {
               sound.play('call')
               enter(code)
             }}
-            className="w-full rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]"
+            className={primaryButton}
           >
             {peek.phase === 'playing' ? 'Back to the table' : 'Join'}
           </button>
         )}
       </div>
-      <AccountDialog open={accountOpen} mode="signin" onOpenChange={setAccountOpen} />
+      <AccountDialog
+        open={account !== null}
+        mode={account ?? 'signin'}
+        onOpenChange={(o) => {
+          if (!o) setAccount(null)
+        }}
+      />
     </PageShell>
   )
 }
+
+/**
+ * Somebody opening an invite with no player on this device makes one here, the
+ * same face and name as the welcome flow's first step, and stays on the room.
+ * The account comes next, on the same screen.
+ */
+function MakePlayer({ onSignIn }: { onSignIn: (() => void) | null }) {
+  const createProfile = useProfile((s) => s.createProfile)
+  const [spec, setSpec] = useState<AvatarSpec>(() => ({
+    seed: freshSeed(),
+    backgroundColor: AVATAR_BG_SWATCHES[1],
+  }))
+  const [name, setName] = useState('')
+
+  const make = () => {
+    if (!name.trim()) return
+    sound.play('call')
+    createProfile(name, spec)
+  }
+
+  return (
+    <>
+      <div className="w-full rounded-3xl border border-foreground/10 bg-foreground/[0.02] p-5">
+        <p className="mb-4 font-semibold">Make your player</p>
+        <AvatarEditor
+          spec={spec}
+          name={name}
+          onSpecChange={setSpec}
+          onNameChange={setName}
+          onSubmit={make}
+          avatarSize={96}
+          compact
+        />
+      </div>
+      <button type="button" onClick={make} disabled={!name.trim()} className={primaryButton}>
+        Next
+      </button>
+      {onSignIn && (
+        <button type="button" onClick={onSignIn} className={quietButton}>
+          Already have an account? Sign in
+        </button>
+      )}
+    </>
+  )
+}
+
+/**
+ * A finished table's link, opened by someone signed out: most likely a friend
+ * of a friend who never played. The game is gone, so the screen offers Pip.
+ */
+function TableOver() {
+  const toMultiplayer = useToMultiplayer()
+  return (
+    <PageShell leading="back" backLabel="Multiplayer" onBack={toMultiplayer}>
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
+        <div className="grid size-14 place-items-center rounded-full bg-foreground/[0.06]">
+          <Spade className="size-6" />
+        </div>
+        <div>
+          <h1 className="text-3xl font-semibold tracking-tight">This table has closed</h1>
+          <p className="mt-2 text-muted-foreground">
+            Pip is free Texas Hold’em, played for chips. Make a player and take a seat.
+          </p>
+        </div>
+        <Link href="/game?account=new" onClick={() => sound.play('call')} className={primaryButton}>
+          Create a free account
+        </Link>
+        <Link href="/game?account=signin" className={quietButton}>
+          Already have an account? Sign in
+        </Link>
+      </div>
+    </PageShell>
+  )
+}
+
+const primaryButton =
+  'flex w-full items-center justify-center rounded-2xl bg-primary py-4 text-base font-semibold text-primary-foreground transition enabled:hover:bg-primary/90 enabled:active:scale-[0.98] disabled:opacity-30'
+const secondaryButton =
+  'rounded-2xl bg-foreground/[0.08] px-6 py-3 font-semibold transition hover:bg-foreground/[0.14]'
+const quietButton =
+  '-mt-3 flex min-h-11 w-full items-center justify-center text-sm text-muted-foreground transition hover:text-foreground'
 
 function Waiting({ label }: { label: string }) {
   return (
@@ -220,10 +342,7 @@ function NoRoom({ message }: { message: string }) {
     <PageShell leading="back" backLabel="Multiplayer" onBack={toMultiplayer}>
       <div className="mx-auto flex max-w-sm flex-1 flex-col items-center justify-center gap-4 py-10 text-center">
         <p className="text-muted-foreground">{message}</p>
-        <Link
-          href="/game/multiplayer"
-          className="rounded-2xl bg-foreground/[0.08] px-6 py-3 font-semibold transition hover:bg-foreground/[0.14]"
-        >
+        <Link href="/game/multiplayer" className={secondaryButton}>
           Multiplayer
         </Link>
       </div>
