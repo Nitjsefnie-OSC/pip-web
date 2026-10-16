@@ -32,6 +32,8 @@ import { CardBack } from '@/components/CardBack'
 import { Reveal } from '@/components/Reveal'
 import { PlayerAvatar } from '@/components/PlayerAvatar'
 import { Wordmark } from './Wordmark'
+import { HeroTable, riseDelay } from './HeroTable'
+import { PlayButton } from './PlayButton'
 import { Footer } from './Footer'
 import { VenueArt } from '@/components/menu/VenueArt'
 import { VENUES, SIDE_TABLES, FORMAT_LABELS, THE_DAILY, type Venue } from '@/config/venues'
@@ -143,14 +145,6 @@ function Header() {
 
 /* ---------------------------------- hero ---------------------------------- */
 
-/**
- * The hero's stagger, in CSS (`.rise-in` in globals.css). Everything above the
- * fold uses this rather than Framer: a Framer `initial` is baked into the static
- * HTML as `opacity:0` and waits for hydration, which left the headline and the
- * Play button invisible for seconds on a slow load.
- */
-const riseDelay = (i: number) => ({ '--rise-delay': `${0.05 * i}s` }) as React.CSSProperties
-
 function Hero() {
   return (
     <section className="relative">
@@ -212,13 +206,6 @@ function Hero() {
   )
 }
 
-/** Respect the user's reduced-motion setting — hydration-gated so SSR/client agree. */
-function usePrefersReducedMotion() {
-  const hydrated = useHydrated()
-  if (!hydrated || typeof window === 'undefined') return false
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-}
-
 /** A few oversized suit glyphs, barely there — texture, not decoration. */
 function GhostSuits() {
   return (
@@ -232,66 +219,6 @@ function GhostSuits() {
       <span className="absolute right-1/3 bottom-4 text-[9rem] leading-none text-foreground/[0.02] select-none">
         ♦
       </span>
-    </div>
-  )
-}
-
-/**
- * The hero showpiece: a real recorded hand at the Garage — flop the nut straight,
- * call down against a king-high straight, win at showdown. Answers a cold visitor's #1 question
- * ("what's it actually like to play?") with the game itself, not a mock-up.
- *
- * The capture is cropped to the felt (1200×1100, from a 1350×1080 window
- * recorded at 2× pixel density, app bar left out): the oval, the seats on the
- * rail and the action bar, nothing else, so the cards stay readable at hero size.
- * WebM first, MP4 for Safari, and the poster is the final frame, so it is also
- * the LCP image and the still a reduced-motion visitor gets.
- */
-function HeroTable() {
-  const reducedMotion = usePrefersReducedMotion()
-  return (
-    <div style={riseDelay(2)} className="rise-in relative flex items-center justify-center">
-      {/* soft focus glow behind the frame */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute size-[36rem] max-w-full rounded-full bg-[radial-gradient(circle,color-mix(in_oklch,var(--color-pip)_20%,transparent),transparent_70%)] blur-3xl"
-      />
-      <figure className="relative w-full overflow-hidden rounded-3xl border border-foreground/10 bg-black shadow-2xl shadow-black/60 ring-1 ring-white/5">
-        {/* a quiet title bar, so the frame reads as the app rather than a clip */}
-        <figcaption className="flex items-center justify-between border-b border-foreground/10 px-4 py-2.5 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground/80">Friends’ Garage</span>
-          <span className="tabular-nums">A real hand, recorded</span>
-        </figcaption>
-        <div className="relative aspect-[12/11] w-full">
-          {reducedMotion ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src="/hero-poster.jpg"
-              alt="A hand at the Garage: an ace-high straight wins 78 at showdown"
-              width={1200}
-              height={1100}
-              fetchPriority="high"
-              className="size-full object-cover"
-            />
-          ) : (
-            <video
-              className="size-full object-cover"
-              poster="/hero-poster.jpg"
-              width={1200}
-              height={1100}
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="auto"
-              aria-label="Gameplay: an ace-high straight wins at showdown at the Garage"
-            >
-              <source src="/hero.webm" type="video/webm" />
-              <source src="/hero.mp4" type="video/mp4" />
-            </video>
-          )}
-        </div>
-      </figure>
     </div>
   )
 }
@@ -1066,54 +993,6 @@ function FinalCta() {
 }
 
 /* --------------------------------- footer --------------------------------- */
-
-/* ------------------------------- play button ------------------------------ */
-
-/**
- * The primary CTA. Reads the local profile (hydration-gated) so returning
- * players see “Continue” with their Roll, while newcomers see “Play free.”
- */
-function PlayButton({ size = 'lg', className }: { size?: 'sm' | 'lg'; className?: string }) {
-  const hydrated = useHydrated()
-  const created = useProfile((s) => s.created)
-  const roll = useProfile((s) => s.roll)
-  const money = useMoney()
-
-  const returning = hydrated && created
-  const label = returning ? 'Continue' : 'Play free'
-
-  if (size === 'sm') {
-    return (
-      <Link
-        href="/game"
-        onClick={() => sound.play('tap')}
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.97]',
-          className,
-        )}
-      >
-        {label}
-      </Link>
-    )
-  }
-
-  return (
-    <Link
-      href="/game"
-      onClick={() => sound.play('call')}
-      className={cn(
-        'group inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 active:scale-[0.98]',
-        className,
-      )}
-    >
-      {label}
-      {returning && (
-        <span className="tabular-nums text-primary-foreground/60">· {money(roll)} chips</span>
-      )}
-      <ArrowRight className="size-4 transition group-hover:translate-x-0.5" />
-    </Link>
-  )
-}
 
 /**
  * The way back for a returning player on a new device. Play would deal them in

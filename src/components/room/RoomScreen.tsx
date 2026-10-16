@@ -17,6 +17,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, Spade, Users } from 'lucide-react'
 import { PageShell } from '@/components/PageShell'
 import { AvatarEditor } from '@/components/profile/AvatarEditor'
+import { HeroTable, riseDelay } from '@/components/marketing/HeroTable'
+import { PlayButton } from '@/components/marketing/PlayButton'
 import { AccountDialog, type AccountMode } from '@/components/settings/AccountDialog'
 import { venueById } from '@/config/venues'
 import { AVATAR_BG_SWATCHES, freshSeed, type AvatarSpec } from '@/lib/avatar'
@@ -144,7 +146,7 @@ function JoinGate({ code }: { code: string }) {
 
   if (peek === 'loading' || !ready) return <Waiting label="Finding the room" />
   if (!peek || peek.phase === 'closed' || peek.phase === 'finished') {
-    return signedIn ? <NoRoom message={ERROR_COPY['no-room']!} /> : <TableOver />
+    return signedIn ? <NoRoom message={ERROR_COPY['no-room']!} /> : <TableOver code={code} />
   }
   const venue = venueById(peek.venueId)
   // Coming back to a game already dealt is never refused for the Roll: the
@@ -294,28 +296,55 @@ function MakePlayer({ onSignIn }: { onSignIn: (() => void) | null }) {
 
 /**
  * A finished table's link, opened by someone signed out: most likely a friend
- * of a friend who never played. The game is gone, so the screen offers Pip.
+ * of a friend who has never played. The game is gone, so the screen sells the
+ * one that never closes: the homepage's recorded hand and its Play button,
+ * which takes a newcomer through the welcome flow to their first table.
  */
-function TableOver() {
+function TableOver({ code }: { code: string }) {
   const toMultiplayer = useToMultiplayer()
+  const created = useProfile((s) => s.created)
   return (
     <PageShell leading="back" backLabel="Multiplayer" onBack={toMultiplayer}>
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center gap-6 py-10 text-center">
-        <div className="grid size-14 place-items-center rounded-full bg-foreground/[0.06]">
-          <Spade className="size-6" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">This table has closed</h1>
-          <p className="mt-2 text-muted-foreground">
-            Pip is free Texas Hold’em, played for chips. Make a player and take a seat.
+      <div className="grid flex-1 grid-cols-1 items-center gap-10 py-8 lg:grid-cols-[1fr_1.1fr] lg:gap-14 lg:py-14">
+        <div className="max-w-xl">
+          <span
+            style={riseDelay(0)}
+            className="rise-in inline-flex items-center gap-2 rounded-full border border-foreground/10 bg-foreground/[0.03] px-3 py-1 text-xs font-medium text-muted-foreground"
+          >
+            <Spade className="size-3.5 fill-current text-pip" />
+            Room {code} has closed
+          </span>
+          <h1
+            style={riseDelay(1)}
+            className="rise-in mt-6 text-4xl font-semibold leading-[1.05] tracking-tight text-balance md:text-5xl"
+          >
+            That game’s over.
+            <br />
+            The next one’s on Pip.
+          </h1>
+          <p
+            style={riseDelay(2)}
+            className="rise-in mt-5 text-lg leading-relaxed text-muted-foreground text-pretty"
+          >
+            Texas Hold’em against a cast of AI regulars, free in your browser. Press Play and you’re
+            dealt in. Your odds sit beside your cards while you learn.
           </p>
+          <div style={riseDelay(3)} className="rise-in mt-8">
+            <PlayButton size="lg" />
+          </div>
+          {!created && (
+            <p style={riseDelay(4)} className="rise-in mt-4 text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <Link
+                href="/game?account=signin"
+                className="font-medium text-foreground underline-offset-2 transition hover:text-pip hover:underline"
+              >
+                Sign in
+              </Link>
+            </p>
+          )}
         </div>
-        <Link href="/game?account=new" onClick={() => sound.play('call')} className={primaryButton}>
-          Create a free account
-        </Link>
-        <Link href="/game?account=signin" className={quietButton}>
-          Already have an account? Sign in
-        </Link>
+        <HeroTable />
       </div>
     </PageShell>
   )
