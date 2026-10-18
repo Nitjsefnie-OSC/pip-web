@@ -407,7 +407,7 @@ export function sellableFeatures(): readonly MembershipFeature[] {
  * which is the whole mechanism this product's positioning runs on.
  */
 export const MEMBERSHIP_PROMISES = [
-  'The core game is free forever: the ten-venue ladder, the Rail, the Daily and the freeroll. The membership is the side tables and the games that are not Hold’em.',
+  'The core game is free forever: the ten-venue ladder, the Rail, the Daily and the freeroll. The membership adds to it and never takes from it.',
   'Nothing you can buy changes a hand — not the cards, the odds, what you are shown, or a rebuy.',
 ] as const
 

@@ -77,7 +77,7 @@ export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'pip-has-a-membership',
     title: 'Pip has a membership now',
-    description: `${MEMBERSHIP_PRICE.monthly} a month or ${MEMBERSHIP_PRICE.annual} a year, for the side tables and the games that are not Hold’em. The ladder, the Rail, the Daily and the freeroll stay free.`,
+    description: `${MEMBERSHIP_PRICE.monthly} a month or ${MEMBERSHIP_PRICE.annual} a year, for multiplayer, the lessons, the drills and more. The ladder, the Rail, the Daily and the freeroll stay free.`,
     date: '2026-09-29',
   },
   {
