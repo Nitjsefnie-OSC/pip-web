@@ -19,6 +19,7 @@
 import { appendFileSync, existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import TurndownService from 'turndown'
+import { withFullText } from './feed-full-text.mjs'
 
 const SITE = 'https://playpip.io'
 const OUT = join(process.cwd(), 'out')
@@ -304,5 +305,16 @@ const canonicals = [...pageEntries, ...learnEntries, ...blogEntries]
 appendFileSync(
   join(OUT, '_headers'),
   `\n# Markdown mirrors point back at their pages (scripts/gen-llms.mjs).\n${canonicals}\n`,
+)
+
+// The feed carries each post in full, so a reader importing from it gets the
+// post rather than its summary (scripts/feed-full-text.mjs).
+const rss = join(OUT, 'rss.xml')
+const postFile = (slug) => join(OUT, 'blog', `${slug}.html`)
+writeFileSync(
+  rss,
+  withFullText(readFileSync(rss, 'utf-8'), SITE, (slug) =>
+    existsSync(postFile(slug)) ? readFileSync(postFile(slug), 'utf-8') : null,
+  ),
 )
 console.log(`gen-llms: wrote llms.txt + ${written} markdown mirror(s).`)
