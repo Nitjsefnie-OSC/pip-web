@@ -34,7 +34,8 @@
 // `tappedFamily`): the family's own note from the shelf, and its tables.
 //
 // A tap on Five-Card Draw deals one hand through the draw (`TappedDraw`),
-// loaded the same way as the Omaha showdown.
+// loaded the same way as the Omaha showdown, and a tap on The Split one Hi-Lo
+// showdown where the pot is cut in half (`TappedHiLo`).
 //
 // A tap on a locked lesson names the lesson the same way (`&lesson=`,
 // `TappedLesson`), loaded only then, so nobody else's page carries the course.
@@ -64,6 +65,10 @@ const TappedOmaha = dynamic(() => import('./TappedOmaha').then((m) => m.TappedOm
 })
 
 const TappedShortDeck = dynamic(() => import('./TappedShortDeck').then((m) => m.TappedShortDeck), {
+  ssr: false,
+})
+
+const TappedHiLo = dynamic(() => import('./TappedHiLo').then((m) => m.TappedHiLo), {
   ssr: false,
 })
 
@@ -107,6 +112,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         {feature.id === 'river' && <TappedSpot />}
         {feature.id === 'omaha' && <TappedOmaha />}
         {feature.id === 'shortdeck' && <TappedShortDeck />}
+        {feature.id === 'hilo' && <TappedHiLo />}
         {drill && (
           <p className="mt-3 leading-relaxed text-muted-foreground">
             You tapped <span className="font-medium text-foreground">{drill.title}</span>.{' '}
