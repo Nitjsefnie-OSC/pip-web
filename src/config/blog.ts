@@ -19,6 +19,13 @@ export interface BlogPost {
 /** Newest first — the index renders this order as-is. */
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: 'omaha-hi-lo-how-often-a-low',
+    title: 'How often is there a low in Omaha Hi-Lo?',
+    description:
+      'Six boards in ten allow a low. One hand makes one a little over a third of the time, and ace-deuce a little under half. Counted over every deal, checked against the evaluator that settles Pip’s Hi-Lo pots, and how the odds change with six hands at the table.',
+    date: '2026-10-20',
+  },
+  {
     slug: 'poker-night-with-friends-online',
     title: 'A poker night with friends, online, with nothing to settle up',
     description:
