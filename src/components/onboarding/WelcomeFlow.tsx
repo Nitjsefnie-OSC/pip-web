@@ -404,7 +404,9 @@ function MembershipStep({ status }: { status: SyncStatus }) {
   }
   const go = () => {
     sound.play('call')
-    router.push(choice === 'member' ? '/membership#plans' : '/game')
+    // `from=welcome`: Umami drops the `#`, so without it these views can't be
+    // told from anyone else's (the blog's links say `from=blog` the same way).
+    router.push(choice === 'member' ? '/membership?from=welcome#plans' : '/game')
   }
 
   return (

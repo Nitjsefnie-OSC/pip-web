@@ -78,13 +78,22 @@ const NOT_A_TAP = new Set([
   'src/components/membership/MembershipScreen.tsx',
 ])
 
+// Single links that are not a tap, in a file that may still grow one: the
+// welcome flow's last step, where the player picked the membership as a plan.
+const NOT_A_TAP_LINK = new Map([
+  ['src/components/onboarding/WelcomeFlow.tsx', "'/membership?from=welcome#plans'"],
+])
+
 test('every locked surface says what was tapped', (t) => {
   const files = sources('src/components')
   t.true(files.length > 50, `scanned ${files.length} files, which is too few to mean anything`)
   for (const { path, code } of files) {
     if (NOT_A_TAP.has(path)) continue
+    const link = NOT_A_TAP_LINK.get(path)
+    if (link)
+      t.true(code.includes(link), `${path} no longer has ${link}; drop it from NOT_A_TAP_LINK`)
     t.notRegex(
-      code,
+      link ? code.replaceAll(link, ' ') : code,
       /['"`]\/membership['"`?]/,
       `${path} sends a tap to the plain /membership; use membershipFor() so the page opens on it`,
     )
