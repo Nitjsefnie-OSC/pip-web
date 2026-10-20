@@ -42,6 +42,9 @@
 //
 // A tap on the report shows one (`TappedCoaching`): a made-up player's counts,
 // read by the report's own code, loaded the same way.
+//
+// A tap on hosting lists the rules a host sets (`TappedMultiplayer`), from the
+// lists the room itself is opened with.
 
 import dynamic from 'next/dynamic'
 import { SAMPLED_DRILLS, tappedDrill } from '@/config/drills'
@@ -79,6 +82,11 @@ const TappedDrillSpot = dynamic(() => import('./TappedDrillSpot').then((m) => m.
 const TappedLesson = dynamic(() => import('./TappedLesson').then((m) => m.TappedLesson), {
   ssr: false,
 })
+
+const TappedMultiplayer = dynamic(
+  () => import('./TappedMultiplayer').then((m) => m.TappedMultiplayer),
+  { ssr: false },
+)
 
 const TappedCoaching = dynamic(() => import('./TappedCoaching').then((m) => m.TappedCoaching), {
   ssr: false,
@@ -129,6 +137,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
         )}
         {lesson && <TappedLesson search={search} />}
         {feature.id === 'coaching' && <TappedCoaching />}
+        {feature.id === 'multiplayer' && <TappedMultiplayer />}
         <p className="mt-4 text-sm text-muted-foreground">
           It comes with everything else on this page, for{' '}
           <span className="font-semibold tabular-nums text-foreground">{price.monthly}</span> a

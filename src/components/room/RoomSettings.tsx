@@ -10,11 +10,13 @@
 import { motion } from 'framer-motion'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
-  type BlindSpeed,
-  type LeavingRule,
-  ROOM_SEATS,
-  type RoomSettings,
-} from '@/lib/multiplayer/room'
+  BLIND_CHOICES,
+  DEPTH_CHOICES,
+  LEAVING_CHOICES,
+  SEAT_CHOICES,
+  TURN_CHOICES,
+} from '@/config/roomRules'
+import type { BlindSpeed, LeavingRule, RoomSettings } from '@/lib/multiplayer/room'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -84,7 +86,7 @@ export function SettingsList({
       <Row label="Seats">
         <Choice
           value={settings.seats}
-          options={ROOM_SEATS.map((n) => [n, String(n)] as const)}
+          options={SEAT_CHOICES}
           onPick={(seats) => set({ seats })}
           editable={editable}
         />
@@ -92,11 +94,7 @@ export function SettingsList({
       <Row label="Starting chips">
         <Choice
           value={settings.depth}
-          options={[
-            [1, 'Standard'],
-            [2, 'Deep'],
-            [3, 'Very deep'],
-          ]}
+          options={DEPTH_CHOICES}
           onPick={(depth) => set({ depth })}
           editable={editable}
         />
@@ -104,12 +102,7 @@ export function SettingsList({
       <Row label="Blinds">
         <Choice<BlindSpeed>
           value={settings.blinds}
-          options={[
-            ['slow', 'Slow'],
-            ['normal', 'Normal'],
-            ['turbo', 'Turbo'],
-            ['flat', 'Fixed'],
-          ]}
+          options={BLIND_CHOICES}
           onPick={(blinds) => set({ blinds })}
           editable={editable}
         />
@@ -117,11 +110,7 @@ export function SettingsList({
       <Row label="Turn time">
         <Choice
           value={settings.turnSeconds}
-          options={[
-            [15, '15s'],
-            [30, '30s'],
-            [60, '60s'],
-          ]}
+          options={TURN_CHOICES}
           onPick={(turnSeconds) => set({ turnSeconds })}
           editable={editable}
         />
@@ -129,10 +118,7 @@ export function SettingsList({
       <Row label="If someone leaves">
         <Choice<LeavingRule>
           value={settings.leaving}
-          options={[
-            ['keep-seat', 'Keep their seat'],
-            ['out', 'They’re out'],
-          ]}
+          options={LEAVING_CHOICES}
           onPick={(leaving) => set({ leaving })}
           editable={editable}
         />
