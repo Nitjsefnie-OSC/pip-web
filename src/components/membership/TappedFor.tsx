@@ -40,6 +40,9 @@
 // A tap on a locked lesson names the lesson the same way (`&lesson=`,
 // `TappedLesson`), loaded only then, so nobody else's page carries the course.
 //
+// A tap on a locked Chip Shop item names it the same way (`&item=`,
+// `TappedShopItem`), with which of the shelf's two deals it is.
+//
 // A tap on the report shows one (`TappedCoaching`): a made-up player's counts,
 // read by the report's own code, loaded the same way.
 //
@@ -83,6 +86,10 @@ const TappedLesson = dynamic(() => import('./TappedLesson').then((m) => m.Tapped
   ssr: false,
 })
 
+const TappedShopItem = dynamic(() => import('./TappedShopItem').then((m) => m.TappedShopItem), {
+  ssr: false,
+})
+
 const TappedMultiplayer = dynamic(
   () => import('./TappedMultiplayer').then((m) => m.TappedMultiplayer),
   { ssr: false },
@@ -103,6 +110,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
   const drill = tappedDrill(search)
   const family = tappedFamily(search)
   const lesson = feature.id === 'lessons' && new URLSearchParams(search).has('lesson')
+  const shopItem = feature.id === 'cosmetics' && new URLSearchParams(search).has('item')
 
   return (
     <section
@@ -136,6 +144,7 @@ export function TappedFor({ price }: { price: ShownPrice }) {
           </p>
         )}
         {lesson && <TappedLesson search={search} />}
+        {shopItem && <TappedShopItem search={search} />}
         {feature.id === 'coaching' && <TappedCoaching />}
         {feature.id === 'multiplayer' && <TappedMultiplayer />}
         <p className="mt-4 text-sm text-muted-foreground">

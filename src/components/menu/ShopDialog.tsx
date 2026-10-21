@@ -37,12 +37,12 @@ import { AwardChip } from '@/components/AwardChip'
 import { SHOP_BACKS, cardBackById } from '@/config/cardBacks'
 import { avatarRingById, dealerButtonById, soundPackById } from '@/config/cosmetics'
 import { venueById } from '@/config/venues'
-import { membershipFor } from '@/config/membership'
 import {
   DECK_FACES,
   SHOP_ITEMS,
   SOUVENIRS,
   TABLE_FINISHES,
+  membershipForShopItem,
   souvenirAward,
   type ShopItem,
 } from '@/config/shop'
@@ -230,9 +230,9 @@ function ItemRow({ item }: { item: ShopItem }) {
           )
         ) : needsMembership ? (
           // The one lock in the shop that chips cannot open, so the tap goes to
-          // the page that says what the members' shelf is.
+          // the page that says what the members' shelf is, and names this item.
           <Link
-            href={membershipFor('cosmetics')}
+            href={membershipForShopItem(item.id)}
             className="flex items-center gap-1 whitespace-nowrap text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
           >
             <Lock className="size-3" />

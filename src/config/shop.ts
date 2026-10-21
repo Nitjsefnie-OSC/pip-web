@@ -7,6 +7,7 @@
 import type { AwardDef } from '@/lib/awards'
 import { AVATAR_RINGS, DEALER_BUTTONS, SOUND_PACKS, type Cosmetic } from './cosmetics'
 import { MEMBER_BACKS, MEMBER_SHOP_BACKS, SHOP_BACKS, type CardBackDesign } from './cardBacks'
+import { membershipFor } from './membership'
 import { KITCHEN_TABLE, SIDE_TABLES, VENUES } from './venues'
 
 export type ShopItemKind = 'back' | 'face' | 'finish' | 'souvenir' | 'ring' | 'button' | 'sound'
@@ -313,3 +314,53 @@ export const SHOP_ITEMS: readonly ShopItem[] = [
   ...SOUND_PACKS.map(cosmeticItem('sound')),
   ...SOUVENIRS,
 ]
+
+// --- the locked tap ------------------------------------------------------------
+//
+// "The members' shelf" on `/membership` covers sixteen things in six kinds, so
+// a tap on one padlocked row names which, the same as a drill or a lesson
+// (`membershipFor` in config/membership.ts), and says which of the two deals it
+// is: it comes with the membership, or the membership lets you buy it with
+// chips.
+
+const SHOP_NOUNS: Record<ShopItemKind, string | null> = {
+  back: 'card back',
+  // "Minimal Deck" says what it is already.
+  face: null,
+  finish: 'table finish',
+  souvenir: null,
+  ring: 'ring',
+  button: 'dealer button',
+  sound: 'sound pack',
+}
+
+export function membershipForShopItem(id: string): string {
+  return `${membershipFor('cosmetics')}&item=${encodeURIComponent(id)}`
+}
+
+/**
+ * The members' shelf item a `/membership?for=cosmetics&item=<id>` names, or
+ * null for anything else: an item anybody can buy, another feature, or a typed
+ * URL.
+ */
+export function tappedShopItem(search: string): ShopItem | null {
+  const params = new URLSearchParams(search)
+  if (params.get('for') !== 'cosmetics') return null
+  const item = SHOP_ITEMS.find((entry) => entry.id === params.get('item'))
+  return item?.membersOnly ? item : null
+}
+
+/**
+ * What the page says about a tapped item, after its name. Some blurbs end
+ * "Comes with the membership." for the shop's own row; here that would be said
+ * twice, so the deal is said once, at the end.
+ */
+export function tappedShopLine(item: ShopItem, money: (chips: number) => string): string {
+  const noun = SHOP_NOUNS[item.kind]
+  const blurb = item.blurb.replace(/\s*Comes with the membership\.$/, '')
+  const deal =
+    item.price > 0
+      ? `The membership lets you buy it for ${money(item.price)} chips you won, and it stays yours, membership or not.`
+      : 'It comes with the membership.'
+  return `${noun ? `, a ${noun}` : ''}. ${blurb} ${deal}`
+}

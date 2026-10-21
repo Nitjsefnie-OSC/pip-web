@@ -31,6 +31,8 @@ import {
   venueById,
 } from '@/config/venues'
 import { LESSONS, lessonQuestions, membershipForLesson, tappedLesson } from '@/config/lessons'
+import { SHOP_ITEMS, membershipForShopItem, tappedShopItem, tappedShopLine } from '@/config/shop'
+import { formatChips } from '@/lib/useMoney'
 import { kindFloor } from '@/lib/drills/standing'
 import { SHOVE_WHERE } from '@/lib/drills/shoveOrFold'
 import { nextDrill } from '@/lib/drills'
@@ -173,6 +175,33 @@ test('a tap on a paid lesson names it, and the page reads it back', (t) => {
     t.truthy(code, path)
     t.regex(code ?? '', /membershipForLesson\(/, `${path} sends a lesson tap without its name`)
   }
+})
+
+// "The members' shelf" covers sixteen things, so a tap on one names which, and
+// says which deal it is. An item that comes with the membership must not say
+// so twice (some shop blurbs end with it), and a priced one must say its price.
+test('a tap on a members-only shop item names it, and the page reads it back', (t) => {
+  const search = (href: string) => new URL(href, 'https://playpip.io').search
+  const shelf = SHOP_ITEMS.filter((item) => item.membersOnly)
+  t.true(shelf.length >= 10, `only ${shelf.length} members-only items`)
+  for (const item of shelf) {
+    const href = membershipForShopItem(item.id)
+    t.is(tappedFeature(search(href))?.id, 'cosmetics', item.id)
+    t.is(tappedShopItem(search(href))?.id, item.id, item.id)
+    const line = tappedShopLine(item, formatChips)
+    t.is(line.match(/membership/gi)?.length, item.price > 0 ? 2 : 1, `${item.id}: ${line}`)
+    if (item.price > 0) t.true(line.includes(`${formatChips(item.price)} chips`), line)
+    t.notRegex(line, /\$|\.\.|\s{2}/, `${item.id}: ${line}`)
+  }
+  const open = SHOP_ITEMS.find((item) => !item.membersOnly)
+  t.truthy(open)
+  t.is(tappedShopItem(`?for=cosmetics&item=${open?.id}`), null)
+  t.is(tappedShopItem(`?for=drills&item=${shelf[0].id}`), null)
+  t.is(tappedShopItem('?for=cosmetics&item=nonsense'), null)
+  t.is(tappedShopItem('?for=cosmetics'), null)
+  const path = 'src/components/menu/ShopDialog.tsx'
+  const code = sources('src/components/menu').find((f) => f.path === path)?.code
+  t.regex(code ?? '', /membershipForShopItem\(/, `${path} sends a shop tap without the item`)
 })
 
 // The spot dealt under a tapped drill is the drill's own, the same on every
