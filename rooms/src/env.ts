@@ -1,9 +1,13 @@
-// What the room server is given by Cloudflare: its two Durable Object
-// namespaces, the one plain setting, and the secrets (wrangler secret put).
+// What the room server is given by Cloudflare: its Durable Object namespaces,
+// the plain settings, and the secrets (wrangler secret put).
 
 export interface Env {
   ROOMS: DurableObjectNamespace
   QUEUES: DurableObjectNamespace
+  /** One per account: their slow games, notification prefs and devices. */
+  PLAYERS: DurableObjectNamespace
+  /** Where this Worker is reached from outside, for links in emails. */
+  PUBLIC_URL?: string
   /** Comma-separated origins allowed to open a socket or create a room. */
   ALLOWED_ORIGINS: string
   SUPABASE_URL?: string
@@ -16,6 +20,13 @@ export interface Env {
   /** Cloudflare Realtime TURN key, for camera and mic. Optional. */
   TURN_KEY_ID?: string
   TURN_KEY_API_TOKEN?: string
+  /** Web push (VAPID) keys, base64url. Without them, browsers are not pushed to. */
+  VAPID_PUBLIC_KEY?: string
+  VAPID_PRIVATE_KEY?: string
+  /** Resend, for slow games' turn emails. Without it they are logged, not sent. */
+  RESEND_API_KEY?: string
+  /** Signs the "stop these emails" link. Falls back to the service role key. */
+  NOTIFY_SECRET?: string
   /** The running version (wrangler.jsonc `version_metadata`). */
   VERSION?: WorkerVersionMetadata
 }
@@ -45,4 +56,9 @@ export function json(body: unknown, status: number, headers: Record<string, stri
     status,
     headers: { 'Content-Type': 'application/json', ...headers },
   })
+}
+
+/** A player's own index (`player.ts`), by account. */
+export function playerStub(env: Env, userId: string): DurableObjectStub {
+  return env.PLAYERS.get(env.PLAYERS.idFromName(userId))
 }

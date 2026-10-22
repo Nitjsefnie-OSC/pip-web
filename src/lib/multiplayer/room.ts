@@ -7,6 +7,10 @@
 // no I/O is what lets it be tested here in AVA and stored between messages
 // (a hibernating object loses its memory, never its storage).
 //
+// A slow room (`kind: 'slow'`) is a private room for friends who cannot sit
+// down together: turns measured in hours that skip each player's quiet hours,
+// moves set ahead of your turn, and an ending the host picks. See `slow.ts`.
+//
 // It is a sit-and-go, the same shape as the ladder: everyone buys in for the
 // same stack, the blinds rise on the venue's schedule, and the last player
 // with chips takes the prize. The prize is the buy-in times the seats dealt
@@ -32,6 +36,21 @@ import {
 import { type AiProfile, decideAction } from '@/lib/poker/ai/policy'
 import { createTableMemory, observeAction, type TableMemory } from '@/lib/poker/ai/memory'
 import { BOT_ALONE_MS, botThinkMs, fillPlayers } from './players'
+import {
+  DEFAULT_ENDING,
+  DEFAULT_MOVE_HOURS,
+  DEFAULT_SLOW_SEATS,
+  ENDING_HANDS,
+  MOVE_HOURS,
+  SLOW_SEATS,
+  endingReached,
+  placesByChips,
+  slowDeadline,
+  type MoveHours,
+  type PreAction,
+  type Quiet,
+  type SlowEnding,
+} from './slow'
 
 /**
  * The seats a private room's host may set. Eight, a full ring, is the felt's
@@ -60,8 +79,15 @@ export const IDLE_EXPIRE_MS = 2 * 60 * 60 * 1000
 export const FINISHED_EXPIRE_MS = 30 * 60 * 1000
 /** Timeouts in a row before a player is treated as away. */
 const AWAY_AFTER_TIMEOUTS = 2
+/** A move set ahead of time is made this long after the turn reaches it, so it can be seen. */
+export const PRE_MS = 350
+/** A slow game nobody has started is cleared after three days; a finished one shows for a week. */
+export const SLOW_IDLE_EXPIRE_MS = 3 * 24 * 60 * 60 * 1000
+export const SLOW_FINISHED_EXPIRE_MS = 7 * 24 * 60 * 60 * 1000
+/** Finished hands a slow game keeps, for the catch-up. */
+export const SLOW_HISTORY = 10
 
-export type RoomKind = 'private' | 'quick'
+export type RoomKind = 'private' | 'quick' | 'slow'
 
 /** How fast the blinds climb. `flat` never moves them. */
 export type BlindSpeed = 'slow' | 'normal' | 'turbo' | 'flat'
@@ -86,6 +112,10 @@ export interface RoomSettings {
    * chips and the blinds.
    */
   forRoll: boolean
+  /** Slow games: hours a player has for each move, outside their quiet hours. */
+  moveHours?: MoveHours
+  /** Slow games: how the game ends. */
+  ending?: SlowEnding
 }
 
 export const DEFAULT_SETTINGS: Omit<RoomSettings, 'seats'> = {
@@ -96,7 +126,7 @@ export const DEFAULT_SETTINGS: Omit<RoomSettings, 'seats'> = {
   forRoll: true,
 }
 export type RoomPhase = 'lobby' | 'playing' | 'finished' | 'closed'
-export type DueKind = 'turn' | 'bot' | 'next-hand' | 'start' | 'expire'
+export type DueKind = 'turn' | 'bot' | 'next-hand' | 'start' | 'expire' | 'pre'
 
 export interface RoomPlayer {
   /** The seat's id, and the engine's player id. Never the account id. */
@@ -122,6 +152,12 @@ export interface RoomPlayer {
   place: number | null
   /** Out after the hand in progress: they left under the `out` rule, or the host removed them. */
   standing?: boolean
+  /** Slow games: the hours their clock stops for. */
+  quiet?: Quiet
+  /** A move set ahead of their turn. Seen by nobody else. */
+  pre?: PreAction
+  /** Slow games: how far they have watched, for the catch-up. */
+  seen?: { hand: number; actions: number }
 }
 
 export interface RoomState {
@@ -169,6 +205,8 @@ export interface RoomState {
   version: number
   /** Next seat id to hand out. */
   nextSeat: number
+  /** Slow games: the last few finished hands, deck removed, for the catch-up. */
+  history?: { index: number; hand: HandState }[]
 }
 
 /** Who is asking to sit down. Name and face come from their own profile. */
@@ -177,6 +215,8 @@ export interface Joiner {
   name: string
   avatar: AvatarSpec
   ring: string | null
+  /** Their quiet hours, which a slow game's clock skips. */
+  quiet?: Quiet
 }
 
 export type RoomError =
@@ -197,6 +237,15 @@ export type Result = { ok: true; state: RoomState } | { ok: false; error: RoomEr
 const ok = (state: RoomState): Result => ({ ok: true, state })
 const fail = (error: RoomError): Result => ({ ok: false, error })
 
+/** Rooms a host runs: they set the rules, start the game and can remove people. */
+export function hosted(state: Pick<RoomState, 'kind'>): boolean {
+  return state.kind === 'private' || state.kind === 'slow'
+}
+
+function finishedExpiry(state: RoomState, now: number): number {
+  return now + (state.kind === 'slow' ? SLOW_FINISHED_EXPIRE_MS : FINISHED_EXPIRE_MS)
+}
+
 /** The ladder rungs a room can be played at. Hold'em only: the stake is the venue. */
 export function roomVenue(venueId: string): Venue | undefined {
   return VENUES.find((v) => v.id === venueId)
@@ -213,6 +262,8 @@ export function createRoom(opts: {
   now: number
 }): RoomState {
   const { venue, now } = opts
+  const slow = opts.kind === 'slow'
+  const seats = opts.kind === 'quick' ? venue.seats : slow ? DEFAULT_SLOW_SEATS : DEFAULT_ROOM_SEATS
   let state: RoomState = {
     code: opts.code,
     kind: opts.kind,
@@ -223,13 +274,14 @@ export function createRoom(opts: {
     smallBlind: venue.smallBlind,
     bigBlind: venue.bigBlind,
     handsPerLevel: venue.handsPerLevel,
-    maxSeats: opts.kind === 'quick' ? venue.seats : DEFAULT_ROOM_SEATS,
+    maxSeats: seats,
     reserved: opts.reserved ?? [],
     banned: [],
     blocks: opts.host && opts.hostBlocks?.length ? { [opts.host.userId]: opts.hostBlocks } : {},
     settings: {
       ...DEFAULT_SETTINGS,
-      seats: opts.kind === 'quick' ? venue.seats : DEFAULT_ROOM_SEATS,
+      seats,
+      ...(slow ? { moveHours: DEFAULT_MOVE_HOURS, ending: DEFAULT_ENDING } : {}),
     },
     phase: 'lobby',
     players: [],
@@ -244,11 +296,14 @@ export function createRoom(opts: {
     dueKind: null,
     version: 0,
     nextSeat: 0,
+    ...(slow ? { history: [] } : {}),
   }
   if (opts.host) state = seat(state, opts.host)
   return schedule(
     state,
-    opts.kind === 'quick' ? now + QUICK_START_MS : now + IDLE_EXPIRE_MS,
+    opts.kind === 'quick'
+      ? now + QUICK_START_MS
+      : now + (slow ? SLOW_IDLE_EXPIRE_MS : IDLE_EXPIRE_MS),
     opts.kind === 'quick' ? 'start' : 'expire',
   )
 }
@@ -266,6 +321,7 @@ function seat(state: RoomState, j: Joiner): RoomState {
     left: false,
     timeouts: 0,
     place: null,
+    ...(j.quiet ? { quiet: j.quiet } : {}),
   }
   return { ...state, players: [...state.players, player], nextSeat: state.nextSeat + 1 }
 }
@@ -305,6 +361,8 @@ export function join(state: RoomState, j: Joiner, now: number): Result {
             // Name and face can change in the lobby; once dealt, the table
             // keeps the one everybody has been looking at.
             ...(state.phase === 'lobby' ? { name: j.name, avatar: j.avatar, ring: j.ring } : {}),
+            // Quiet hours are kept up to date whenever they open the game.
+            ...(j.quiet ? { quiet: j.quiet } : {}),
           }
         : p,
     )
@@ -353,7 +411,7 @@ export function leave(state: RoomState, userId: string, now: number): RoomState 
     const humans = players.filter((p) => !p.bot)
     const hostUserId = state.hostUserId === userId ? (humans[0]?.userId ?? null) : state.hostUserId
     // An empty private room with nobody left to start it is over.
-    if (state.kind === 'private' && humans.length === 0) {
+    if (hosted(state) && humans.length === 0) {
       return schedule({ ...state, players: [], hostUserId: null }, now, 'expire')
     }
     return bump({ ...state, players, hostUserId })
@@ -372,7 +430,7 @@ export function leave(state: RoomState, userId: string, now: number): RoomState 
  * if they had left under the `out` rule. Either way they cannot come back.
  */
 export function kick(state: RoomState, userId: string, playerId: string, now: number): Result {
-  if (state.kind !== 'private' || state.hostUserId !== userId) return fail('not-host')
+  if (!hosted(state) || state.hostUserId !== userId) return fail('not-host')
   const target = state.players.find((p) => p.id === playerId)
   if (!target || target.bot || !target.userId || target.userId === userId) return fail('illegal')
   const banned = [...state.banned, target.userId]
@@ -410,8 +468,20 @@ export function blockedBetween(state: RoomState, a: string, b: string): boolean 
 /** The host changes the table before the deal. Anything out of range is refused whole. */
 export function configure(state: RoomState, userId: string, patch: Partial<RoomSettings>): Result {
   if (state.phase !== 'lobby') return fail('started')
-  if (state.kind !== 'private' || state.hostUserId !== userId) return fail('not-host')
+  if (!hosted(state) || state.hostUserId !== userId) return fail('not-host')
   const settings = { ...state.settings, ...patch }
+  if (state.kind === 'slow') {
+    if (
+      !SLOW_SEATS.includes(settings.seats as (typeof SLOW_SEATS)[number]) ||
+      settings.seats < state.players.length ||
+      !MOVE_HOURS.includes(settings.moveHours as MoveHours) ||
+      !validEnding(settings.ending)
+    ) {
+      return fail('bad-settings')
+    }
+  } else if (patch.moveHours !== undefined || patch.ending !== undefined) {
+    return fail('bad-settings')
+  }
   if (
     !Number.isInteger(settings.seats) ||
     settings.seats < Math.max(2, state.players.length) ||
@@ -427,6 +497,13 @@ export function configure(state: RoomState, userId: string, patch: Partial<RoomS
   return ok(bump({ ...state, settings, maxSeats: settings.seats }))
 }
 
+function validEnding(e: SlowEnding | undefined): boolean {
+  if (!e) return false
+  if (e.kind === 'last-standing') return true
+  if (e.kind === 'hands') return ENDING_HANDS.includes(e.hands)
+  return e.kind === 'date' && Number.isSafeInteger(e.at) && e.at > 0
+}
+
 /** Hands per blind level for a speed, from the stake's own pace. */
 export function handsPerLevelFor(speed: BlindSpeed, base: number | undefined): number {
   const normal = base ?? HANDS_PER_LEVEL
@@ -439,6 +516,8 @@ export function handsPerLevelFor(speed: BlindSpeed, base: number | undefined): n
 /** The host fills empty chairs with the cast. */
 export function addBots(state: RoomState, userId: string, count: number, rng: Rng): Result {
   if (state.phase !== 'lobby') return fail('started')
+  // A slow game is for friends: no bots (Will, 2026-10-22).
+  if (state.kind === 'slow') return fail('illegal')
   if (state.kind !== 'private' || state.hostUserId !== userId) return fail('not-host')
   return ok(bump(seatBots(state, count, rng)))
 }
@@ -517,8 +596,13 @@ function seatBots(
 /** The host deals the first hand. Two players at least, bots counted. */
 export function start(state: RoomState, userId: string, now: number, rng: Rng): Result {
   if (state.phase !== 'lobby') return fail('started')
-  if (state.kind !== 'private' || state.hostUserId !== userId) return fail('not-host')
+  if (!hosted(state) || state.hostUserId !== userId) return fail('not-host')
   if (state.players.length < 2) return fail('too-few')
+  // An end date that has already gone would finish the game on its first hand.
+  const ending = state.settings.ending
+  if (state.kind === 'slow' && ending?.kind === 'date' && ending.at <= now) {
+    return fail('bad-settings')
+  }
   return ok(begin(state, now, rng))
 }
 
@@ -613,7 +697,7 @@ function release(state: RoomState, now: number): RoomState | null {
     players = players.map((p) => (p.place === null ? { ...p, place: 1 } : p))
     return schedule(
       { ...state, players, hand: state.hand, phase: 'finished' },
-      now + FINISHED_EXPIRE_MS,
+      finishedExpiry(state, now),
       'expire',
     )
   }
@@ -624,6 +708,7 @@ function deal(before: RoomState, now: number, rng: Rng, buttonId?: string): Room
   const released = release(before, now)
   if (released?.phase === 'finished') return released
   const state = released ?? before
+  if (slowEnded(state, now)) return finishOnChips(state, now)
   const live = state.players.filter((p) => p.stack > 0)
   const button = buttonId ?? nextButton(state.players, state.hand, state.buttonId)
   const blinds = blindsAt(
@@ -665,8 +750,140 @@ function retime(state: RoomState, now: number): RoomState {
   if (fresh.dueKind !== 'turn' || state.turnFrom === undefined) {
     return { ...fresh, dueAt: Math.min(state.dueAt, fresh.dueAt) }
   }
+  if (state.kind === 'slow') {
+    // Worked out again from when the turn began, so new quiet hours apply
+    // to the turn already running, and a reconnect never resets it.
+    const player = toActPlayer(fresh)
+    const whole = player ? slowTurnEnd(fresh, player, state.turnFrom) : fresh.dueAt
+    return { ...fresh, dueAt: Math.min(whole, fresh.dueAt), turnFrom: state.turnFrom }
+  }
   const whole = state.turnFrom + state.settings.turnSeconds * 1000
   return { ...fresh, dueAt: Math.min(whole, fresh.dueAt), turnFrom: state.turnFrom }
+}
+
+function toActPlayer(state: RoomState): RoomPlayer | undefined {
+  const hand = state.hand
+  const toAct = hand?.players[hand.toActIndex]
+  return toAct && state.players.find((p) => p.id === toAct.id)
+}
+
+/**
+ * A slow game's turn: the move clock outside the player's quiet hours. Being
+ * offline is the normal state here, so it changes nothing; somebody who has
+ * timed out twice running, or left, is sat out and moved for at once.
+ */
+function slowTurnEnd(state: RoomState, player: RoomPlayer, from: number): number {
+  if (player.left || player.timeouts >= AWAY_AFTER_TIMEOUTS) return from + 400
+  const hours = state.settings.moveHours ?? DEFAULT_MOVE_HOURS
+  return slowDeadline(from, hours * 60 * 60 * 1000, player.quiet)
+}
+
+/** The move a player set ahead of time, if it still stands for the hand as it is now. */
+export function preMove(hand: HandState, handIndex: number, pre: PreAction): Action | null {
+  if (pre.hand !== handIndex || pre.street !== hand.street) return null
+  const legal = legalActions(hand)
+  if (!legal || legal.canDraw) return null
+  switch (pre.kind) {
+    case 'check-fold':
+      return legal.canCheck ? { type: 'check' } : { type: 'fold' }
+    case 'check':
+      return legal.canCheck ? { type: 'check' } : null
+    case 'call':
+      return legal.canCall && legal.callAmount === pre.amount ? { type: 'call' } : null
+  }
+}
+
+/** Moves set for a hand or street that has gone are dropped. */
+function dropStalePre(state: RoomState): RoomState {
+  const hand = state.hand
+  if (!state.players.some((p) => p.pre)) return state
+  const players = state.players.map((p) =>
+    p.pre && (!hand || p.pre.hand !== state.handIndex || p.pre.street !== hand.street)
+      ? { ...p, pre: undefined }
+      : p,
+  )
+  return { ...state, players }
+}
+
+/**
+ * Set (or clear, with null) a move to make when the turn comes round: check or
+ * fold, check, or call this bet. Only while you are in the hand and it is not
+ * already your turn; it lapses at the end of the street, and a call lapses if
+ * the bet changes.
+ */
+export function setPre(
+  state: RoomState,
+  userId: string,
+  pre: { kind: PreAction['kind']; amount?: number } | null,
+): Result {
+  if (state.phase !== 'playing' || !state.hand) return fail('illegal')
+  const player = playerFor(state, userId)
+  if (!player) return fail('not-seated')
+  const hand = state.hand
+  const inHand = hand.players.find((p) => p.id === player.id)
+  if (!inHand || inHand.status !== 'active') return fail('illegal')
+  if (pre && hand.players[hand.toActIndex]?.id === player.id) return fail('illegal')
+  if (pre?.kind === 'call' && (!Number.isSafeInteger(pre.amount) || pre.amount! <= 0)) {
+    return fail('illegal')
+  }
+  const next: PreAction | undefined = pre
+    ? {
+        kind: pre.kind,
+        hand: state.handIndex,
+        street: hand.street,
+        ...(pre.kind === 'call' ? { amount: pre.amount } : {}),
+      }
+    : undefined
+  const players = state.players.map((p) => (p.id === player.id ? { ...p, pre: next } : p))
+  return ok(bump({ ...state, players }))
+}
+
+/**
+ * A player's quiet hours changed (in Settings, on any device). A turn already
+ * running is worked out again from when it began, with the new hours.
+ */
+export function setQuiet(
+  state: RoomState,
+  userId: string,
+  quiet: Quiet | null,
+  now: number,
+): Result {
+  const player = playerFor(state, userId)
+  if (!player) return fail('not-seated')
+  const players = state.players.map((p) =>
+    p.id === player.id ? { ...p, quiet: quiet ?? undefined } : p,
+  )
+  const next = { ...state, players }
+  return ok(state.phase === 'playing' ? retime(next, now) : bump(next))
+}
+
+/** A slow game's player has watched up to now: the catch-up starts from here next time. */
+export function markSeen(state: RoomState, userId: string): Result {
+  const player = playerFor(state, userId)
+  if (!player) return fail('not-seated')
+  const players = state.players.map((p) =>
+    p.id === player.id ? { ...p, seen: seenNow(state) } : p,
+  )
+  return ok(bump({ ...state, players }))
+}
+
+function seenNow(state: RoomState): { hand: number; actions: number } {
+  return { hand: state.handIndex, actions: state.hand?.actions.length ?? 0 }
+}
+
+/** Whether a slow game's ending has come, between hands. */
+function slowEnded(state: RoomState, now: number): boolean {
+  if (state.kind !== 'slow' || state.phase !== 'playing' || !state.settings.ending) return false
+  return endingReached(state.settings.ending, state.handIndex, now)
+}
+
+/** The game ends on the chips: the bigger stack higher, level stacks sharing a place. */
+function finishOnChips(state: RoomState, now: number): RoomState {
+  const places = placesByChips(state.players)
+  const players = state.players.map((p) =>
+    places.has(p.id) ? { ...p, place: places.get(p.id)!, pre: undefined } : p,
+  )
+  return schedule({ ...state, players, phase: 'finished' }, finishedExpiry(state, now), 'expire')
 }
 
 /** Whose turn it is, and when it runs out. The one place the clock is decided. */
@@ -677,6 +894,15 @@ function reschedule(state: RoomState, now: number): RoomState {
   const toAct = hand.players[hand.toActIndex]
   const player = toAct && state.players.find((p) => p.id === toAct.id)
   if (!player) return bump(state)
+  if (!player.bot && player.pre) {
+    if (preMove(hand, state.handIndex, player.pre)) return schedule(state, now + PRE_MS, 'pre')
+    // It no longer stands (the bet changed): their turn as usual.
+    const players = state.players.map((p) => (p.id === player.id ? { ...p, pre: undefined } : p))
+    return reschedule({ ...state, players }, now)
+  }
+  if (state.kind === 'slow' && !player.bot) {
+    return { ...schedule(state, slowTurnEnd(state, player, now), 'turn'), turnFrom: now }
+  }
   if (player.bot) {
     // Nobody is waiting on it: every person has folded or is all-in.
     const peopleIn = hand.players.some((p) => {
@@ -712,7 +938,16 @@ export function act(state: RoomState, userId: string, action: Action, now: numbe
   const applied = apply(state, action)
   if (!applied) return fail('illegal')
   const players = applied.players.map((p) =>
-    p.id === player.id ? { ...p, timeouts: 0, left: false } : p,
+    p.id === player.id
+      ? {
+          ...p,
+          timeouts: 0,
+          left: false,
+          pre: undefined,
+          // Acting means they have seen the table as it was.
+          ...(state.kind === 'slow' ? { seen: seenNow(applied) } : {}),
+        }
+      : p,
   )
   return ok(after({ ...applied, players }, now))
 }
@@ -732,7 +967,8 @@ function apply(state: RoomState, action: Action): RoomState | null {
   return { ...state, hand: next, memory }
 }
 
-function after(state: RoomState, now: number): RoomState {
+function after(before: RoomState, now: number): RoomState {
+  const state = dropStalePre(before)
   return state.hand && isHandComplete(state.hand) ? settle(state, now) : reschedule(state, now)
 }
 
@@ -765,13 +1001,26 @@ function settle(state: RoomState, now: number): RoomState {
     ...p,
     stack: after.get(p.id) ?? p.stack,
     place: placeOf.get(p.id) ?? p.place,
+    pre: undefined,
   }))
+  const history =
+    state.kind === 'slow'
+      ? [...(state.history ?? []), { index: state.handIndex, hand: { ...hand, deck: [] } }].slice(
+          -SLOW_HISTORY,
+        )
+      : state.history
   if (alive <= 1) {
     players = players.map((p) => (p.place === null ? { ...p, place: 1 } : p))
-    return schedule({ ...state, players, phase: 'finished' }, now + FINISHED_EXPIRE_MS, 'expire')
+    return schedule(
+      { ...state, players, history, phase: 'finished' },
+      finishedExpiry(state, now),
+      'expire',
+    )
   }
+  const settled = { ...state, players, history }
+  if (slowEnded(settled, now)) return finishOnChips(settled, now)
   const pause = hand.result?.showdown ? SHOWDOWN_HAND_MS : NEXT_HAND_MS
-  return schedule({ ...state, players }, now + pause, 'next-hand')
+  return schedule(settled, now + pause, 'next-hand')
 }
 
 /**
@@ -807,6 +1056,19 @@ export function tick(state: RoomState, now: number, rng: Rng): RoomState {
       }
       applied ??= apply(state, timeoutAction(hand))
       return applied ? after(applied, now) : reschedule(state, now)
+    }
+    case 'pre': {
+      const hand = state.hand
+      if (!hand || isHandComplete(hand)) return reschedule(state, now)
+      const player = toActPlayer(state)
+      const move = player?.pre && preMove(hand, state.handIndex, player.pre)
+      if (!player || !move) return reschedule(state, now)
+      const applied = apply(state, move)
+      if (!applied) return reschedule(state, now)
+      const players = applied.players.map((p) =>
+        p.id === player.id ? { ...p, pre: undefined, timeouts: 0 } : p,
+      )
+      return after({ ...applied, players }, now)
     }
     case 'turn': {
       const hand = state.hand

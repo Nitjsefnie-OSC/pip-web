@@ -32,6 +32,7 @@ import { useSpendableRoll } from '@/lib/useSpendableRoll'
 import { mediaSupported, useMedia } from '@/store/media'
 import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
+import { useSlowGames } from '@/store/slowGames'
 import { useSync } from '@/store/sync'
 import { RoomLobby } from './RoomLobby'
 import { RoomTable } from './RoomTable'
@@ -45,6 +46,7 @@ const ERROR_COPY: Partial<Record<ServerError, string>> = {
   'not-invited': 'That table was matched for other players.',
   closed: 'That room has closed.',
   kicked: 'The host removed you from this room.',
+  'too-many': 'You’re in ten slow games already. Finish one first.',
 }
 
 export function RoomScreen() {
@@ -56,13 +58,28 @@ export function RoomScreen() {
   const view = useRoom((s) => s.view)
   const error = useRoom((s) => s.error)
   const leave = useRoom((s) => s.leave)
+  const exit = useRoom((s) => s.exit)
 
   const sitting = code !== null && roomCode === code
+  const slow = view?.kind === 'slow'
 
   const goBack = () => {
     useMedia.getState().stop()
+    // A slow game's seat stays yours with the screen closed: back is only back.
+    if (slow) {
+      exit()
+      void useSlowGames.getState().refresh()
+      router.push('/game')
+      return
+    }
     leave()
     router.push('/game/multiplayer')
+  }
+  /** A slow game, given up on purpose: the seat is freed, or folded out once dealt. */
+  const leaveGame = () => {
+    leave()
+    void useSlowGames.getState().refresh()
+    router.push('/game')
   }
 
   if (!roomsConfigured()) return <Unavailable />
@@ -80,9 +97,9 @@ export function RoomScreen() {
     <>
       {live && <MeshLink />}
       {view.phase === 'lobby' ? (
-        <RoomLobby view={view} live={live} onLeave={goBack} />
+        <RoomLobby view={view} live={live} onLeave={goBack} onLeaveGame={leaveGame} />
       ) : view.hand ? (
-        <RoomTable view={view} live={live} onLeave={goBack} />
+        <RoomTable view={view} live={live} onLeave={goBack} onLeaveGame={leaveGame} />
       ) : (
         <Waiting label="Dealing" />
       )}
@@ -133,6 +150,12 @@ function JoinGate({ code }: { code: string }) {
   const enter = useRoom((s) => s.enter)
   const [peek, setPeek] = useState<RoomPeek | null | 'loading'>('loading')
   const [account, setAccount] = useState<AccountMode | null>(null)
+  // A slow game you are already in (a notification, an email, a bookmark):
+  // straight back to your seat, no Join to press.
+  const mine = useSlowGames((s) => s.games.some((g) => g.code === code && g.phase !== 'closed'))
+  useEffect(() => {
+    if (mine && signedIn) enter(code)
+  }, [mine, signedIn, code, enter])
 
   useEffect(() => {
     let live = true
@@ -174,11 +197,15 @@ function JoinGate({ code }: { code: string }) {
             {peek.kind === 'quick'
               ? 'Your quick match'
               : peek.host
-                ? `${peek.host}’s table`
+                ? peek.kind === 'slow'
+                  ? `${peek.host}’s slow game`
+                  : `${peek.host}’s table`
                 : 'A table'}
           </h1>
           <p className="mt-2 text-muted-foreground">
-            {venue?.name ?? 'Ladder'} stakes · {money(peek.buyIn)} buy-in · {peek.seated} of{' '}
+            {venue?.name ?? 'Ladder'} stakes ·{' '}
+            {peek.kind === 'slow' && peek.moveHours ? `${peek.moveHours}h a move · ` : ''}
+            {peek.forRoll === false ? 'For fun' : `${money(peek.buyIn)} buy-in`} · {peek.seated} of{' '}
             {peek.maxSeats} seated
           </p>
         </div>

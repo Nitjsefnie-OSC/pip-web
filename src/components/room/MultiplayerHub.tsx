@@ -17,7 +17,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Loader2, Lock, Star, Users, Video, Zap } from 'lucide-react'
+import { Clock, Loader2, Lock, Star, Users, Video, Zap } from 'lucide-react'
 import { AccountDialog } from '@/components/settings/AccountDialog'
 import { PageShell } from '@/components/PageShell'
 import { Splash } from '@/components/Splash'
@@ -38,13 +38,15 @@ import { useProfile } from '@/store/profile'
 import { useQueue } from '@/store/queue'
 import { useRoom } from '@/store/room'
 import { useSync } from '@/store/sync'
-import { SettingsList } from './RoomSettings'
+import { YourGames } from '@/components/menu/YourGames'
+import { SettingsList, settingsForPace } from './RoomSettings'
 
 type Mode = 'friends' | 'quick'
 
 const ERRORS: Record<string, string> = {
   auth: 'Sign in again to play.',
   'members-only': 'This comes with the membership.',
+  'too-many': 'You’re in ten slow games already. Finish one first.',
   offline: 'Couldn’t reach the tables. Check your connection and try again.',
   busy: 'Couldn’t open a room just now. Try again in a moment.',
   closed: 'Lost the connection. Try again.',
@@ -69,6 +71,7 @@ export function MultiplayerHub() {
     ...DEFAULT_SETTINGS,
     seats: DEFAULT_ROOM_SEATS,
   })
+  const [slow, setSlow] = useState(false)
   const [creating, setCreating] = useState(false)
   const [opening, setOpening] = useState(false)
   const [problem, setProblem] = useState<string | null>(null)
@@ -120,7 +123,7 @@ export function MultiplayerHub() {
       return
     }
     setOpening(true)
-    const result = await createRoom(stake.id, seat(), settings)
+    const result = await createRoom(stake.id, seat(), settings, slow ? 'slow' : 'private')
     setOpening(false)
     if ('error' in result) {
       setProblem(ERRORS[result.error] ?? ERRORS.busy)
@@ -190,7 +193,13 @@ export function MultiplayerHub() {
     >
       {opening && <Loader2 className="size-4 animate-spin" />}
       {signedIn && !member && <Lock className="size-4" />}
-      {!signedIn ? 'Sign in to play' : mode === 'friends' ? 'Open the room' : 'Find a table'}
+      {!signedIn
+        ? 'Sign in to play'
+        : mode === 'quick'
+          ? 'Find a table'
+          : slow
+            ? 'Open the game'
+            : 'Open the room'}
     </motion.button>
   )
 
@@ -248,6 +257,8 @@ export function MultiplayerHub() {
             signed in without the membership can join a friend's room and is
             shown what hosting would take; somebody signed out is asked to sign
             in and shown nothing they could not use. */}
+        {signedIn && <YourGames />}
+
         {!signedIn ? (
           <GuestPanel
             onSignUp={() => {
@@ -311,6 +322,11 @@ export function MultiplayerHub() {
                       buyIn={stake.buyIn}
                       onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
                       stakes={stakePicker}
+                      slow={slow}
+                      onPace={(pace) => {
+                        setSlow(pace === 'slow')
+                        setSettings((s) => settingsForPace(s, pace))
+                      }}
                     />
                     {primary}
                     <button
@@ -408,6 +424,7 @@ function GuestPanel({ onSignUp, onSignIn }: { onSignUp: () => void; onSignIn: ()
 const HOSTING = [
   { icon: Users, text: 'Open a room with your own rules' },
   { icon: Video, text: 'Camera and voice at the table' },
+  { icon: Clock, text: 'Slow games, a move at a time' },
   { icon: Zap, text: 'Quick match at any stake' },
 ] as const
 

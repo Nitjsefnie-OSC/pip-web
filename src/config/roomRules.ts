@@ -12,6 +12,13 @@ import {
   ROOM_SEATS,
   type RoomSettings,
 } from '@/lib/multiplayer/room'
+import {
+  ENDING_HANDS,
+  MOVE_HOURS,
+  SLOW_SEATS,
+  type MoveHours,
+  type SlowEnding,
+} from '@/lib/multiplayer/slow'
 
 type Options<T> = readonly (readonly [T, string])[]
 
@@ -39,4 +46,29 @@ export const TURN_CHOICES: Options<RoomSettings['turnSeconds']> = [
 export const LEAVING_CHOICES: Options<LeavingRule> = [
   ['keep-seat', 'Keep their seat'],
   ['out', 'They’re out'],
+]
+
+// --- slow games ---------------------------------------------------------------
+
+export const SLOW_SEAT_CHOICES: Options<number> = SLOW_SEATS.map((n) => [n, String(n)] as const)
+
+export const MOVE_CHOICES: Options<MoveHours> = MOVE_HOURS.map((h) => [h, `${h}h`] as const)
+
+export type EndingKind = SlowEnding['kind']
+
+export const ENDING_CHOICES: Options<EndingKind> = [
+  ['last-standing', 'Last standing'],
+  ['hands', 'After hands'],
+  ['date', 'On a date'],
+]
+
+export const ENDING_HAND_CHOICES: Options<(typeof ENDING_HANDS)[number]> = ENDING_HANDS.map(
+  (n) => [n, String(n)] as const,
+)
+
+export type Pace = 'live' | 'slow'
+
+export const PACE_CHOICES: Options<Pace> = [
+  ['live', 'Live'],
+  ['slow', 'Slow'],
 ]

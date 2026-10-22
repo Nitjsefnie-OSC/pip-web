@@ -13,6 +13,7 @@
 import type { AvatarSpec } from '@/lib/avatar'
 import type { HandState } from '@/lib/poker/engine'
 import type { DueKind, RoomKind, RoomPhase, RoomSettings, RoomState } from './room'
+import type { PreAction, Quiet } from './slow'
 
 export interface SeatView {
   id: string
@@ -28,6 +29,8 @@ export interface SeatView {
   /** Out after the hand in progress. */
   standing: boolean
   place: number | null
+  /** Slow games: their quiet hours, so the table can show them asleep. */
+  quiet?: Quiet
 }
 
 export interface RoomView {
@@ -60,6 +63,12 @@ export interface RoomView {
   dueAt: number | null
   dueKind: DueKind | null
   version: number
+  /** The move you set ahead of your turn. Only ever yours. */
+  pre: PreAction | null
+  /** Slow games: how far you had watched, so the catch-up starts there. */
+  seen: { hand: number; actions: number } | null
+  /** Slow games: the last few finished hands, as you may see them. Oldest first. */
+  history: { index: number; hand: HandState }[]
 }
 
 /** Whose cards are face up for everybody: the players a showdown turned over. */
@@ -125,11 +134,18 @@ export function viewFor(state: RoomState, userId: string | null): RoomView {
       left: p.left,
       standing: p.standing === true,
       place: p.place,
+      ...(state.kind === 'slow' && p.quiet ? { quiet: p.quiet } : {}),
     })),
     hand: hand ? redactHand(hand, me?.id ?? null) : null,
     held,
     dueAt: state.dueAt,
     dueKind: state.dueKind,
     version: state.version,
+    pre: me?.pre ?? null,
+    seen: me?.seen ?? null,
+    history: (state.history ?? []).map((h) => ({
+      index: h.index,
+      hand: redactHand(h.hand, me?.id ?? null),
+    })),
   }
 }

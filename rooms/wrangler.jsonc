@@ -14,14 +14,21 @@
   "durable_objects": {
     "bindings": [
       { "name": "ROOMS", "class_name": "PokerRoom" },
-      { "name": "QUEUES", "class_name": "Matchmaker" }
+      { "name": "QUEUES", "class_name": "Matchmaker" },
+      // One per account: their slow games, notification prefs and push devices.
+      { "name": "PLAYERS", "class_name": "Player" }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PokerRoom", "Matchmaker"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["PokerRoom", "Matchmaker"] },
+    { "tag": "v2", "new_sqlite_classes": ["Player"] }
+  ],
   "vars": {
     // Where the site is served from. Every socket and request is checked
     // against this list, so a page on another site cannot drive a table.
-    "ALLOWED_ORIGINS": "https://playpip.io,https://www.playpip.io,http://localhost:3000"
+    "ALLOWED_ORIGINS": "https://playpip.io,https://www.playpip.io,http://localhost:3000",
+    // This Worker's own address, for the "stop these emails" link.
+    "PUBLIC_URL": "https://rooms.playpip.io"
   },
   // The browser connects here directly. A custom domain on the playpip.io zone:
   // the first deploy creates its DNS record and certificate.
@@ -33,4 +40,7 @@
   // Secrets (wrangler secret put, never in this file):
   //   SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
   //   TURN_KEY_ID, TURN_KEY_API_TOKEN   (camera and mic; optional)
+  //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (web push for slow games; scripts/vapid-keys.mjs)
+  //   RESEND_API_KEY                     (slow games' turn emails)
+  //   NOTIFY_SECRET                      (signs the email's off link; optional)
 }

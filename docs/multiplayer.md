@@ -41,6 +41,62 @@ table ever sees another player's Roll or rank.
 | Where | **A separate Worker**, so the Pages deploy is untouched. | 2026-10-11 |
 | Menu | **A fifth tile** under "Other ways to play", first in the row and full width on a phone. | 2026-10-11 |
 
+## Slow games (2026-10-22)
+
+A slow game is a private room for friends who can't sit down together, like chess.com's daily
+games. The plan and Will's rulings are `cto/drafts/build-slow-play.md`.
+
+- **Opening one:** the hub's **Create a room** has a **Pace** row, Live or Slow. A slow game has
+  2–4 seats (heads-up by default) and no bots. Its rules are **Time per move** (1h, 4h, 12h or 24h)
+  and **Ends**: last standing, after 20, 50 or 100 hands, or on a date. Only the host needs the
+  membership, as with any room. Ten open slow games at most per player.
+- **The clock** (`src/lib/multiplayer/slow.ts`, `slowDeadline`) counts only time outside the
+  mover's **quiet hours**, in their own timezone, with DST handled. Being offline changes
+  nothing. Running out checks or folds; two in a row sit you out (moved for at once) until you
+  next open the game.
+- **Pre-actions** (`setPre`): Check/Fold, Check or Call *n*, set while somebody else is to act and
+  made 350 ms after the turn reaches you, if they still stand. A call lapses when the bet
+  changes; all of them lapse at the end of the street. Live rooms have them too. Nobody else is
+  ever sent yours.
+- **Endings on the chips** place by stack; level stacks share a place and split the prize
+  (`ledger.ts`). A finished slow game shows on Home for a week.
+- **The catch-up** (`catchUp.ts`): a slow room keeps its last 10 hands, and each seat how far it
+  has watched (`seen`). Opening the game deals what you missed again with the engine and plays it
+  on the felt before handing you the table, with a Skip. A rebuilt hand that doesn't land where
+  the real one did is not shown. Every frame is redacted like a view.
+- **Your games** (`YourGames`, `MiniTable`): mini tables at the top of Home and on the hub, your
+  move first. They come from **`Player`**, a third Durable Object, one per account
+  (`rooms/src/player.ts`). After every change a slow room sends each player their own `SlowCard`,
+  built from `viewFor`, so it only holds what they may see. `GET /slow` reads it.
+- **Leaving:** Back keeps your seat. **Leave this game** (in Table rules) stands you up.
+
+### Notifications
+
+The rules are `src/lib/multiplayer/notices.ts`; `Player` keeps the prefs, devices and the alarm.
+
+- **Push** as soon as it's your move, to every device you allowed: browsers through the service
+  worker (VAPID web push, `public/sw.js`), the iOS app through Expo's push service.
+- **Email** (Resend) if the move is still waiting a quarter of the way through the clock, or after
+  5 minutes with no device. One email lists every game waiting on you, at most one every 12 hours,
+  with a signed one-click off link (`/notify/off`).
+- **Nothing in quiet hours** (it waits for them to end), and nothing while the table is open.
+- A finished game is a push, never an email.
+- **Settings → Slow games:** Push notifications, Email, Quiet hours (default 23:00–08:00). The
+  permission is asked once, at the first slow game's table (`PushPrompt`). On an iPhone, web push
+  needs Pip on the Home Screen; the app needs a build with `expo-notifications` (`mobile/README.md`).
+
+Secrets on the Worker: `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (`node scripts/vapid-keys.mjs`;
+rotating them unsubscribes every browser), `RESEND_API_KEY`, and optionally `NOTIFY_SECRET`.
+Without them pushes are skipped and emails logged.
+
+| Slow timings | |
+|---|---|
+| A move | 1, 4, 12 or 24 hours, outside your quiet hours |
+| A move set ahead | made 350 ms after the turn reaches you |
+| Sat out (two timeouts running) | moved for at once until you open the game |
+| An unstarted slow game is cleared | 3 days |
+| A finished one is cleared | 7 days |
+
 ## The authority model
 
 **The server deals and keeps every hole card. No client is ever sent a card it may not see.**

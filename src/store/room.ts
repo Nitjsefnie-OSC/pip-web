@@ -25,6 +25,7 @@ import { cuesFor } from '@/lib/multiplayer/cues'
 import { haptics } from '@/lib/haptics'
 import { legalActions, type HandState } from '@/lib/poker/engine'
 import { type Cue, sound } from '@/lib/sound'
+import { DEFAULT_QUIET, type PreKind, type Quiet } from '@/lib/multiplayer/slow'
 import { useProfile } from './profile'
 
 export type RoomConnection = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'gone'
@@ -48,7 +49,16 @@ interface RoomStore {
   enter: (code: string) => void
   /** Stand up: the seat is freed before the deal, folded for after it. */
   leave: () => void
+  /**
+   * Close the table without standing up. A slow game's seat is yours whether
+   * the screen is open or not, so going back to Home is this, never `leave`.
+   */
+  exit: () => void
   act: (action: Action) => void
+  /** A move to make when your turn comes (slow games and live rooms alike), or null to clear it. */
+  setPre: (pre: { kind: PreKind; amount?: number } | null) => void
+  /** You have watched a slow game up to now. */
+  markSeen: () => void
   start: () => void
   addBots: (count: number) => void
   removeBot: (id: string) => void
@@ -116,6 +126,20 @@ const PING_MS = 8_000
 const STALE_MS = 20_000
 /** Back on screen: a socket that cannot answer in this long is replaced. */
 const WAKE_CHECK_MS = 3_000
+/**
+ * Your quiet hours as this device would guess them: the default hours, in this
+ * device's timezone. The room server uses the ones you saved in Settings over
+ * these whenever you have saved any.
+ */
+function deviceQuiet(): Quiet | undefined {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    return tz ? { ...DEFAULT_QUIET, tz } : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /** The server said no for a reason a retry will not change. */
 const FINAL_CLOSE = new Set([4000, 4001, 4004, 1000])
 
@@ -217,6 +241,7 @@ export const useRoom = create<RoomStore>((set, get) => {
           name,
           avatar: avatar ?? { seed: name || 'pip', backgroundColor: 'b6e3f4' },
           ring: avatarRing,
+          quiet: deviceQuiet(),
         } satisfies ClientMessage),
       )
       set({ connection: 'open' })
@@ -306,6 +331,11 @@ export const useRoom = create<RoomStore>((set, get) => {
       set({ code: null, connection: 'idle', view: null, media: {}, error: null })
     },
 
+    exit: () => {
+      teardown()
+      set({ code: null, connection: 'idle', view: null, media: {}, error: null })
+    },
+
     act: (action) => {
       // Sounded and cleared from the screen the moment it is pressed, as on the
       // ladder: the server's answer is a round trip away, and a tap that does
@@ -315,6 +345,11 @@ export const useRoom = create<RoomStore>((set, get) => {
       set({ pending: true })
       send({ t: 'act', action })
     },
+    setPre: (pre) => {
+      sound.play('tap')
+      send({ t: 'pre', pre })
+    },
+    markSeen: () => send({ t: 'seen' }),
     start: () => send({ t: 'start' }),
     addBots: (count) => send({ t: 'bots', count }),
     removeBot: (id) => send({ t: 'unbot', id }),

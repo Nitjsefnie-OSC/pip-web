@@ -32,6 +32,8 @@ export type NativeRequest =
   | { type: 'products' }
   | { type: 'purchase'; plan: 'monthly' | 'annual'; userId: string }
   | { type: 'restore'; userId: string }
+  /** Ask the system to allow notifications, and get this install's push token. */
+  | { type: 'pushToken' }
 
 /**
  * What an install can do, as the shell lists it in `PipApp.supports`. Sign-in
@@ -39,8 +41,16 @@ export type NativeRequest =
  * up, and purchases only once the store is. `media` means the camera and mic
  * work in the web view (getUserMedia prompts as in a browser); older installs
  * lack the permissions, so hide the camera and mic controls without it.
+ * `push` means the build can ask for notification permission and hand back its
+ * Expo push token (`pushToken`), and opens a tapped notification's page.
  */
-export type AppCapability = 'haptic' | 'signIn:apple' | 'signIn:google' | 'purchase' | 'media'
+export type AppCapability =
+  | 'haptic'
+  | 'signIn:apple'
+  | 'signIn:google'
+  | 'purchase'
+  | 'media'
+  | 'push'
 
 interface PipAppFlag {
   platform: 'ios' | 'android'

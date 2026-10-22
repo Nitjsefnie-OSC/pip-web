@@ -24,6 +24,11 @@ export type Ledger = Record<string, LedgerEntry>
 
 /** Old games are forgotten after a week: long past any reconnect. */
 const KEEP_MS = 7 * 24 * 60 * 60 * 1000
+/**
+ * A game still being played is kept far longer: a slow game can run for
+ * weeks, and forgetting its buy-in would charge it again on the next look.
+ */
+const KEEP_OPEN_MS = 120 * 24 * 60 * 60 * 1000
 
 export function gameKey(view: RoomView): string | null {
   return view.startedAt === null ? null : `${view.code}:${view.startedAt}`
@@ -48,7 +53,9 @@ export function settle(
     return { ledger, delta: 0, won: false }
   }
   const kept: Ledger = {}
-  for (const [k, e] of Object.entries(ledger)) if (now - e.at < KEEP_MS) kept[k] = e
+  for (const [k, e] of Object.entries(ledger)) {
+    if (now - e.at < (e.settled ? KEEP_MS : KEEP_OPEN_MS)) kept[k] = e
+  }
   let delta = 0
   let entry = kept[key]
   if (!entry) {
@@ -58,7 +65,9 @@ export function settle(
   let won = false
   if (view.phase === 'finished' && !entry.settled) {
     won = me.place === 1
-    if (won) delta += view.prize
+    // A slow game ending on the chips can leave level stacks sharing first: they split it.
+    const firsts = view.players.filter((p) => p.place === 1).length
+    if (won) delta += Math.floor(view.prize / Math.max(1, firsts))
     entry = { ...entry, settled: true }
   }
   return { ledger: { ...kept, [key]: entry }, delta, won }

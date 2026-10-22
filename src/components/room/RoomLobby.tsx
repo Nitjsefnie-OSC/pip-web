@@ -28,6 +28,7 @@ import { useMedia } from '@/store/media'
 import { useProfile } from '@/store/profile'
 import { useRoom } from '@/store/room'
 import { PlayerSheet } from './PlayerSheet'
+import { PushPrompt } from './PushPrompt'
 import { RoomRulesDialog } from './RoomSettings'
 import {
   CameraToggle,
@@ -43,10 +44,14 @@ export function RoomLobby({
   view,
   live,
   onLeave,
+  onLeaveGame,
 }: {
   view: RoomView
   live: boolean
+  /** Back. At a slow game the seat stays yours. */
   onLeave: () => void
+  /** A slow game: give up your seat on purpose. */
+  onLeaveGame?: () => void
 }) {
   const money = useMoney()
   const isMobile = useIsMobile()
@@ -78,6 +83,7 @@ export function RoomLobby({
   const g = feltFor(isMobile, chairs, tallPhone)
   const positions = feltSeatPositions(chairs, g)
   const host = view.players.find((p) => p.host)
+  const slow = view.kind === 'slow'
   const canDeal = view.isHost && view.players.length >= 2
   const full = view.players.length >= view.maxSeats
   // A full ring's chairs draw smaller on a phone, as its seats do (`FeltSeat` `crowded`).
@@ -118,7 +124,9 @@ export function RoomLobby({
   const link = inviteLink(view.code)
   const share = async () => {
     sound.play('tap')
-    const text = `Pull up a chair: room ${view.code} on Pip.`
+    const text = slow
+      ? `Play a slow game with me on Pip: room ${view.code}.`
+      : `Pull up a chair: room ${view.code} on Pip.`
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Pip', text, url: link })
@@ -143,7 +151,7 @@ export function RoomLobby({
         <AppBar
           className="z-20"
           leading="back"
-          backLabel="Leave"
+          backLabel={slow ? 'Back' : 'Leave'}
           showWordmark={false}
           onBack={onLeave}
           actions={
@@ -165,7 +173,9 @@ export function RoomLobby({
           title={
             isMobile ? undefined : (
               <span className="text-sm font-medium text-muted-foreground">
-                {host ? `${host.id === view.you ? 'Your' : `${host.name}’s`} room` : 'A room'}
+                {host
+                  ? `${host.id === view.you ? 'Your' : `${host.name}’s`} ${slow ? 'slow game' : 'room'}`
+                  : 'A room'}
               </span>
             )
           }
@@ -280,7 +290,7 @@ export function RoomLobby({
                           ? 'Regular'
                           : seat.host
                             ? 'Host'
-                            : seat.connected
+                            : slow || seat.connected
                               ? 'Here'
                               : 'Away'}
                       </span>
@@ -334,18 +344,23 @@ export function RoomLobby({
             </div>
           )}
 
+          {slow && <PushPrompt />}
+
           {view.isHost ? (
             <div className="flex w-full gap-2">
-              <button
-                onClick={() => {
-                  sound.play('tap')
-                  addBots(1)
-                }}
-                disabled={full}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-foreground/[0.08] py-4 text-base font-semibold transition hover:bg-foreground/[0.14] active:scale-[0.97] disabled:opacity-40"
-              >
-                <Plus className="size-4" /> Add a regular
-              </button>
+              {/* A slow game is for friends: no regulars (Will, 2026-10-22). */}
+              {!slow && (
+                <button
+                  onClick={() => {
+                    sound.play('tap')
+                    addBots(1)
+                  }}
+                  disabled={full}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-foreground/[0.08] py-4 text-base font-semibold transition hover:bg-foreground/[0.14] active:scale-[0.97] disabled:opacity-40"
+                >
+                  <Plus className="size-4" /> Add a regular
+                </button>
+              )}
               <button
                 onClick={() => {
                   sound.play('call')
@@ -368,7 +383,21 @@ export function RoomLobby({
           onOpenChange={setRulesOpen}
           settings={view.settings}
           buyIn={view.buyIn}
-        />
+          slow={slow}
+        >
+          {slow && onLeaveGame && (
+            <button
+              onClick={() => {
+                sound.play('tap')
+                setRulesOpen(false)
+                onLeaveGame()
+              }}
+              className="mt-1 w-full rounded-2xl bg-foreground/[0.06] py-3 text-sm font-semibold text-suit-red transition hover:bg-foreground/[0.1]"
+            >
+              Leave this game
+            </button>
+          )}
+        </RoomRulesDialog>
         <PlayerSheet
           seat={sheet}
           onClose={() => setSheet(null)}

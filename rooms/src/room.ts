@@ -9,6 +9,10 @@
 // the object sleeps. Memory does not survive that; storage does, which is why
 // the state is read back from storage rather than trusted from a field, and
 // why each socket carries who it is in its attachment.
+//
+// A slow room also keeps each player's own index up to date (`player.ts`):
+// after every change, everybody at it is sent their mini table, which is what
+// Home draws and what decides their notifications.
 
 import { DurableObject } from 'cloudflare:workers'
 import {
@@ -23,8 +27,11 @@ import {
   join,
   kick,
   leave,
+  markSeen,
   removeBot,
   roomVenue,
+  setPre,
+  setQuiet,
   start,
   tick,
   type Joiner,
@@ -41,10 +48,14 @@ import {
   type ServerMessage,
 } from '@/lib/multiplayer/protocol'
 import { viewFor } from '@/lib/multiplayer/view'
+import { cardFor, goneCard } from '@/lib/multiplayer/slowCard'
+import { parseQuiet } from '@/lib/multiplayer/protocol'
+import { quietOf, type PlayPrefs } from '@/lib/multiplayer/notices'
+import { MAX_SLOW_GAMES, type Quiet } from '@/lib/multiplayer/slow'
 import { identify } from './auth'
 import { saveBlock, saveReport } from './safety'
 import { cryptoRng } from '@/lib/cryptoRng'
-import { json, type Env } from './env'
+import { json, playerStub, type Env } from './env'
 
 interface Attachment {
   userId: string | null
@@ -95,8 +106,9 @@ export class PokerRoom extends DurableObject<Env> {
     return this.room
   }
 
-  private async save(next: RoomState): Promise<void> {
+  private async save(next: RoomState, leaving?: WebSocket): Promise<void> {
     this.room = next
+    if (next.kind === 'slow') await this.index(next, leaving)
     if (next.phase === 'closed') {
       for (const ws of this.ctx.getWebSockets()) ws.close(4004, 'closed')
       await this.ctx.storage.deleteAll()
@@ -105,6 +117,65 @@ export class PokerRoom extends DurableObject<Env> {
     await this.ctx.storage.put('room', next)
     if (next.dueAt !== null) await this.ctx.storage.setAlarm(next.dueAt)
     else await this.ctx.storage.deleteAlarm()
+  }
+
+  /**
+   * Send everybody at a slow table their own mini table, and tell anybody who
+   * is no longer at it (left the lobby, removed, or the room closed) to forget
+   * it. `leaving` is a socket closing right now, which no longer counts as
+   * having the table open.
+   */
+  private async index(room: RoomState, leaving?: WebSocket): Promise<void> {
+    const now = Date.now()
+    const watching = new Set(
+      this.ctx
+        .getWebSockets()
+        .filter((ws) => ws !== leaving)
+        .map((ws) => (ws.deserializeAttachment() as Attachment).userId)
+        .filter(Boolean),
+    )
+    const seated = room.phase === 'closed' ? [] : room.players.map((p) => p.userId).filter(Boolean)
+    const before = (await this.ctx.storage.get<string[]>('indexed')) ?? []
+    const gone = before.filter((u) => !seated.includes(u))
+    const send = (userId: string, body: unknown) =>
+      playerStub(this.env, userId)
+        .fetch(`https://player/card?user=${encodeURIComponent(userId)}`, {
+          method: 'POST',
+          body: JSON.stringify(body),
+        })
+        .catch((e: unknown) => console.error('index failed', { error: String(e) }))
+    await Promise.all([
+      ...seated.map((u) => send(u!, cardFor(room, u!, { watching: watching.has(u!), now }))),
+      ...gone.map((u) => send(u, goneCard(room.code, now))),
+    ])
+    if (room.phase !== 'closed') await this.ctx.storage.put('indexed', seated)
+  }
+
+  /** A player's quiet hours from their own index, set in Settings. Null if they never set any. */
+  private async quietOf(userId: string): Promise<Quiet | null> {
+    try {
+      const res = await playerStub(this.env, userId).fetch(
+        `https://player/prefs?user=${encodeURIComponent(userId)}`,
+      )
+      if (!res.ok) return null
+      const { prefs, set } = (await res.json()) as { prefs: PlayPrefs; set: boolean }
+      return set ? quietOf(prefs) : null
+    } catch {
+      return null
+    }
+  }
+
+  /** Whether somebody already has as many slow games as anybody may. */
+  private async atLimit(userId: string): Promise<boolean> {
+    try {
+      const res = await playerStub(this.env, userId).fetch(
+        `https://player/open?user=${encodeURIComponent(userId)}`,
+      )
+      const { open } = (await res.json()) as { open: number }
+      return open >= MAX_SLOW_GAMES
+    } catch {
+      return false
+    }
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -146,9 +217,25 @@ export class PokerRoom extends DurableObject<Env> {
           maxSeats: room.maxSeats,
           host: host?.name ?? null,
           forRoll: room.settings.forRoll,
+          ...(room.kind === 'slow'
+            ? { moveHours: room.settings.moveHours, ending: room.settings.ending }
+            : {}),
         },
         200,
       )
+    }
+    if (url.pathname === '/quiet' && request.method === 'POST') {
+      // Settings changed somebody's quiet hours: their turn clock here follows.
+      const room = await this.load()
+      if (!room || room.kind !== 'slow') return json({ ok: true }, 200)
+      const body = (await request.json()) as { userId?: string; quiet?: unknown }
+      if (!body.userId) return json({ error: 'bad' }, 400)
+      const result = setQuiet(room, body.userId, parseQuiet(body.quiet), Date.now())
+      if (result.ok) {
+        await this.save(result.state)
+        this.broadcast(result.state)
+      }
+      return json({ ok: true }, 200)
     }
     if (url.pathname === '/ws') {
       if (request.headers.get('Upgrade') !== 'websocket') return new Response(null, { status: 426 })
@@ -255,11 +342,22 @@ export class PokerRoom extends DurableObject<Env> {
       // Read again after the await: another message can have been handled
       // while Supabase answered, and joining the copy from before it would
       // write that message's change away.
-      const current = await this.load()
+      let current = await this.load()
       if (!current || current.phase === 'closed') return this.fail(ws, 'no-room', true)
+      let quiet = msg.quiet
+      if (current.kind === 'slow') {
+        // The hours set in Settings win over whatever this device sent.
+        quiet = (await this.quietOf(userId)) ?? quiet
+        const seated = current.players.some((p) => p.userId === userId)
+        if (!seated && current.phase === 'lobby' && (await this.atLimit(userId))) {
+          return this.fail(ws, 'too-many', true)
+        }
+        current = await this.load()
+        if (!current || current.phase === 'closed') return this.fail(ws, 'no-room', true)
+      }
       const result = join(
         current,
-        { userId, name: msg.name, avatar: msg.avatar, ring: msg.ring },
+        { userId, name: msg.name, avatar: msg.avatar, ring: msg.ring, ...(quiet ? { quiet } : {}) },
         Date.now(),
       )
       if (!result.ok) return this.fail(ws, result.error, true)
@@ -287,6 +385,11 @@ export class PokerRoom extends DurableObject<Env> {
         return
       case 'act':
         return this.apply(ws, act(room, userId, msg.action, now))
+      case 'pre':
+        return this.apply(ws, setPre(room, userId, msg.pre))
+      case 'seen':
+        if (room.kind !== 'slow') return
+        return this.apply(ws, markSeen(room, userId))
       case 'start':
         return this.apply(ws, start(room, userId, now, rng))
       case 'bots':
@@ -379,7 +482,7 @@ export class PokerRoom extends DurableObject<Env> {
     const room = await this.load()
     if (!room || room.phase === 'closed') return
     const next = disconnect(room, a.userId, Date.now())
-    await this.save(next)
+    await this.save(next, ws)
     this.broadcast(next)
     if (room.kind === 'private') this.broadcastMedia()
   }

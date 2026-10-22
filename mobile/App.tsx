@@ -5,6 +5,7 @@
 // server on your network instead (e.g. http://192.168.1.20:3000).
 
 import { requireOptionalNativeModule } from 'expo'
+import * as Notifications from 'expo-notifications'
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useRef } from 'react'
 import { BackHandler, Linking, Platform, StyleSheet, View } from 'react-native'
@@ -12,6 +13,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 import { WebView } from 'react-native-webview'
 import { handleMessage, injectedFlag } from './src/bridge'
 import { Offline } from './src/Offline'
+import { pathOf } from './src/push'
 
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'https://playpip.io'
 
@@ -48,6 +50,26 @@ export default function App() {
     )
   }
 
+  // A tapped notification opens its game: on a cold start (the response is
+  // already there when the app opens) and while running.
+  const lastTap = Notifications.useLastNotificationResponse()
+  const opened = useRef<string | null>(null)
+  const loaded = useRef(false)
+  // A tap that arrives before the page has loaded waits for it.
+  const pending = useRef<string | null>(null)
+  const go = (path: string) =>
+    webView.current?.injectJavaScript(
+      `window.location.assign(${JSON.stringify(SITE_URL + path)}); true;`,
+    )
+  useEffect(() => {
+    const path = pathOf(lastTap)
+    const id = lastTap?.notification.request.identifier ?? null
+    if (!path || opened.current === id) return
+    opened.current = id
+    if (loaded.current) go(path)
+    else pending.current = path
+  }, [lastTap])
+
   // Android's back button walks the web view's history, and only leaves the
   // app once there's nothing left to go back to.
   useEffect(() => {
@@ -82,6 +104,12 @@ export default function App() {
           }}
           onNavigationStateChange={(nav) => {
             canGoBack.current = nav.canGoBack
+          }}
+          onLoadEnd={() => {
+            loaded.current = true
+            const path = pending.current
+            pending.current = null
+            if (path) go(path)
           }}
           // iOS's springy scroll stays on. The page turns it off where it
           // shouldn't happen (the felt) with overscroll-behavior in CSS.

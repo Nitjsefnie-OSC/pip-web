@@ -68,3 +68,28 @@ test('a multiplayer tap on the membership page lists the rules', (t) => {
     t.regex(sample, new RegExp(`label\\(${list}\\)`))
   }
 })
+
+test('a slow game accepts every choice its host is shown', async (t) => {
+  const { ENDING_HAND_CHOICES, MOVE_CHOICES, SLOW_SEAT_CHOICES } = await import(
+    '@/config/roomRules'
+  )
+  const slow = () =>
+    createRoom({
+      code: 'SLOWGM',
+      kind: 'slow',
+      venue: VENUES[1],
+      host: {
+        userId: 'host',
+        name: 'Host',
+        avatar: { seed: 'h', backgroundColor: 'b6e3f4' },
+        ring: null,
+      },
+      now: 0,
+    })
+  const ok = (patch: Partial<RoomSettings>) => configure(slow(), 'host', patch).ok
+  for (const seats of values(SLOW_SEAT_CHOICES)) t.true(ok({ seats }), `seats ${seats}`)
+  for (const moveHours of values(MOVE_CHOICES)) t.true(ok({ moveHours }), `move ${moveHours}`)
+  for (const hands of values(ENDING_HAND_CHOICES)) t.true(ok({ ending: { kind: 'hands', hands } }))
+  t.true(ok({ ending: { kind: 'last-standing' } }))
+  t.true(ok({ ending: { kind: 'date', at: 1_900_000_000_000 } }))
+})

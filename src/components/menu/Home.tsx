@@ -22,6 +22,7 @@ import { CategoryCard } from './CategoryCard'
 import { LadderStrip } from './LadderStrip'
 import { NextUpCard } from './NextUpCard'
 import { QuickPlayCard } from './QuickPlayCard'
+import { YourGames } from './YourGames'
 import { RollSparkline } from './RollSparkline'
 import { VenueInfoDialog } from './VenueInfoDialog'
 import { SIDE_SHELF, RING_TABLES, THE_DAILY, dailyFor } from '@/config/venues'
@@ -160,6 +161,10 @@ export function Home() {
 
       {/* the main menu — one recommendation, the spine, the detours, the rooms */}
       <div className="flex flex-1 flex-col gap-4 pb-2">
+        {/* Slow games you are in, your move first. Above everything else
+            because a friend is waiting on it. Nothing at all until you have one. */}
+        {hydrated && <YourGames className="mb-2" />}
+
         {/* The spine. Everything below this pair is optional and reads as
             optional, which is the whole point of the rearrangement (Will,
             2026-09-20): five identically sized tiles made the ladder — the

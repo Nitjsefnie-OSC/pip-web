@@ -24,6 +24,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p rooms",
     "rooms:dev": "wrangler dev -c rooms/wrangler.jsonc",
     "rooms:deploy": "wrangler deploy -c rooms/wrangler.jsonc",
+    "rooms:vapid": "node scripts/vapid-keys.mjs",
     "sim": "tsx scripts/sim.ts",
     "spot-sim": "tsx scripts/spot-sim.ts",
     "supabase:db:push": "supabase db push",
@@ -42,6 +43,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
+    "@block65/webcrypto-web-push": "^2.0.0",
     "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.3",
     "@supabase/supabase-js": "^2.111.0",

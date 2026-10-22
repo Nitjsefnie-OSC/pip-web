@@ -9,6 +9,7 @@ import Constants from 'expo-constants'
 import * as Haptics from 'expo-haptics'
 import { Platform } from 'react-native'
 import { products, purchase, purchasesConfigured, restore, type Plan } from './purchases'
+import { pushToken } from './push'
 import { appleAvailable, googleConfigured, type Provider, signIn } from './signIn'
 
 // Every sound cue plus the two tournament endings. Matches `Buzz` in the web
@@ -35,6 +36,7 @@ type NativeMessage =
   | { type: 'products'; id: string }
   | { type: 'purchase'; id: string; plan: Plan; userId: string }
   | { type: 'restore'; id: string; userId: string }
+  | { type: 'pushToken'; id: string }
 
 /** Answers a request the page made, by its id. App.tsx delivers it. */
 export type Reply = (id: string, payload: unknown) => void
@@ -49,10 +51,14 @@ export type Reply = (id: string, payload: unknown) => void
  * usage strings and Android permissions (app.json) and the web view's grant
  * setting (App.tsx). It needs no message; the page calls getUserMedia and the
  * system asks the player.
+ *
+ * `push` means `pushToken` is answered (src/push.ts) and a tapped notification
+ * opens its page in the web view (App.tsx).
  */
 const SUPPORTS = [
   'haptic',
   'media',
+  'push',
   ...(appleAvailable ? ['signIn:apple'] : []),
   ...(googleConfigured ? ['signIn:google'] : []),
   ...(purchasesConfigured ? ['purchase'] : []),
@@ -145,6 +151,9 @@ export function handleMessage(data: string, reply: Reply) {
       return
     case 'restore':
       void answer(message.id, reply, () => restore(message.userId))
+      return
+    case 'pushToken':
+      void answer(message.id, reply, pushToken)
       return
   }
 }

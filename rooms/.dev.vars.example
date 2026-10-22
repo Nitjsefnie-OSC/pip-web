@@ -8,3 +8,9 @@ DEV_AUTH=1
 # Optional, for camera and mic across networks that block direct connections.
 TURN_KEY_ID=
 TURN_KEY_API_TOKEN=
+# Optional, for slow games' notices. Without them pushes and emails are skipped
+# and logged. Make the VAPID pair with `node scripts/vapid-keys.mjs`.
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+RESEND_API_KEY=
+PUBLIC_URL=http://localhost:8787

@@ -9,9 +9,9 @@
 // is wherever the server put you. The seats are turned so you are always at
 // the near rail, the way you would sit at a real table.
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion'
-import { HelpCircle, WifiOff } from 'lucide-react'
+import { HelpCircle, SlidersHorizontal, WifiOff } from 'lucide-react'
 import { AppBar, AppBarAction } from '@/components/AppBar'
 import { ActionBar } from '@/components/table/ActionBar'
 import { HandsHelpDialog } from '@/components/table/HandsHelpDialog'
@@ -47,7 +47,12 @@ import {
   TableAudio,
 } from './live'
 import { PlayerSheet } from './PlayerSheet'
+import { PreActions } from './PreActions'
+import { RoomRulesDialog } from './RoomSettings'
 import { TurnClock } from './TurnClock'
+import { useCatchUp } from './useCatchUp'
+import { inQuiet } from '@/lib/multiplayer/slow'
+import { timeLeft } from '@/lib/multiplayer/slowCard'
 
 type Point = { left: string; top: string }
 
@@ -55,14 +60,24 @@ export function RoomTable({
   view,
   live,
   onLeave,
+  onLeaveGame,
 }: {
   view: RoomView
   /** Camera and mic are on offer: a private room, in a browser or app that can. */
   live: boolean
+  /** Back. At a slow game the seat stays yours. */
   onLeave: () => void
+  /** A slow game: stand up on purpose. */
+  onLeaveGame?: () => void
 }) {
-  const hand = view.hand!
+  const slow = view.kind === 'slow'
+  // At a slow game, what you missed plays first; until it has, the felt shows it.
+  const catchUp = useCatchUp(view)
+  const catching = catchUp.frame !== null
+  const hand = catchUp.frame?.hand ?? view.hand!
+  const handIndex = catchUp.frame?.index ?? view.handIndex
   const act = useRoom((s) => s.act)
+  const setPre = useRoom((s) => s.setPre)
   const pending = useRoom((s) => s.pending)
   const connection = useRoom((s) => s.connection)
   const clockOffset = useRoom((s) => s.clockOffset)
@@ -79,10 +94,12 @@ export function RoomTable({
   const dealerButton = dealerButtonById(useProfile((s) => s.dealerButton))
   const showOdds = useProfile((s) => s.showOdds)
   const tableStyle = useMemo(() => ({ ring, button: dealerButton }), [ring, dealerButton])
-  const seatActions = useSeatActions(hand, view.handIndex)
+  const seatActions = useSeatActions(hand, handIndex)
   const [helpOpen, setHelpOpen] = useState(false)
   const [codeCopied, markCodeCopied] = useCopied()
   const [leaveOpen, setLeaveOpen] = useState(false)
+  const [rulesOpen, setRulesOpen] = useState(false)
+  const now = useMinuteClock(slow)
   const [watching, setWatching] = useState(false)
   const [marked, setMarked] = useState<number[]>([])
   /** The seat whose camera is open large, if any. */
@@ -121,11 +138,11 @@ export function RoomTable({
     ? Array.from(new Set(hand.result.potsAwarded.flatMap((p) => p.winners)))
     : []
   const shown = hand.result?.showdown === true
-  const result = settled ? describe(view) : null
+  const result = settled ? describe(hand, view) : null
 
   const finished = view.phase === 'finished'
   const out = me?.place !== null && me?.place !== undefined
-  const showEnd = (finished || out) && !watching
+  const showEnd = (finished || out) && !watching && !catching
   // Who is talking and who is on camera, drawn in the seat. A seat with
   // neither keeps the table's own avatar (FeltSeat draws it when `face` is
   // undefined), so the room looks like the ladder until somebody turns
@@ -159,7 +176,9 @@ export function RoomTable({
     const seat = meta.get(p.id)
     if (!seat) return null
     const x = Number.parseFloat(positions[i].left)
-    const away = !seat.bot && (!seat.connected || seat.left)
+    // At a slow table being offline is normal; asleep is worth saying.
+    const asleep = slow && !seat.left && inQuiet(now, seat.quiet)
+    const away = !seat.bot && (seat.left || (!slow && !seat.connected) || asleep)
     const dim = p.status === 'folded' || p.status === 'out'
     return (
       <div
@@ -194,14 +213,14 @@ export function RoomTable({
         />
         {away && (
           <span className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-full bg-table-shade/85 px-2 py-0.5 text-3xs font-medium text-muted-foreground">
-            {seat.left ? 'Left' : 'Away'}
+            {seat.left ? 'Left' : asleep ? 'Asleep' : 'Away'}
           </span>
         )}
       </div>
     )
   })
 
-  const myTurn = !settled && activeId === view.you && hero !== undefined
+  const myTurn = !catching && !settled && activeId === view.you && hero !== undefined
   // Your chance to win, worked out here from your own cards, the board and the
   // chips in, so it needs nobody else’s cards, which the view never holds. Only on
   // your turn, as at the ladder, so it is the number for the decision in front
@@ -210,10 +229,18 @@ export function RoomTable({
     () => (myTurn ? heroEquity(hand, view.you!) : null),
     [myTurn, hand, view.you],
   )
+  const turnMs = slow
+    ? (view.settings.moveHours ?? 12) * 60 * 60 * 1000
+    : view.settings.turnSeconds * 1000
   const clock =
     myTurn && view.dueAt !== null && view.dueKind === 'turn' ? (
-      <TurnClock dueAt={view.dueAt - clockOffset} totalMs={view.settings.turnSeconds * 1000} />
+      <TurnClock dueAt={view.dueAt - clockOffset} totalMs={turnMs} slow={slow} />
     ) : undefined
+  // A slow move's time left, in words, under the code: "11h 20m left".
+  const moveLeft =
+    slow && myTurn && view.dueAt !== null && view.dueKind === 'turn'
+      ? `${timeLeft(view.dueAt - clockOffset - now)} left`
+      : null
   const helpButton = (
     <AppBarAction
       label="Hand rankings"
@@ -236,14 +263,14 @@ export function RoomTable({
           <AppBar
             className="z-20"
             leading="back"
-            backLabel="Leave"
             showWordmark={false}
             // Everybody at a table is signed in, and a phone's bar needs the room.
             account={false}
-            onBack={() => (finished || out ? onLeave() : setLeaveOpen(true))}
+            backLabel={slow ? 'Back' : 'Leave'}
+            onBack={() => (slow || finished || out ? onLeave() : setLeaveOpen(true))}
             title={
               <>
-                {view.kind === 'private' ? (
+                {view.kind !== 'quick' ? (
                   <button
                     onClick={async () => {
                       sound.play('tap')
@@ -264,10 +291,16 @@ export function RoomTable({
                     {venue?.name ?? 'Quick match'}
                   </span>
                 )}
-                <span className="text-2xs tabular-nums text-muted-foreground/60">
-                  Blinds {view.smallBlind.toLocaleString()}/{view.bigBlind.toLocaleString()}
-                  {view.blindLevel > 0 && ` · L${view.blindLevel + 1}`}
-                </span>
+                {/* On your move at a slow table, the time you have; a phone's bar has room for one line. */}
+                {moveLeft && isMobile ? (
+                  <span className="text-2xs tabular-nums text-foreground/80">{moveLeft}</span>
+                ) : (
+                  <span className="text-2xs tabular-nums text-muted-foreground/60">
+                    Blinds {view.smallBlind.toLocaleString()}/{view.bigBlind.toLocaleString()}
+                    {view.blindLevel > 0 && ` · L${view.blindLevel + 1}`}
+                    {moveLeft && <span className="text-foreground/80"> · {moveLeft}</span>}
+                  </span>
+                )}
               </>
             }
             actions={
@@ -275,6 +308,17 @@ export function RoomTable({
                 {/* On a phone, camera and mic live in the corners of your own
                     panel, by your thumb; help moves up here into their room. */}
                 {live && !isMobile && <MediaControls bar />}
+                {slow && (
+                  <AppBarAction
+                    label="Table rules"
+                    onClick={() => {
+                      sound.play('tap')
+                      setRulesOpen(true)
+                    }}
+                  >
+                    <SlidersHorizontal className="size-4" />
+                  </AppBarAction>
+                )}
                 {helpButton}
               </>
             }
@@ -295,7 +339,7 @@ export function RoomTable({
             <TableFelt geometry={g} swatch={finish?.swatch} accent={accent} compact={isMobile} />
             <FeltStage
               hand={hand}
-              handIndex={view.handIndex}
+              handIndex={handIndex}
               geometry={g}
               seatPoint={seatPoint}
               betPoint={betPoint}
@@ -361,9 +405,30 @@ export function RoomTable({
                 : 'mx-auto max-w-xl px-6 pt-4 pb-7',
             )}
           >
-            {hero && pending ? (
+            {catching ? (
+              // What you missed, playing: the way back to the live table.
+              <div className="flex h-[56px] items-center justify-between gap-3 rounded-2xl bg-foreground/[0.04] px-4 ring-1 ring-foreground/10">
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  Catching up · hand {handIndex}
+                </span>
+                <button
+                  onClick={catchUp.skip}
+                  className="rounded-full bg-foreground/[0.08] px-4 py-2 text-sm font-semibold transition hover:bg-foreground/[0.14] active:scale-[0.97]"
+                >
+                  Skip
+                </button>
+              </div>
+            ) : hero && pending ? (
               // Your move has gone; the row keeps its height until the table answers.
               <div className="h-[56px]" aria-hidden />
+            ) : hero && !myTurn && !settled && view.you ? (
+              <PreActions
+                hand={hand}
+                handIndex={view.handIndex}
+                heroId={view.you}
+                pre={view.pre}
+                onSet={setPre}
+              />
             ) : hero ? (
               <ActionBar
                 hand={hand}
@@ -390,7 +455,7 @@ export function RoomTable({
           <AnimatePresence>
             {result && !showEnd && (
               <motion.div
-                key={`r-${view.handIndex}`}
+                key={`r-${handIndex}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
@@ -406,7 +471,14 @@ export function RoomTable({
                 key="end"
                 won={me.place === 1}
                 place={me.place}
-                prize={won || me.place === 1 ? view.prize : 0}
+                prize={
+                  won || me.place === 1
+                    ? Math.floor(
+                        view.prize / Math.max(1, view.players.filter((p) => p.place === 1).length),
+                      )
+                    : 0
+                }
+                leaveLabel={slow ? 'Done' : 'Back to multiplayer'}
                 onLeave={onLeave}
                 onWatch={finished ? undefined : () => setWatching(true)}
               />
@@ -436,14 +508,37 @@ export function RoomTable({
             removeNote="They’re folded out after this hand and can’t rejoin."
           />
           <HandsHelpDialog open={helpOpen} onOpenChange={setHelpOpen} />
+          {slow && (
+            <RoomRulesDialog
+              open={rulesOpen}
+              onOpenChange={setRulesOpen}
+              settings={view.settings}
+              buyIn={view.buyIn}
+              slow
+            >
+              {onLeaveGame && !finished && !out && (
+                <button
+                  onClick={() => {
+                    sound.play('tap')
+                    setRulesOpen(false)
+                    setLeaveOpen(true)
+                  }}
+                  className="mt-1 w-full rounded-2xl bg-foreground/[0.06] py-3 text-sm font-semibold text-suit-red transition hover:bg-foreground/[0.1]"
+                >
+                  Leave this game
+                </button>
+              )}
+            </RoomRulesDialog>
+          )}
           <Dialog open={leaveOpen} onOpenChange={setLeaveOpen}>
             <DialogContent className="sm:max-w-sm">
               <DialogHeader>
-                <DialogTitle>Leave the table?</DialogTitle>
+                <DialogTitle>{slow ? 'Leave this game?' : 'Leave the table?'}</DialogTitle>
               </DialogHeader>
               <p className="text-sm text-muted-foreground">
-                Your chips stay in the game and your hands are folded for you until you are out.
-                Come back with the same code before then and you can carry on.
+                {slow
+                  ? 'Your hands are folded for you until you’re out. Open the game again before then and you can carry on.'
+                  : 'Your chips stay in the game and your hands are folded for you until you are out. Come back with the same code before then and you can carry on.'}
               </p>
               <div className="mt-2 flex gap-2">
                 <button
@@ -455,7 +550,8 @@ export function RoomTable({
                 <button
                   onClick={() => {
                     setLeaveOpen(false)
-                    onLeave()
+                    if (slow && onLeaveGame) onLeaveGame()
+                    else onLeave()
                   }}
                   className="flex-1 rounded-2xl bg-primary py-3 font-semibold text-primary-foreground transition hover:bg-primary/90"
                 >
@@ -470,9 +566,19 @@ export function RoomTable({
   )
 }
 
+/** The time, every 30 seconds, for slow tables (asleep seats, hours left); still otherwise. */
+function useMinuteClock(on: boolean): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!on) return
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [on])
+  return now
+}
+
 /** "Sam wins 1,200 with a flush", the way the single-player table says it. */
-function describe(view: RoomView): string | null {
-  const hand = view.hand
+function describe(hand: RoomView['hand'], view: RoomView): string | null {
   const win = hand?.result?.potsAwarded[0]
   if (!hand?.result || !win) return null
   const names = win.winners
@@ -487,12 +593,14 @@ function EndCard({
   won,
   place,
   prize,
+  leaveLabel,
   onLeave,
   onWatch,
 }: {
   won: boolean
   place: number | null
   prize: number
+  leaveLabel: string
   onLeave: () => void
   onWatch?: () => void
 }) {
@@ -534,7 +642,7 @@ function EndCard({
             onClick={onLeave}
             className="rounded-2xl bg-white px-8 py-3.5 font-semibold text-black transition hover:bg-white/90 active:scale-[0.98]"
           >
-            Back to multiplayer
+            {leaveLabel}
           </button>
           {onWatch && (
             <button

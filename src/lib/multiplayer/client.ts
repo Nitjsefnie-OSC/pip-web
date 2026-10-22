@@ -6,7 +6,10 @@
 
 import { getSupabase } from '@/lib/sync/client'
 import type { AvatarSpec } from '@/lib/avatar'
-import type { RoomSettings } from './room'
+import type { PlayPrefs } from './notices'
+import type { RoomKind, RoomSettings } from './room'
+import type { SlowCard } from './slowCard'
+import type { MoveHours, SlowEnding } from './slow'
 
 const ROOMS_URL = process.env.NEXT_PUBLIC_ROOMS_URL?.replace(/\/$/, '')
 
@@ -63,11 +66,12 @@ export interface Seat {
 
 export type CreateResult = { code: string } | { error: string }
 
-/** Open a private room at a ladder stake, with you in the first seat and your rules set. */
+/** Open a private room (or a slow game) at a ladder stake, with you in the first seat and your rules set. */
 export async function createRoom(
   venueId: string,
   seat: Seat,
   settings?: Partial<RoomSettings>,
+  kind: Extract<RoomKind, 'private' | 'slow'> = 'private',
 ): Promise<CreateResult> {
   const token = await sessionToken()
   if (!token) return { error: 'auth' }
@@ -75,7 +79,7 @@ export async function createRoom(
     const res = await fetch(`${ROOMS_URL}/rooms`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ venueId, ...seat, settings }),
+      body: JSON.stringify({ venueId, kind, ...seat, settings }),
     })
     const body = (await res.json()) as { code?: string; error?: string }
     return body.code ? { code: body.code } : { error: body.error ?? 'busy' }
@@ -87,7 +91,7 @@ export async function createRoom(
 /** What a code opens, before you sit down: shown on the join screen. */
 export interface RoomPeek {
   code: string
-  kind: 'private' | 'quick'
+  kind: RoomKind
   phase: 'lobby' | 'playing' | 'finished' | 'closed'
   venueId: string
   buyIn: number
@@ -96,6 +100,9 @@ export interface RoomPeek {
   host: string | null
   /** False for a game for fun: no buy-in, no prize. */
   forRoll?: boolean
+  /** Slow games only. */
+  moveHours?: MoveHours
+  ending?: SlowEnding
 }
 
 export async function peekRoom(code: string): Promise<RoomPeek | null> {
@@ -110,4 +117,74 @@ export async function peekRoom(code: string): Promise<RoomPeek | null> {
 /** The link a host shares. Opens the room on any device, the app included. */
 export function inviteLink(code: string): string {
   return `${window.location.origin}/game/room?code=${code}`
+}
+
+// --- your own things: slow games and notifications ------------------------------
+
+/** A signed-in request to the room server, or null when signed out or it fails. */
+async function mine<T>(path: string, body?: unknown): Promise<T | null> {
+  if (!ROOMS_URL) return null
+  const token = await sessionToken()
+  if (!token) return null
+  try {
+    const res = await fetch(`${ROOMS_URL}${path}`, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    })
+    return res.ok ? ((await res.json()) as T) : null
+  } catch {
+    return null
+  }
+}
+
+/** Your slow games as mini tables. Null when they could not be fetched. */
+export async function fetchSlowGames(): Promise<SlowCard[] | null> {
+  const body = await mine<{ games: SlowCard[] }>('/slow')
+  return body?.games ?? null
+}
+
+/** Swipe a finished slow game away. */
+export async function dismissSlowGame(code: string): Promise<void> {
+  await mine('/slow/dismiss', { code })
+}
+
+export interface NotifySettings {
+  prefs: PlayPrefs
+  /** Whether they have ever been saved. Until then the timezone is a guess. */
+  set: boolean
+  devices: { kind: 'web' | 'expo'; id: string }[]
+}
+
+export function fetchNotifySettings(): Promise<NotifySettings | null> {
+  return mine<NotifySettings>('/notify/prefs')
+}
+
+export async function saveNotifyPrefs(prefs: PlayPrefs): Promise<boolean> {
+  return (await mine('/notify/prefs', prefs)) !== null
+}
+
+/** Allow pushes on this device: a browser's subscription, or the app's Expo token. */
+export async function registerDevice(
+  device:
+    | { kind: 'web'; endpoint: string; keys: { p256dh: string; auth: string } }
+    | { kind: 'expo'; token: string },
+): Promise<boolean> {
+  return (await mine('/notify/devices', device)) !== null
+}
+
+
+/** The room server's web push key, or null when it has none. */
+export async function vapidKey(): Promise<string | null> {
+  if (!ROOMS_URL) return null
+  try {
+    const res = await fetch(`${ROOMS_URL}/notify/key`)
+    const body = (await res.json()) as { key: string | null }
+    return body.key
+  } catch {
+    return null
+  }
 }

@@ -9,6 +9,15 @@
 import type { AvatarSpec } from '@/lib/avatar'
 import type { Action, ActionType } from '@/lib/poker/engine'
 import type { RoomSettings } from './room'
+import {
+  ENDING_HANDS,
+  MOVE_HOURS,
+  validTimeZone,
+  type MoveHours,
+  type PreKind,
+  type Quiet,
+  type SlowEnding,
+} from './slow'
 import type { RoomView } from './view'
 
 /** Who you are, sent first on every socket. The token is your Supabase session. */
@@ -18,6 +27,8 @@ export interface Hello {
   name: string
   avatar: AvatarSpec
   ring: string | null
+  /** Your quiet hours, which a slow game's clock skips. */
+  quiet?: Quiet
 }
 
 export const REPORT_REASONS = ['abuse', 'camera', 'cheating', 'other'] as const
@@ -32,6 +43,10 @@ export interface MediaState {
 export type ClientMessage =
   | Hello
   | { t: 'act'; action: Action }
+  /** A move to make when your turn comes, or null to clear it. */
+  | { t: 'pre'; pre: { kind: PreKind; amount?: number } | null }
+  /** You have caught up on a slow game. */
+  | { t: 'seen' }
   | { t: 'start' }
   | { t: 'bots'; count: number }
   | { t: 'unbot'; id: string }
@@ -66,6 +81,8 @@ export type ServerError =
   | 'slow-down'
   | 'kicked'
   | 'bad-settings'
+  /** Already in as many slow games as anybody may be. */
+  | 'too-many'
 
 export type ServerMessage =
   /** `now` is the server's clock, so a turn timer can be drawn without trusting the device's. */
@@ -123,12 +140,51 @@ function parseAvatar(v: unknown): AvatarSpec | null {
   return { seed: v.seed, backgroundColor: v.backgroundColor }
 }
 
+const isMinute = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 24 * 60
+
+/** Quiet hours, or null when they are missing or anything about them is off. */
+export function parseQuiet(v: unknown): Quiet | null {
+  if (!isObj(v) || !isMinute(v.from) || !isMinute(v.to) || !validTimeZone(v.tz)) return null
+  return { from: v.from, to: v.to, tz: v.tz }
+}
+
 function parseHello(m: Obj): Hello | null {
   if (!isStr(m.token, MAX_TOKEN)) return null
   const avatar = parseAvatar(m.avatar)
   if (!avatar) return null
   const ring = m.ring === null || m.ring === undefined ? null : isStr(m.ring, 40) ? m.ring : null
-  return { t: 'hello', token: m.token, name: cleanName(m.name), avatar, ring }
+  const quiet = parseQuiet(m.quiet)
+  return {
+    t: 'hello',
+    token: m.token,
+    name: cleanName(m.name),
+    avatar,
+    ring,
+    ...(quiet ? { quiet } : {}),
+  }
+}
+
+function parsePre(v: unknown): { kind: PreKind; amount?: number } | null | undefined {
+  if (v === null) return null
+  if (!isObj(v)) return undefined
+  if (v.kind === 'check-fold' || v.kind === 'check') return { kind: v.kind }
+  if (v.kind === 'call' && typeof v.amount === 'number' && Number.isSafeInteger(v.amount)) {
+    return v.amount > 0 ? { kind: 'call', amount: v.amount } : undefined
+  }
+  return undefined
+}
+
+function parseEnding(v: unknown): SlowEnding | null {
+  if (!isObj(v)) return null
+  if (v.kind === 'last-standing') return { kind: 'last-standing' }
+  if (v.kind === 'hands' && ENDING_HANDS.includes(v.hands as (typeof ENDING_HANDS)[number])) {
+    return { kind: 'hands', hands: v.hands as (typeof ENDING_HANDS)[number] }
+  }
+  if (v.kind === 'date' && typeof v.at === 'number' && Number.isSafeInteger(v.at) && v.at > 0) {
+    return { kind: 'date', at: v.at }
+  }
+  return null
 }
 
 function parseAction(v: unknown): Action | null {
@@ -186,6 +242,15 @@ function parseSettings(v: unknown): Partial<RoomSettings> | null {
     if (typeof v.forRoll !== 'boolean') return null
     out.forRoll = v.forRoll
   }
+  if ('moveHours' in v) {
+    if (!MOVE_HOURS.includes(v.moveHours as MoveHours)) return null
+    out.moveHours = v.moveHours as MoveHours
+  }
+  if ('ending' in v) {
+    const ending = parseEnding(v.ending)
+    if (!ending) return null
+    out.ending = ending
+  }
   return Object.keys(out).length > 0 ? out : null
 }
 
@@ -209,8 +274,13 @@ export function parseClientMessage(raw: unknown): ClientMessage | null {
       const action = parseAction(m.action)
       return action ? { t: 'act', action } : null
     }
+    case 'pre': {
+      const pre = parsePre(m.pre)
+      return pre === undefined ? null : { t: 'pre', pre }
+    }
     case 'start':
     case 'leave':
+    case 'seen':
     case 'ping':
       return { t: m.t }
     case 'bots':

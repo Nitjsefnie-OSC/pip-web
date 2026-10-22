@@ -4,6 +4,14 @@
 //   GET  /rooms/:code         what a code opens: the stake and who is waiting
 //   GET  /rooms/:code/ws      the table's socket
 //   GET  /queue/:venueId/ws   quick match at a ladder stake
+//   GET  /slow                your slow games, as mini tables (a token)
+//   POST /slow/dismiss        swipe a finished one away
+//   GET  /notify/prefs        Settings → Notifications, and your devices
+//   POST /notify/prefs        save them; a running game's clock follows
+//   POST /notify/devices      allow pushes on this device
+//   POST /notify/devices/remove
+//   GET  /notify/key          the web push (VAPID) public key
+//   GET|POST /notify/off      the "stop these emails" link (signed, no token)
 //
 // Every socket and every create is refused from an origin that is not the
 // site's (ALLOWED_ORIGINS), so a page somewhere else cannot drive a table with
@@ -12,14 +20,18 @@
 import { cryptoInt } from '@/lib/cryptoRng'
 import { normaliseRoomCode, newRoomCode } from '@/lib/multiplayer/code'
 import { parseClientMessage } from '@/lib/multiplayer/protocol'
-import { type RoomSettings, roomVenue } from '@/lib/multiplayer/room'
+import { type RoomKind, type RoomSettings, roomVenue } from '@/lib/multiplayer/room'
+import { parseDevice, parsePrefs, quietOf } from '@/lib/multiplayer/notices'
+import { MAX_SLOW_GAMES } from '@/lib/multiplayer/slow'
 import { identify, isMember } from './auth'
 import { blocksOf } from './safety'
-import { corsHeaders, json, originAllowed, type Env } from './env'
+import { corsHeaders, json, originAllowed, playerStub, type Env } from './env'
+import { offLinkValid } from './notify'
 import type { InitBody } from './room'
 
 export { PokerRoom } from './room'
 export { Matchmaker } from './matchmaker'
+export { Player } from './player'
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -54,6 +66,15 @@ export default {
         if (!originAllowed(request, env)) return new Response(null, { status: 403 })
         return stub.fetch(new Request('https://room/ws', request))
       }
+    }
+
+    if (parts[0] === 'notify' && parts[1] === 'off') return emailOff(url, env)
+    if (parts[0] === 'notify' && parts[1] === 'key' && request.method === 'GET') {
+      return json({ key: env.VAPID_PUBLIC_KEY ?? null }, 200, cors)
+    }
+    if (parts[0] === 'slow' || parts[0] === 'notify') {
+      if (!originAllowed(request, env)) return json({ error: 'origin' }, 403)
+      return mine(request, env, cors, parts)
     }
 
     if (parts[0] === 'queue' && parts[1] && parts[2] === 'ws') {
@@ -99,9 +120,16 @@ async function createRoom(
     settings = parsed.settings
   }
 
+  const kind: RoomKind = body.kind === 'slow' ? 'slow' : 'private'
+
   const userId = await identify(token, env)
   if (!userId) return json({ error: 'auth' }, 401, cors)
   if (!(await isMember(userId, token, env))) return json({ error: 'members-only' }, 403, cors)
+  if (kind === 'slow') {
+    const res = await player(env, userId, 'open')
+    const { open } = (await res.json()) as { open: number }
+    if (open >= MAX_SLOW_GAMES) return json({ error: 'too-many' }, 409, cors)
+  }
   const hostBlocks = await blocksOf(env, userId)
 
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -109,7 +137,7 @@ async function createRoom(
     const stub = env.ROOMS.get(env.ROOMS.idFromName(code))
     const init: InitBody = {
       code,
-      kind: 'private',
+      kind,
       venueId: venue.id,
       host: { userId, name: hello.name, avatar: hello.avatar, ring: hello.ring },
       settings,
@@ -123,4 +151,99 @@ async function createRoom(
     if (res.status === 400) return json({ error: 'bad-settings' }, 400, cors)
   }
   return json({ error: 'busy' }, 503, cors)
+}
+
+function player(env: Env, userId: string, path: string, body?: unknown): Promise<Response> {
+  return playerStub(env, userId).fetch(
+    `https://player/${path}?user=${encodeURIComponent(userId)}`,
+    body === undefined ? undefined : { method: 'POST', body: JSON.stringify(body) },
+  )
+}
+
+/** The signed-in player's own things: their slow games and their notification settings. */
+async function mine(
+  request: Request,
+  env: Env,
+  cors: Record<string, string>,
+  parts: string[],
+): Promise<Response> {
+  const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+  const userId = token ? await identify(token, env) : null
+  if (!userId) return json({ error: 'auth' }, 401, cors)
+  const route = `${request.method} /${parts.join('/')}`
+  const read = async (): Promise<unknown> => {
+    try {
+      return await request.json()
+    } catch {
+      return null
+    }
+  }
+  const relay = async (res: Response) =>
+    new Response(res.body, {
+      status: res.status,
+      headers: { ...cors, 'Content-Type': 'application/json' },
+    })
+
+  switch (route) {
+    case 'GET /slow':
+      return relay(await player(env, userId, 'games'))
+    case 'POST /slow/dismiss': {
+      const body = (await read()) as { code?: unknown } | null
+      const code = typeof body?.code === 'string' ? normaliseRoomCode(body.code) : null
+      if (!code) return json({ error: 'bad-message' }, 400, cors)
+      return relay(await player(env, userId, 'dismiss', { code }))
+    }
+    case 'GET /notify/prefs':
+      return relay(await player(env, userId, 'prefs'))
+    case 'POST /notify/prefs': {
+      const prefs = parsePrefs(await read())
+      if (!prefs) return json({ error: 'bad-message' }, 400, cors)
+      const res = await player(env, userId, 'prefs', prefs)
+      const { rooms } = (await res.json()) as { rooms: string[] }
+      // Every game still running moves its clock to the new hours.
+      await Promise.all(
+        rooms.map((code) =>
+          env.ROOMS.get(env.ROOMS.idFromName(code))
+            .fetch('https://room/quiet', {
+              method: 'POST',
+              body: JSON.stringify({ userId, quiet: quietOf(prefs) }),
+            })
+            .catch(() => null),
+        ),
+      )
+      return json({ prefs }, 200, cors)
+    }
+    case 'POST /notify/devices': {
+      const device = parseDevice(await read())
+      if (!device) return json({ error: 'bad-message' }, 400, cors)
+      return relay(await player(env, userId, 'devices', device))
+    }
+    case 'POST /notify/devices/remove': {
+      const body = (await read()) as { id?: unknown } | null
+      if (typeof body?.id !== 'string' || body.id.length > 1024) {
+        return json({ error: 'bad-message' }, 400, cors)
+      }
+      return relay(await player(env, userId, 'devices/remove', { id: body.id }))
+    }
+  }
+  return json({ error: 'not-found' }, 404, cors)
+}
+
+/**
+ * The "stop these emails" link. Signed with the account id, so it works from
+ * an inbox with no session, and nobody can make one for somebody else. A mail
+ * provider's one-click POST turns them off the same way a visit does.
+ */
+async function emailOff(url: URL, env: Env): Promise<Response> {
+  const userId = url.searchParams.get('u') ?? ''
+  const sig = url.searchParams.get('s') ?? ''
+  const ok = userId.length > 0 && userId.length <= 64 && (await offLinkValid(env, userId, sig))
+  if (ok) await player(env, userId, 'email-off', {})
+  const text = ok
+    ? 'Done. Pip won’t email you about your games. Turn it back on in Settings.'
+    : 'That link has expired. Turn emails off in Pip, under Settings.'
+  return new Response(
+    `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>Pip</title></head><body style="margin:0;background:#0a0a0a;color:#ededed;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;display:grid;place-items:center;min-height:100vh;padding:16px;box-sizing:border-box"><p style="max-width:360px;font-size:17px;line-height:1.5;text-align:center">${text}</p></body></html>`,
+    { status: ok ? 200 : 400, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
+  )
 }

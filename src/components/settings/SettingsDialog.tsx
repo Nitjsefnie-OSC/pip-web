@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { RotateCcw } from 'lucide-react'
 import { MembershipSection } from '@/components/settings/MembershipSection'
+import { SlowGamesSection } from '@/components/settings/SlowGamesSection'
 import { SyncSection } from '@/components/settings/SyncSection'
 import { TransferDialog } from '@/components/settings/TransferDialog'
 import {
@@ -49,6 +50,7 @@ export function SettingsDialog({
           <TableTalkSection />
           <HandCoachingSection />
           <OddsSection />
+          <SlowGamesSection />
           <MembershipSection />
           <TransferSection />
           <ResetSection />

@@ -12,11 +12,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import {
   BLIND_CHOICES,
   DEPTH_CHOICES,
+  ENDING_CHOICES,
+  ENDING_HAND_CHOICES,
   LEAVING_CHOICES,
+  MOVE_CHOICES,
+  PACE_CHOICES,
   SEAT_CHOICES,
+  SLOW_SEAT_CHOICES,
   TURN_CHOICES,
+  type EndingKind,
+  type Pace,
 } from '@/config/roomRules'
-import type { BlindSpeed, LeavingRule, RoomSettings } from '@/lib/multiplayer/room'
+import {
+  DEFAULT_ROOM_SEATS,
+  type BlindSpeed,
+  type LeavingRule,
+  type RoomSettings,
+} from '@/lib/multiplayer/room'
+import { DEFAULT_ENDING, DEFAULT_MOVE_HOURS, type SlowEnding } from '@/lib/multiplayer/slow'
 import { sound } from '@/lib/sound'
 import { useMoney } from '@/lib/useMoney'
 import { cn } from '@/lib/utils'
@@ -27,11 +40,16 @@ export function RoomRulesDialog({
   onOpenChange,
   settings,
   buyIn,
+  slow = false,
+  children,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   settings: RoomSettings
   buyIn: number
+  slow?: boolean
+  /** Anything under the rules: a slow game's way out. */
+  children?: React.ReactNode
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -39,10 +57,40 @@ export function RoomRulesDialog({
         <DialogHeader>
           <DialogTitle>Table rules</DialogTitle>
         </DialogHeader>
-        <SettingsList settings={settings} buyIn={buyIn} />
+        <SettingsList settings={settings} buyIn={buyIn} slow={slow} />
+        {children}
       </DialogContent>
     </Dialog>
   )
+}
+
+/** Live and slow rooms take different seats; switching pace starts from that pace's defaults. */
+export function settingsForPace(settings: RoomSettings, pace: Pace): RoomSettings {
+  if (pace === 'slow') {
+    return {
+      ...settings,
+      seats: Math.min(settings.seats, 4) === settings.seats ? settings.seats : 2,
+      moveHours: settings.moveHours ?? DEFAULT_MOVE_HOURS,
+      ending: settings.ending ?? DEFAULT_ENDING,
+    }
+  }
+  const { moveHours: _m, ending: _e, ...live } = settings
+  return { ...live, seats: DEFAULT_ROOM_SEATS }
+}
+
+/** A week from now at eight in the evening: where an end date starts. */
+function aWeekOn(): number {
+  const d = new Date()
+  d.setDate(d.getDate() + 7)
+  d.setHours(20, 0, 0, 0)
+  return d.getTime()
+}
+
+/** A timestamp as a `datetime-local` input wants it: local time, to the minute. */
+function toLocalInput(at: number): string {
+  const d = new Date(at)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 /**
@@ -54,6 +102,8 @@ export function SettingsList({
   buyIn,
   onChange,
   stakes,
+  slow = false,
+  onPace,
 }: {
   settings: RoomSettings
   buyIn: number
@@ -61,6 +111,10 @@ export function SettingsList({
   onChange?: (patch: Partial<RoomSettings>) => void
   /** The stake picker, straight after the chips choice it depends on. */
   stakes?: React.ReactNode
+  /** A slow game: moves in hours, and an ending. */
+  slow?: boolean
+  /** Offered while a room is being opened: live or slow. */
+  onPace?: (pace: Pace) => void
 }) {
   const money = useMoney()
   const editable = onChange !== undefined
@@ -69,8 +123,83 @@ export function SettingsList({
     sound.play('tap')
     onChange(patch)
   }
+  const ending: SlowEnding = settings.ending ?? DEFAULT_ENDING
+  const pickEnding = (kind: EndingKind) =>
+    set({
+      ending:
+        kind === 'hands'
+          ? { kind, hands: 50 }
+          : kind === 'date'
+            ? { kind, at: aWeekOn() }
+            : { kind: 'last-standing' },
+    })
   return (
     <div className="divide-y divide-foreground/[0.07] overflow-hidden rounded-2xl bg-foreground/[0.04]">
+      {onPace && (
+        <Row label="Pace">
+          <Choice<Pace>
+            value={slow ? 'slow' : 'live'}
+            options={PACE_CHOICES}
+            onPick={(pace) => {
+              sound.play('tap')
+              onPace(pace)
+            }}
+            editable={editable}
+          />
+        </Row>
+      )}
+      {slow && (
+        <>
+          <Row label="Time per move">
+            <Choice
+              value={settings.moveHours ?? DEFAULT_MOVE_HOURS}
+              options={MOVE_CHOICES}
+              onPick={(moveHours) => set({ moveHours })}
+              editable={editable}
+            />
+          </Row>
+          <Row label="Ends">
+            <Choice<EndingKind>
+              value={ending.kind}
+              options={ENDING_CHOICES}
+              onPick={pickEnding}
+              editable={editable}
+            />
+            {ending.kind === 'hands' && (
+              <Choice
+                value={ending.hands}
+                options={ENDING_HAND_CHOICES}
+                onPick={(hands) => set({ ending: { kind: 'hands', hands } })}
+                editable={editable}
+              />
+            )}
+            {ending.kind === 'date' &&
+              (editable ? (
+                <input
+                  type="datetime-local"
+                  value={toLocalInput(ending.at)}
+                  min={toLocalInput(Date.now() + 60 * 60 * 1000)}
+                  onChange={(e) => {
+                    const at = new Date(e.target.value).getTime()
+                    if (Number.isFinite(at)) onChange?.({ ending: { kind: 'date', at } })
+                  }}
+                  aria-label="End date"
+                  className="rounded-xl bg-foreground/[0.05] px-3 py-2 text-sm font-medium [color-scheme:dark]"
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {new Date(ending.at).toLocaleString(undefined, {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              ))}
+          </Row>
+        </>
+      )}
       <Row label="Chips">
         <Choice
           value={settings.forRoll}
@@ -86,7 +215,7 @@ export function SettingsList({
       <Row label="Seats">
         <Choice
           value={settings.seats}
-          options={SEAT_CHOICES}
+          options={slow ? SLOW_SEAT_CHOICES : SEAT_CHOICES}
           onPick={(seats) => set({ seats })}
           editable={editable}
         />
@@ -107,22 +236,26 @@ export function SettingsList({
           editable={editable}
         />
       </Row>
-      <Row label="Turn time">
-        <Choice
-          value={settings.turnSeconds}
-          options={TURN_CHOICES}
-          onPick={(turnSeconds) => set({ turnSeconds })}
-          editable={editable}
-        />
-      </Row>
-      <Row label="If someone leaves">
-        <Choice<LeavingRule>
-          value={settings.leaving}
-          options={LEAVING_CHOICES}
-          onPick={(leaving) => set({ leaving })}
-          editable={editable}
-        />
-      </Row>
+      {!slow && (
+        <>
+          <Row label="Turn time">
+            <Choice
+              value={settings.turnSeconds}
+              options={TURN_CHOICES}
+              onPick={(turnSeconds) => set({ turnSeconds })}
+              editable={editable}
+            />
+          </Row>
+          <Row label="If someone leaves">
+            <Choice<LeavingRule>
+              value={settings.leaving}
+              options={LEAVING_CHOICES}
+              onPick={(leaving) => set({ leaving })}
+              editable={editable}
+            />
+          </Row>
+        </>
+      )}
     </div>
   )
 }

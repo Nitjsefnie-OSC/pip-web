@@ -45,7 +45,8 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      ["expo-notifications", { "color": "#0a0a0b" }]
     ],
     "owner": "playpip",
     "extra": {

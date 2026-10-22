@@ -86,3 +86,40 @@ self.addEventListener('fetch', (event) => {
     )
   }
 })
+
+// Slow games' notifications (rooms/src/notify.ts sends them): "Your move vs
+// Sam". One per game, by tag, so a newer one replaces the last. A tap opens
+// the game, in a Pip window that is already open if there is one.
+self.addEventListener('push', (event) => {
+  let msg = null
+  try {
+    msg = event.data ? event.data.json() : null
+  } catch {
+    msg = null
+  }
+  if (!msg || typeof msg.title !== 'string') return
+  event.waitUntil(
+    self.registration.showNotification(msg.title, {
+      body: typeof msg.body === 'string' ? msg.body : '',
+      tag: typeof msg.tag === 'string' ? msg.tag : undefined,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: typeof msg.url === 'string' && msg.url.startsWith('/') ? msg.url : '/' },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = new URL(event.notification.data?.url ?? '/', self.location.origin).href
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const w of windows) {
+        if (new URL(w.url).origin === self.location.origin && 'focus' in w) {
+          return w.navigate(url).then((nav) => (nav ?? w).focus())
+        }
+      }
+      return self.clients.openWindow(url)
+    }),
+  )
+})
