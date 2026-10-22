@@ -28,7 +28,6 @@ export function pushSupport(): PushSupport {
   return ios ? 'install' : 'none'
 }
 
-
 function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
   const pad = '='.repeat((4 - (base64url.length % 4)) % 4)
   const raw = atob((base64url + pad).replace(/-/g, '+').replace(/_/g, '/'))
@@ -73,4 +72,3 @@ export async function enablePush(): Promise<'on' | 'denied' | 'unsupported' | 'f
     return 'failed'
   }
 }
-

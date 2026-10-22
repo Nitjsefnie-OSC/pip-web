@@ -821,7 +821,7 @@ export function setPre(
   if (!player) return fail('not-seated')
   const hand = state.hand
   const inHand = hand.players.find((p) => p.id === player.id)
-  if (!inHand || inHand.status !== 'active') return fail('illegal')
+  if (inHand?.status !== 'active') return fail('illegal')
   if (pre && hand.players[hand.toActIndex]?.id === player.id) return fail('illegal')
   if (pre?.kind === 'call' && (!Number.isSafeInteger(pre.amount) || pre.amount! <= 0)) {
     return fail('illegal')

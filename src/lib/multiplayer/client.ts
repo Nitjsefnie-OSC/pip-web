@@ -176,7 +176,6 @@ export async function registerDevice(
   return (await mine('/notify/devices', device)) !== null
 }
 
-
 /** The room server's web push key, or null when it has none. */
 export async function vapidKey(): Promise<string | null> {
   if (!ROOMS_URL) return null

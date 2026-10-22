@@ -28,7 +28,7 @@ export function PreActions({
   const money = useMoney()
   const hero = hand.players.find((p) => p.id === heroId)
   const toAct = hand.players[hand.toActIndex]
-  if (!hero || hero.status !== 'active' || !toAct || toAct.id === heroId || hand.result) {
+  if (hero?.status !== 'active' || !toAct || toAct.id === heroId || hand.result) {
     return <div className="h-[56px]" aria-hidden />
   }
   const owed = Math.min(hero.stack, Math.max(0, hand.currentBet - hero.committedThisStreet))

@@ -227,7 +227,7 @@ export class PokerRoom extends DurableObject<Env> {
     if (url.pathname === '/quiet' && request.method === 'POST') {
       // Settings changed somebody's quiet hours: their turn clock here follows.
       const room = await this.load()
-      if (!room || room.kind !== 'slow') return json({ ok: true }, 200)
+      if (room?.kind !== 'slow') return json({ ok: true }, 200)
       const body = (await request.json()) as { userId?: string; quiet?: unknown }
       if (!body.userId) return json({ error: 'bad' }, 400)
       const result = setQuiet(room, body.userId, parseQuiet(body.quiet), Date.now())
