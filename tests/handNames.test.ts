@@ -27,6 +27,32 @@ test('named hands resolve regardless of order or suits', (t) => {
   t.is(nicknameFor(hole('Tc', 'Kd')), 'Katie')
 })
 
+test('pocket nines resolve as Wayne Gretzky in either card order', (t) => {
+  t.is(nicknameFor(hole('9c', '9d')), 'Wayne Gretzky')
+  t.is(nicknameFor(hole('9d', '9c')), 'Wayne Gretzky')
+})
+
+test('queen-ten resolves as Q-Tip regardless of order or suits', (t) => {
+  t.is(nicknameFor(hole('Qc', 'Tc')), 'Q-Tip')
+  t.is(nicknameFor(hole('Tc', 'Qc')), 'Q-Tip')
+  t.is(nicknameFor(hole('Qc', 'Td')), 'Q-Tip')
+  t.is(nicknameFor(hole('Td', 'Qc')), 'Q-Tip')
+})
+
+test('five-four resolves as Moneymaker regardless of order or suits', (t) => {
+  t.is(nicknameFor(hole('5c', '4c')), 'Moneymaker')
+  t.is(nicknameFor(hole('4c', '5c')), 'Moneymaker')
+  t.is(nicknameFor(hole('5c', '4d')), 'Moneymaker')
+  t.is(nicknameFor(hole('4d', '5c')), 'Moneymaker')
+})
+
+test('three-two resolves as Michael Jordan regardless of order or suits', (t) => {
+  t.is(nicknameFor(hole('3c', '2c')), 'Michael Jordan')
+  t.is(nicknameFor(hole('2c', '3c')), 'Michael Jordan')
+  t.is(nicknameFor(hole('3c', '2d')), 'Michael Jordan')
+  t.is(nicknameFor(hole('2d', '3c')), 'Michael Jordan')
+})
+
 test('suffixed names apply to only that variant', (t) => {
   t.is(nicknameFor(hole('7c', '2d')), 'The Hammer') // offsuit — the classic
   t.is(nicknameFor(hole('7c', '2c')), null) // suited 7-2 has no folk name

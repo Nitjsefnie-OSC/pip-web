@@ -14,6 +14,7 @@ export const NICKNAMES: Record<string, string> = {
   QQ: 'Ladies',
   JJ: 'Fishhooks',
   TT: 'Dimes',
+  '99': 'Wayne Gretzky',
   '88': 'Snowmen',
   '77': 'Hockey Sticks',
   '66': 'Route 66',
@@ -30,6 +31,7 @@ export const NICKNAMES: Record<string, string> = {
   KT: 'Katie',
   K9: 'Canine',
   QJ: 'Maverick',
+  QT: 'Q-Tip',
   Q7: 'The Computer Hand',
   J5: 'Motown',
   J4: 'Flat Tire',
@@ -41,6 +43,8 @@ export const NICKNAMES: Record<string, string> = {
   '72o': 'The Hammer',
   '75': 'The Heinz',
   '93': 'Jack Benny',
+  '54': 'Moneymaker',
+  '32': 'Michael Jordan',
 }
 
 /** Canonical starting-hand key: high rank first, `s`/`o` for non-pairs. */
