@@ -315,6 +315,8 @@ export const CAST: readonly Character[] = [
       seat: [
         'Jun cracks his knuckles out of habit, not menace.',
         'Jun checks the exits, then his cards.',
+        'Jun sets his chips down. Nothing marked fragile.',
+        'Jun rolls up his sleeves. The shift continues.',
       ],
       win: ['Jun stacks the pot like cargo. Efficiently.', '“Paid on delivery,” says Jun.'],
       bust: ['Jun clocks out early. The tide’s out.', 'Jun nods once and ships out.'],
