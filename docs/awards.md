@@ -34,7 +34,7 @@ Unearned chips show as hollow outlines (the hatch pattern used for face-down car
 so the shelf reads as a collection with visible gaps — the pull is seeing what's
 missing, not a nag.
 
-## The set (84 chips)
+## The set (88 chips)
 
 ### Venue chips — one per rung, earned by **winning** the venue (10)
 
@@ -72,11 +72,11 @@ chip certifies a real moment, not a folded-out technicality.
 | `moment-comeback` | "The Comeback" | Win a ladder venue after falling to ≤10% of your starting stack |
 | `moment-chipandchair` | "Chip and a Chair" | Win a ladder venue after being ground down to ≤1 big blind |
 
-### Nickname chips — win a pot holding a folk-named starting hand (29)
+### Nickname chips — win a pot holding a folk-named starting hand (33)
 
 | id | Chip | Earned by |
 |----|------|-----------|
-| `nickname-KK` … `nickname-93` | The hand's folk name (jade) | Win a pot holding that named starting hand |
+| `nickname-KK` … `nickname-32` | The hand's folk name (jade) | Win a pot holding that named starting hand |
 
 Generated one-to-one from the nicknames in `src/config/handNames.ts` (Cowboys,
 Ladies, Snowmen, Motown, The Heinz …), so the shelf tracks that list exactly.
